@@ -11,6 +11,11 @@ import type {
 */
 
 /** flightmode-api business / validation error (HTTP 422 гэх мэт) */
+/** Development: the local API is not running · production: the server is down or unreachable */
+const UNREACHABLE = import.meta.env.DEV
+  ? 'Cannot reach flightmode-api. Start it with `php artisan serve` (port 8000).'
+  : `Cannot reach the server (${api.base}). Check the connection and try again.`
+
 export class ApiError extends Error {
   status: number
   code?: string
@@ -63,7 +68,7 @@ async function request<T>(
     })
   } catch {
     throw new ApiError(
-      'Cannot reach flightmode-api. Start it with `php artisan serve` (port 8000).',
+      UNREACHABLE,
       0
     )
   }
@@ -93,7 +98,7 @@ async function request<T>(
     firstFieldError ??
     body?.message ??
     (response.status >= 500 && !body
-      ? 'Cannot reach flightmode-api. Start it with `php artisan serve` (port 8000).'
+      ? UNREACHABLE
       : response.status === 403
         ? 'You do not have permission for this.'
         : response.statusText)
