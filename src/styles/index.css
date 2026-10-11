@@ -1,0 +1,181 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import './theme.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  html {
+    @apply overflow-x-hidden;
+    font-size: 15px;
+  }
+  body {
+    @apply bg-background text-foreground has-[div[data-variant='inset']]:bg-sidebar min-h-svh w-full;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body[data-scroll-locked] {
+    overflow: unset !important;
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  @media screen and (max-width: 767px) {
+    html {
+      font-size: 16px;
+    }
+
+    input,
+    select,
+    textarea {
+      font-size: 16px !important;
+    }
+  }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+}
+
+@utility no-scrollbar {
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@utility faded-bottom {
+  @apply after:pointer-events-none after:absolute after:start-0 after:bottom-0 after:hidden after:h-32 after:w-full after:rounded-b-2xl after:bg-[linear-gradient(180deg,_transparent_10%,_var(--background)_70%)] md:after:block;
+}
+
+.CollapsibleContent {
+  overflow: hidden;
+}
+.CollapsibleContent[data-state='open'] {
+  animation: slideDown 300ms ease-out;
+}
+.CollapsibleContent[data-state='closed'] {
+  animation: slideUp 300ms ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-collapsible-content-height);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    height: var(--radix-collapsible-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.6s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
+  animation-name: theme-reveal;
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0% at var(--x, 50%) var(--y, 50%));
+  }
+  to {
+    clip-path: circle(150% at var(--x, 50%) var(--y, 50%));
+  }
+}
+
+.theme-transition-overlay {
+  animation: themeTransition 600ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: clip-path, opacity;
+  mix-blend-mode: normal;
+}
+
+.theme-transition-overlay.overlay-dark {
+  background: oklch(0.129 0.042 264.695);
+}
+
+.theme-transition-overlay.overlay-light {
+  background: oklch(1 0 0);
+}
+
+@keyframes themeTransition {
+  0% {
+    clip-path: circle(0% at var(--x, 50%) var(--y, 50%));
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  95% {
+    clip-path: circle(150% at var(--x, 50%) var(--y, 50%));
+    opacity: 1;
+  }
+  100% {
+    clip-path: circle(150% at var(--x, 50%) var(--y, 50%));
+    opacity: 0;
+  }
+}
+
+/* ─── FlightMode DCS look (gate app style) ─── */
+@utility fm-backdrop {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(60rem 40rem at 85% -10%, color-mix(in oklab, var(--brand) 12%, transparent), transparent 60%),
+    radial-gradient(50rem 35rem at -10% 110%, color-mix(in oklab, var(--brand-2) 12%, transparent), transparent 60%);
+}
+
+@utility fm-panel {
+  @apply bg-card rounded-2xl border;
+}
+
+@utility fm-inset {
+  @apply bg-surface rounded-xl border;
+}
+
+@utility fm-gradient {
+  background-image: linear-gradient(90deg, #0ea5e9 0%, #06b6d4 45%, #6366f1 100%);
+}
+
+@utility fm-glow {
+  box-shadow:
+    0 0 0 1px color-mix(in oklab, var(--brand) 35%, transparent),
+    0 0 32px -6px color-mix(in oklab, var(--brand) 45%, transparent);
+}
+
+@utility fm-label {
+  @apply text-muted-foreground text-[11px] font-semibold tracking-[0.14em] uppercase;
+}

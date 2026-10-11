@@ -1,0 +1,123 @@
+import type { Airport } from '../reference/reference.types'
+import type { ListParams } from '../shared/common.types'
+
+export type FlightStatus =
+  | 'scheduled'
+  | 'checkin_open'
+  | 'checkin_closed'
+  | 'gate_closed'
+  | 'departed'
+  | 'cancelled'
+
+export type FlightAirport = Pick<Airport, 'id' | 'iata_code' | 'name' | 'city'>
+
+export interface Flight extends Record<string, unknown> {
+  id: number
+  flight_number: string
+  airline: { id: number; name: string; iata_code: string }
+  aircraft: {
+    id: number
+    registration: string
+    type: string
+    total_seats: number
+  } | null
+  flight_series_id: number | null
+  origin: FlightAirport
+  destination: FlightAirport
+  scheduled_departure_at: string
+  scheduled_arrival_at: string
+  estimated_departure_at: string | null
+  terminal: string | null
+  gate: string | null
+  status: FlightStatus
+  status_reason: string | null
+  is_published: boolean
+  online_checkin: {
+    enabled: boolean
+    opens_minutes: number
+    closes_minutes: number
+  }
+  segments_count: number
+}
+
+export interface FlightListParams extends ListParams {
+  status?: string | string[]
+  date?: string
+  start_day?: string
+  end_day?: string
+}
+
+export interface FlightPayload {
+  flight_number: string
+  origin_airport_id: string
+  destination_airport_id: string
+  aircraft_id: string
+  scheduled_departure_at: string
+  scheduled_arrival_at: string
+  terminal?: string
+  gate?: string
+}
+
+export interface FlightStatistics {
+  capacity: number
+  booked: number
+  checked_in: number
+  boarded: number
+  infants: number
+  by_cabin: { cabin_class: string; booked: number; capacity: number }[]
+}
+
+export interface FlightSeries extends Record<string, unknown> {
+  id: number
+  flight_number: string
+  /** IATA codes (display) */
+  origin: string
+  destination: string
+  origin_airport_id?: number
+  destination_airport_id?: number
+  aircraft_id?: number | null
+  /** aircraft id as a select value */
+  aircraft: string
+  departure_time: string
+  arrival_time: string
+  days_of_week: number[]
+  valid_from: string
+  valid_to: string
+  flights_count: number
+}
+
+export interface Allocation extends Record<string, unknown> {
+  id: number
+  agency: { id: number; name: string }
+  outbound_flight: Pick<
+    Flight,
+    'id' | 'flight_number' | 'scheduled_departure_at'
+  > & {
+    route: string
+  }
+  return_flight:
+    | (Pick<Flight, 'id' | 'flight_number' | 'scheduled_departure_at'> & {
+        route: string
+      })
+    | null
+  seats: number
+  deadline: string
+  uses_fare_quotas: boolean
+  is_waitlist: boolean
+  usage: { used: number; available: number }
+  created_at: string
+}
+
+export interface FlightOperations {
+  gate: string | null
+  estimated_departure_at: string | null
+  off_block_at: string | null
+  takeoff_at: string | null
+  estimated_arrival_at: string | null
+  delay_reason: string | null
+  gate_agents: { id: number; name: string }[]
+  online_checkin_enabled: boolean
+}
+
+export type FlightAction =
+  'open_checkin' | 'close_checkin' | 'close_gate' | 'depart' | 'cancel'
