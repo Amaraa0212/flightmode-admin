@@ -396,6 +396,80 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     ],
   },
 
+  '/fare-settings/rbd-fare-class': {
+    list: false,
+    title: 'RBD - Fare Class',
+    summary:
+      'Cabin бүрийн захиалгын анги (RBD), RBD бүрийн fare class (booking code), fare class бүрийн насны хөнгөлөлт.',
+    steps: [
+      '“Add RBD” — үсэг (Y, B, M…), Cabin, Rank (борлуулах дараалал), шаардлагатай бол Parent RBD-г оруулна.',
+      'RBD-ийн мөр дээр дарж (эсвэл “Select”) сонгоно — доод хүснэгтэд түүний fare class-ууд гарна.',
+      '“Add fare class” — Booking code (жишээ нь YOW), HK (баталгаатай) / SA (stand-by), OW / RT, Waitlist, Visible, Group fare-ийг тохируулна.',
+      'Fare class-ийн мөр дээр дарж (эсвэл “Fare discount”) хөнгөлөлтийн хүснэгтийг нээгээд “Add fare discount” — ADT / CHD / INF, нас, хөнгөлөлтийн %.',
+    ],
+    sections: [
+      {
+        title: 'Тооцоо',
+        items: [
+          'Зорчигчийн үнэ = үндсэн үнэ × (100 − хөнгөлөлт %) / 100.',
+          'Зорчигчийн төрөл бүрт нэг л хөнгөлөлт (fare class-д дээд тал нь 3).',
+          'Хөнгөлөлтгүй бол бүх зорчигч бүтэн үнэ төлнө.',
+          'Group fare — бүлгийн захиалгын хамгийн бага / их зорчигчийн тоо (Group min / max).',
+        ],
+      },
+    ],
+    notes: [
+      'Fare class эсвэл дэд RBD-тэй RBD-г, мөн fare-д ашиглагдаж буй fare class-ийг устгах боломжгүй — оронд нь Active-ийг унтраана.',
+    ],
+  },
+
+  '/fare-settings/fare-tax': {
+    list: false,
+    title: 'Fare + Fare Tax',
+    summary:
+      'Чиглэл бүр дээрх fare class-ийн үндсэн үнэ (Fare) ба нисэх буудлын татвар (Fare Tax).',
+    steps: [
+      'From, To чиглэлээ сонгоод “Search” дарна (“Clear” — бүх чиглэл).',
+      '“Add fare” — Fare class, чиглэл, үнэ, валют, хүчинтэй хугацааг (From / To date) оруулна.',
+      '“Add fare tax” — сонгосон чиглэлийн буудал дээр Tax code, зорчигчийн төрөл (ADT / CHD / INF), OUT / IN, дүнг оруулна.',
+      'Нэг fare-д өөр татвар хэрэгтэй бол fare-ийн мөр дээр дарж (эсвэл “Tax override”) “Add override” хийнэ.',
+    ],
+    sections: [
+      {
+        title: 'Татвар хэрхэн бодогдох вэ',
+        items: [
+          'OUT — тухайн буудлаас хөөрөх, IN — тухайн буудалд буух fare-д ногдоно.',
+          'Fare-д нэмсэн override нь ижил Tax code-той чиглэлийн татварыг зөвхөн тэр fare-д орлоно.',
+          'Хүснэгтийн Tax (ADT) — насанд хүрэгчийн нийт татвар, Total = үнэ + татвар.',
+          'Хүүхэд / нярайн хөнгөлөлт RBD - Fare Class хуудасны fare discount-аас ирнэ.',
+        ],
+      },
+    ],
+    notes: ['Tax code-ыг эхлээд “Tax Code” хуудсанд үүсгэнэ.'],
+  },
+
+  '/fare-settings/tax-codes': {
+    title: 'Tax Code',
+    summary:
+      'Fare Tax-д ашиглагдах татварын кодууд (жишээ нь YQ — түлшний нэмэгдэл, MN — нисэх буудлын хураамж).',
+    steps: [
+      '“Create tax code” — Tax code (A-Z / 0-9, 10 тэмдэгт хүртэл), нэрийг оруулна.',
+      'Ашиглахаа больсон кодыг устгахын оронд Active-ийг унтраана.',
+    ],
+  },
+
+  '/fare-settings/modifications': {
+    title: 'Modification',
+    summary:
+      'RBD бүрийн буцаалт, нэр / огноо / чиглэл солих, цуцлах, no-show-ийн торгууль ба зөвшөөрөл.',
+    steps: [
+      '“Create modification rule” — RBD, төрөл (Refund, Name change, Date change, Route change, Cancel, No-show)-ийг сонгоно.',
+      'Timeframe — нислэгээс хэдэн цагийн өмнөх хугацаанд энэ дүрэм үйлчлэх (хүснэгтэд “< 24 h” гэж харагдана).',
+      'Amount (тогтмол дүн) эсвэл Percentage (%) — ашиглахгүйг нь 0 үлдээнэ.',
+      'Allowed — тухайн өөрчлөлтийг зөвшөөрөх эсэх (N бол хийх боломжгүй).',
+    ],
+  },
+
   '/inventory/fares': {
     title: 'Fare and pricing',
     summary:
