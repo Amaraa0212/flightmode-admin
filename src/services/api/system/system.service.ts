@@ -15,7 +15,14 @@ import type {
   RequiredNotification,
   RequiredNotificationPayload,
 } from '../../types/system/system.types'
-import { action, client, getPage, pageQuery, type ApiData } from '../shared/client'
+import {
+  action,
+  client,
+  getPage,
+  pageQuery,
+  type ApiAction,
+  type ApiData,
+} from '../shared/client'
 
 /** /admin/activity-logs — limited by the API to the user's flights and staff */
 export const activityLogService = {
@@ -64,25 +71,59 @@ const announcementBody = (p: AnnouncementPayload) => ({
 /** /admin/announcements — for the user's airline (counters and agencies read them) */
 export const announcementService = {
   list: (params: ActivityLogListParams = {}) =>
-    getPage<ApiAnnouncement, Announcement>('/admin/announcements', pageQuery(params), toAnnouncement),
+    getPage<ApiAnnouncement, Announcement>(
+      '/admin/announcements',
+      pageQuery(params),
+      toAnnouncement
+    ),
   getById: async (id: number) => {
     const res = await announcementService.list({ pageSize: 200 })
     const row = res.body.items.find((a) => a.id === id)
     return row ? { message: 'OK', body: row } : fail('Not found')
   },
   create: (payload: AnnouncementPayload) =>
-    action(client.post<ApiData<ApiAnnouncement>>('/admin/announcements', announcementBody(payload)), toAnnouncement),
+    action(
+      client.post<ApiData<ApiAnnouncement>>(
+        '/admin/announcements',
+        announcementBody(payload)
+      ),
+      toAnnouncement
+    ),
   update: (id: number, payload: AnnouncementPayload) =>
-    action(client.put<ApiData<ApiAnnouncement>>(`/admin/announcements/${id}`, announcementBody(payload)), toAnnouncement),
-  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/announcements/${id}`), () => null),
+    action(
+      client.put<ApiData<ApiAnnouncement>>(
+        `/admin/announcements/${id}`,
+        announcementBody(payload)
+      ),
+      toAnnouncement
+    ),
+  remove: (id: number) =>
+    action(
+      client.delete<ApiData<null>>(`/admin/announcements/${id}`),
+      () => null
+    ),
 }
 
 /** /admin/dashboard — summary block (cards, 14-day chart, top routes) */
 export const dashboardService = {
   get: async () => {
-    const res = await client.get<ApiData<{ summary: DashboardStats }>>('/admin/dashboard')
+    const res =
+      await client.get<ApiData<{ summary: DashboardStats }>>('/admin/dashboard')
     return ok(res.data.summary)
   },
+}
+
+/** POST /issue-reports — a problem reported from the page help panel (stored in issue_reports) */
+export const issueReportService = {
+  send: (payload: {
+    page_path: string
+    page_title?: string
+    message: string
+  }) =>
+    action(
+      client.post<ApiAction<{ id: number }>>('/issue-reports', payload),
+      (r) => r
+    ),
 }
 
 // ─── Notifications / terms / carriage ───

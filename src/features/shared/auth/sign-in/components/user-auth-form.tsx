@@ -62,9 +62,9 @@ export function UserAuthForm({ className, redirectTo }: UserAuthFormProps) {
   const loginMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       const res = await authService.login(data)
-      // the back office is for airline / station staff — agency and gate logins have their own apps
+      // a gate-only login has no screen here (it uses the gate app)
       if (!hasBackOfficeAccess(res.body.user)) {
-        throw new Error('Энэ эрхээр admin системд нэвтрэх боломжгүй (agency / gate хэрэглэгч).')
+        throw new Error('Энэ эрхээр admin системд нэвтрэх боломжгүй (gate хэрэглэгч gate app ашиглана).')
       }
       return res
     },

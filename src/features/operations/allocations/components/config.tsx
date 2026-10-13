@@ -20,8 +20,8 @@ const schema = z.object({
   outbound_flight_id: z.string().min(1, 'Flight is required'),
   return_flight_id: z.string(),
   seats: z.number().int().min(1),
+  business_seats: z.number().int().min(0),
   deadline: z.string().min(1, 'Names deadline is required'),
-  uses_fare_quotas: z.boolean(),
   is_waitlist: z.boolean(),
 })
 type Form = z.infer<typeof schema>
@@ -96,8 +96,8 @@ export const pageConfig: Omit<
       outbound_flight_id: '',
       return_flight_id: '',
       seats: 20,
+      business_seats: 0,
       deadline: '',
-      uses_fare_quotas: false,
       is_waitlist: false,
     },
     fromRow: (r) => ({
@@ -105,8 +105,8 @@ export const pageConfig: Omit<
       outbound_flight_id: String(r.outbound_flight.id),
       return_flight_id: r.return_flight ? String(r.return_flight.id) : '',
       seats: r.seats,
+      business_seats: r.cabins.C ?? 0,
       deadline: r.deadline,
-      uses_fare_quotas: r.uses_fare_quotas,
       is_waitlist: r.is_waitlist,
     }),
     fields: [
@@ -142,16 +142,16 @@ export const pageConfig: Omit<
         gridCols: 1,
       },
       {
+        name: 'business_seats',
+        label: 'Of which business (C)',
+        type: 'number',
+        gridCols: 1,
+      },
+      {
         name: 'deadline',
         label: 'Names deadline',
         type: 'date',
         required: true,
-        gridCols: 1,
-      },
-      {
-        name: 'uses_fare_quotas',
-        label: 'Use fare quotas',
-        type: 'checkbox',
         gridCols: 1,
       },
       {

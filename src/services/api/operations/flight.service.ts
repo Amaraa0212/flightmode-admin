@@ -196,8 +196,9 @@ export interface AllocationPayload {
   outbound_flight_id: string
   return_flight_id: string
   seats: number
+  /** business seats inside `seats`; the rest is economy */
+  business_seats: number
   deadline: string
-  uses_fare_quotas: boolean
   is_waitlist: boolean
 }
 
@@ -210,6 +211,7 @@ type ApiAllocation = {
   deadline: string
   uses_fare_quotas: boolean
   is_waitlist: boolean
+  cabins?: Record<string, number> | []
   usage?: { used: number; remaining: number }
   created_at: string
 }
@@ -230,6 +232,7 @@ const toAllocation = (a: ApiAllocation): Allocation => ({
   deadline: a.deadline,
   uses_fare_quotas: a.uses_fare_quotas,
   is_waitlist: a.is_waitlist,
+  cabins: Array.isArray(a.cabins) ? {} : (a.cabins ?? {}),
   usage: { used: a.usage?.used ?? 0, available: a.usage?.remaining ?? a.seats },
   created_at: a.created_at,
 })
@@ -243,8 +246,11 @@ export const allocationService = {
       seats: Number(payload.seats),
       deadline: payload.deadline,
       is_waitlist: payload.is_waitlist,
-      // the quota is held in economy unless split per cabin
-      cabins: { Y: Number(payload.seats) },
+      // fare buckets are not edited here — the API keeps them when "fares" is left out
+      cabins: {
+        C: Number(payload.business_seats) || 0,
+        Y: Math.max(0, Number(payload.seats) - (Number(payload.business_seats) || 0)),
+      },
     }
     return action(
       id

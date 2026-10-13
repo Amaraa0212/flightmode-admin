@@ -77,12 +77,24 @@ export {
 
 // ─── Products ───
 export { fareService, baggageRuleService } from './api/products/product.service'
+export {
+  rbdService,
+  fareClassService,
+  fareEntryService,
+  taxCodeService,
+  fareTaxService,
+  rbdModificationService,
+  rbdOptions,
+  fareClassOptions,
+  taxCodeOptions,
+} from './api/products/fare-setting.service'
 
 // ─── System ───
 export {
   activityLogService,
   announcementService,
   dashboardService,
+  issueReportService,
   requiredNotificationService,
   policyDocumentService,
   carriageService,
@@ -97,4 +109,13 @@ export * from './types/fleet/aircraft.types'
 export * from './types/operations/flight.types'
 export * from './types/sales/booking.types'
 export * from './types/products/product.types'
+export * from './types/products/fare-setting.types'
 export * from './types/system/system.types'
+
+// ─── Agency portal ───
+export {
+  agencyPortalService,
+  type AgencyQuota,
+  type AgencyPassenger,
+  type AgencyBookingPassenger,
+} from './api/agency/agency-portal.service'

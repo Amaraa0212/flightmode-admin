@@ -19,6 +19,7 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAccessUsersIndexRouteImport } from './routes/_authenticated/access/users/index'
+import { Route as AuthenticatedAgencyQuotasIndexRouteImport } from './routes/_authenticated/agency/quotas/index'
 import { Route as AuthenticatedCompanyAgenciesIndexRouteImport } from './routes/_authenticated/company/agencies/index'
 import { Route as AuthenticatedCompanyAgencyAccessIndexRouteImport } from './routes/_authenticated/company/agency-access/index'
 import { Route as AuthenticatedCompanyAirlinesIndexRouteImport } from './routes/_authenticated/company/airlines/index'
@@ -27,6 +28,10 @@ import { Route as AuthenticatedDcsActivityLogIndexRouteImport } from './routes/_
 import { Route as AuthenticatedDcsFlightManagerIndexRouteImport } from './routes/_authenticated/dcs/flight-manager/index'
 import { Route as AuthenticatedDcsManifestIndexRouteImport } from './routes/_authenticated/dcs/manifest/index'
 import { Route as AuthenticatedDcsSeatBlockIndexRouteImport } from './routes/_authenticated/dcs/seat-block/index'
+import { Route as AuthenticatedFareSettingsFareTaxIndexRouteImport } from './routes/_authenticated/fare-settings/fare-tax/index'
+import { Route as AuthenticatedFareSettingsModificationsIndexRouteImport } from './routes/_authenticated/fare-settings/modifications/index'
+import { Route as AuthenticatedFareSettingsRbdFareClassIndexRouteImport } from './routes/_authenticated/fare-settings/rbd-fare-class/index'
+import { Route as AuthenticatedFareSettingsTaxCodesIndexRouteImport } from './routes/_authenticated/fare-settings/tax-codes/index'
 import { Route as AuthenticatedFleetAircraftIndexRouteImport } from './routes/_authenticated/fleet/aircraft/index'
 import { Route as AuthenticatedFleetSeatMapsIndexRouteImport } from './routes/_authenticated/fleet/seat-maps/index'
 import { Route as AuthenticatedInventoryBaggageOverridesIndexRouteImport } from './routes/_authenticated/inventory/baggage-overrides/index'
@@ -105,6 +110,12 @@ const AuthenticatedAccessUsersIndexRoute =
     path: '/access/users/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAgencyQuotasIndexRoute =
+  AuthenticatedAgencyQuotasIndexRouteImport.update({
+    id: '/agency/quotas/',
+    path: '/agency/quotas/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedCompanyAgenciesIndexRoute =
   AuthenticatedCompanyAgenciesIndexRouteImport.update({
     id: '/company/agencies/',
@@ -151,6 +162,30 @@ const AuthenticatedDcsSeatBlockIndexRoute =
   AuthenticatedDcsSeatBlockIndexRouteImport.update({
     id: '/dcs/seat-block/',
     path: '/dcs/seat-block/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFareSettingsFareTaxIndexRoute =
+  AuthenticatedFareSettingsFareTaxIndexRouteImport.update({
+    id: '/fare-settings/fare-tax/',
+    path: '/fare-settings/fare-tax/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFareSettingsModificationsIndexRoute =
+  AuthenticatedFareSettingsModificationsIndexRouteImport.update({
+    id: '/fare-settings/modifications/',
+    path: '/fare-settings/modifications/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFareSettingsRbdFareClassIndexRoute =
+  AuthenticatedFareSettingsRbdFareClassIndexRouteImport.update({
+    id: '/fare-settings/rbd-fare-class/',
+    path: '/fare-settings/rbd-fare-class/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFareSettingsTaxCodesIndexRoute =
+  AuthenticatedFareSettingsTaxCodesIndexRouteImport.update({
+    id: '/fare-settings/tax-codes/',
+    path: '/fare-settings/tax-codes/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedFleetAircraftIndexRoute =
@@ -320,6 +355,7 @@ export interface FileRoutesByFullPath {
   '/503': typeof errors503Route
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
   '/access/users/': typeof AuthenticatedAccessUsersIndexRoute
+  '/agency/quotas/': typeof AuthenticatedAgencyQuotasIndexRoute
   '/company/agencies/': typeof AuthenticatedCompanyAgenciesIndexRoute
   '/company/agency-access/': typeof AuthenticatedCompanyAgencyAccessIndexRoute
   '/company/airlines/': typeof AuthenticatedCompanyAirlinesIndexRoute
@@ -328,6 +364,10 @@ export interface FileRoutesByFullPath {
   '/dcs/flight-manager/': typeof AuthenticatedDcsFlightManagerIndexRoute
   '/dcs/manifest/': typeof AuthenticatedDcsManifestIndexRoute
   '/dcs/seat-block/': typeof AuthenticatedDcsSeatBlockIndexRoute
+  '/fare-settings/fare-tax/': typeof AuthenticatedFareSettingsFareTaxIndexRoute
+  '/fare-settings/modifications/': typeof AuthenticatedFareSettingsModificationsIndexRoute
+  '/fare-settings/rbd-fare-class/': typeof AuthenticatedFareSettingsRbdFareClassIndexRoute
+  '/fare-settings/tax-codes/': typeof AuthenticatedFareSettingsTaxCodesIndexRoute
   '/fleet/aircraft/': typeof AuthenticatedFleetAircraftIndexRoute
   '/fleet/seat-maps/': typeof AuthenticatedFleetSeatMapsIndexRoute
   '/inventory/baggage-overrides/': typeof AuthenticatedInventoryBaggageOverridesIndexRoute
@@ -365,6 +405,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
   '/access/users': typeof AuthenticatedAccessUsersIndexRoute
+  '/agency/quotas': typeof AuthenticatedAgencyQuotasIndexRoute
   '/company/agencies': typeof AuthenticatedCompanyAgenciesIndexRoute
   '/company/agency-access': typeof AuthenticatedCompanyAgencyAccessIndexRoute
   '/company/airlines': typeof AuthenticatedCompanyAirlinesIndexRoute
@@ -373,6 +414,10 @@ export interface FileRoutesByTo {
   '/dcs/flight-manager': typeof AuthenticatedDcsFlightManagerIndexRoute
   '/dcs/manifest': typeof AuthenticatedDcsManifestIndexRoute
   '/dcs/seat-block': typeof AuthenticatedDcsSeatBlockIndexRoute
+  '/fare-settings/fare-tax': typeof AuthenticatedFareSettingsFareTaxIndexRoute
+  '/fare-settings/modifications': typeof AuthenticatedFareSettingsModificationsIndexRoute
+  '/fare-settings/rbd-fare-class': typeof AuthenticatedFareSettingsRbdFareClassIndexRoute
+  '/fare-settings/tax-codes': typeof AuthenticatedFareSettingsTaxCodesIndexRoute
   '/fleet/aircraft': typeof AuthenticatedFleetAircraftIndexRoute
   '/fleet/seat-maps': typeof AuthenticatedFleetSeatMapsIndexRoute
   '/inventory/baggage-overrides': typeof AuthenticatedInventoryBaggageOverridesIndexRoute
@@ -412,6 +457,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
   '/_authenticated/access/users/': typeof AuthenticatedAccessUsersIndexRoute
+  '/_authenticated/agency/quotas/': typeof AuthenticatedAgencyQuotasIndexRoute
   '/_authenticated/company/agencies/': typeof AuthenticatedCompanyAgenciesIndexRoute
   '/_authenticated/company/agency-access/': typeof AuthenticatedCompanyAgencyAccessIndexRoute
   '/_authenticated/company/airlines/': typeof AuthenticatedCompanyAirlinesIndexRoute
@@ -420,6 +466,10 @@ export interface FileRoutesById {
   '/_authenticated/dcs/flight-manager/': typeof AuthenticatedDcsFlightManagerIndexRoute
   '/_authenticated/dcs/manifest/': typeof AuthenticatedDcsManifestIndexRoute
   '/_authenticated/dcs/seat-block/': typeof AuthenticatedDcsSeatBlockIndexRoute
+  '/_authenticated/fare-settings/fare-tax/': typeof AuthenticatedFareSettingsFareTaxIndexRoute
+  '/_authenticated/fare-settings/modifications/': typeof AuthenticatedFareSettingsModificationsIndexRoute
+  '/_authenticated/fare-settings/rbd-fare-class/': typeof AuthenticatedFareSettingsRbdFareClassIndexRoute
+  '/_authenticated/fare-settings/tax-codes/': typeof AuthenticatedFareSettingsTaxCodesIndexRoute
   '/_authenticated/fleet/aircraft/': typeof AuthenticatedFleetAircraftIndexRoute
   '/_authenticated/fleet/seat-maps/': typeof AuthenticatedFleetSeatMapsIndexRoute
   '/_authenticated/inventory/baggage-overrides/': typeof AuthenticatedInventoryBaggageOverridesIndexRoute
@@ -459,6 +509,7 @@ export interface FileRouteTypes {
     | '/503'
     | '/access/roles/'
     | '/access/users/'
+    | '/agency/quotas/'
     | '/company/agencies/'
     | '/company/agency-access/'
     | '/company/airlines/'
@@ -467,6 +518,10 @@ export interface FileRouteTypes {
     | '/dcs/flight-manager/'
     | '/dcs/manifest/'
     | '/dcs/seat-block/'
+    | '/fare-settings/fare-tax/'
+    | '/fare-settings/modifications/'
+    | '/fare-settings/rbd-fare-class/'
+    | '/fare-settings/tax-codes/'
     | '/fleet/aircraft/'
     | '/fleet/seat-maps/'
     | '/inventory/baggage-overrides/'
@@ -504,6 +559,7 @@ export interface FileRouteTypes {
     | '/'
     | '/access/roles'
     | '/access/users'
+    | '/agency/quotas'
     | '/company/agencies'
     | '/company/agency-access'
     | '/company/airlines'
@@ -512,6 +568,10 @@ export interface FileRouteTypes {
     | '/dcs/flight-manager'
     | '/dcs/manifest'
     | '/dcs/seat-block'
+    | '/fare-settings/fare-tax'
+    | '/fare-settings/modifications'
+    | '/fare-settings/rbd-fare-class'
+    | '/fare-settings/tax-codes'
     | '/fleet/aircraft'
     | '/fleet/seat-maps'
     | '/inventory/baggage-overrides'
@@ -550,6 +610,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/access/roles/'
     | '/_authenticated/access/users/'
+    | '/_authenticated/agency/quotas/'
     | '/_authenticated/company/agencies/'
     | '/_authenticated/company/agency-access/'
     | '/_authenticated/company/airlines/'
@@ -558,6 +619,10 @@ export interface FileRouteTypes {
     | '/_authenticated/dcs/flight-manager/'
     | '/_authenticated/dcs/manifest/'
     | '/_authenticated/dcs/seat-block/'
+    | '/_authenticated/fare-settings/fare-tax/'
+    | '/_authenticated/fare-settings/modifications/'
+    | '/_authenticated/fare-settings/rbd-fare-class/'
+    | '/_authenticated/fare-settings/tax-codes/'
     | '/_authenticated/fleet/aircraft/'
     | '/_authenticated/fleet/seat-maps/'
     | '/_authenticated/inventory/baggage-overrides/'
@@ -668,6 +733,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessUsersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agency/quotas/': {
+      id: '/_authenticated/agency/quotas/'
+      path: '/agency/quotas'
+      fullPath: '/agency/quotas/'
+      preLoaderRoute: typeof AuthenticatedAgencyQuotasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/company/agencies/': {
       id: '/_authenticated/company/agencies/'
       path: '/company/agencies'
@@ -722,6 +794,34 @@ declare module '@tanstack/react-router' {
       path: '/dcs/seat-block'
       fullPath: '/dcs/seat-block/'
       preLoaderRoute: typeof AuthenticatedDcsSeatBlockIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fare-settings/fare-tax/': {
+      id: '/_authenticated/fare-settings/fare-tax/'
+      path: '/fare-settings/fare-tax'
+      fullPath: '/fare-settings/fare-tax/'
+      preLoaderRoute: typeof AuthenticatedFareSettingsFareTaxIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fare-settings/modifications/': {
+      id: '/_authenticated/fare-settings/modifications/'
+      path: '/fare-settings/modifications'
+      fullPath: '/fare-settings/modifications/'
+      preLoaderRoute: typeof AuthenticatedFareSettingsModificationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fare-settings/rbd-fare-class/': {
+      id: '/_authenticated/fare-settings/rbd-fare-class/'
+      path: '/fare-settings/rbd-fare-class'
+      fullPath: '/fare-settings/rbd-fare-class/'
+      preLoaderRoute: typeof AuthenticatedFareSettingsRbdFareClassIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/fare-settings/tax-codes/': {
+      id: '/_authenticated/fare-settings/tax-codes/'
+      path: '/fare-settings/tax-codes'
+      fullPath: '/fare-settings/tax-codes/'
+      preLoaderRoute: typeof AuthenticatedFareSettingsTaxCodesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/fleet/aircraft/': {
@@ -913,6 +1013,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccessRolesIndexRoute: typeof AuthenticatedAccessRolesIndexRoute
   AuthenticatedAccessUsersIndexRoute: typeof AuthenticatedAccessUsersIndexRoute
+  AuthenticatedAgencyQuotasIndexRoute: typeof AuthenticatedAgencyQuotasIndexRoute
   AuthenticatedCompanyAgenciesIndexRoute: typeof AuthenticatedCompanyAgenciesIndexRoute
   AuthenticatedCompanyAgencyAccessIndexRoute: typeof AuthenticatedCompanyAgencyAccessIndexRoute
   AuthenticatedCompanyAirlinesIndexRoute: typeof AuthenticatedCompanyAirlinesIndexRoute
@@ -921,6 +1022,10 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDcsFlightManagerIndexRoute: typeof AuthenticatedDcsFlightManagerIndexRoute
   AuthenticatedDcsManifestIndexRoute: typeof AuthenticatedDcsManifestIndexRoute
   AuthenticatedDcsSeatBlockIndexRoute: typeof AuthenticatedDcsSeatBlockIndexRoute
+  AuthenticatedFareSettingsFareTaxIndexRoute: typeof AuthenticatedFareSettingsFareTaxIndexRoute
+  AuthenticatedFareSettingsModificationsIndexRoute: typeof AuthenticatedFareSettingsModificationsIndexRoute
+  AuthenticatedFareSettingsRbdFareClassIndexRoute: typeof AuthenticatedFareSettingsRbdFareClassIndexRoute
+  AuthenticatedFareSettingsTaxCodesIndexRoute: typeof AuthenticatedFareSettingsTaxCodesIndexRoute
   AuthenticatedFleetAircraftIndexRoute: typeof AuthenticatedFleetAircraftIndexRoute
   AuthenticatedFleetSeatMapsIndexRoute: typeof AuthenticatedFleetSeatMapsIndexRoute
   AuthenticatedInventoryBaggageOverridesIndexRoute: typeof AuthenticatedInventoryBaggageOverridesIndexRoute
@@ -953,6 +1058,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccessRolesIndexRoute: AuthenticatedAccessRolesIndexRoute,
   AuthenticatedAccessUsersIndexRoute: AuthenticatedAccessUsersIndexRoute,
+  AuthenticatedAgencyQuotasIndexRoute: AuthenticatedAgencyQuotasIndexRoute,
   AuthenticatedCompanyAgenciesIndexRoute:
     AuthenticatedCompanyAgenciesIndexRoute,
   AuthenticatedCompanyAgencyAccessIndexRoute:
@@ -966,6 +1072,14 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
     AuthenticatedDcsFlightManagerIndexRoute,
   AuthenticatedDcsManifestIndexRoute: AuthenticatedDcsManifestIndexRoute,
   AuthenticatedDcsSeatBlockIndexRoute: AuthenticatedDcsSeatBlockIndexRoute,
+  AuthenticatedFareSettingsFareTaxIndexRoute:
+    AuthenticatedFareSettingsFareTaxIndexRoute,
+  AuthenticatedFareSettingsModificationsIndexRoute:
+    AuthenticatedFareSettingsModificationsIndexRoute,
+  AuthenticatedFareSettingsRbdFareClassIndexRoute:
+    AuthenticatedFareSettingsRbdFareClassIndexRoute,
+  AuthenticatedFareSettingsTaxCodesIndexRoute:
+    AuthenticatedFareSettingsTaxCodesIndexRoute,
   AuthenticatedFleetAircraftIndexRoute: AuthenticatedFleetAircraftIndexRoute,
   AuthenticatedFleetSeatMapsIndexRoute: AuthenticatedFleetSeatMapsIndexRoute,
   AuthenticatedInventoryBaggageOverridesIndexRoute:
