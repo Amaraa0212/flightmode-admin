@@ -524,6 +524,7 @@ export const allocations: Allocation[] = Array.from(
       ),
       uses_fare_quotas: index % 3 === 0,
       is_waitlist: index % 7 === 0,
+      cabins: { Y: seats },
       usage: { used, available: seats - used },
       created_at: isoDaysFromNow(-int(5, 40)),
     }

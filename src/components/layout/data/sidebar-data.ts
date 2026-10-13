@@ -39,6 +39,13 @@ export const sidebarData: SidebarData = {
       items: [{ title: 'Dashboard', url: '/', permission: 'dashboard.view', icon: LayoutDashboard }],
     },
     {
+      title: 'Agency',
+      items: [
+        // agency users (travel agents): their seat quotas and the passengers sold on them
+        { title: 'Миний квот', url: '/agency/quotas', permission: 'agency.portal', icon: Ticket },
+      ],
+    },
+    {
       title: 'Aircraft management',
       items: [
         { title: 'Fleets', url: '/fleet/aircraft', permission: 'aircraft.manage', icon: Plane },
@@ -118,7 +125,17 @@ export const sidebarData: SidebarData = {
     {
       title: 'Inventory',
       items: [
-        { title: 'Fare and pricing', url: '/inventory/fares', permission: 'fares.manage', icon: Tags },
+        {
+          title: 'Fare settings',
+          icon: Tags,
+          items: [
+            { title: 'RBD - Fare Class', url: '/fare-settings/rbd-fare-class', permission: 'fares.manage' },
+            { title: 'Fare + Fare Tax', url: '/fare-settings/fare-tax', permission: 'fares.manage' },
+            { title: 'Tax Code', url: '/fare-settings/tax-codes', permission: 'fares.manage' },
+            { title: 'Modification', url: '/fare-settings/modifications', permission: 'fares.manage' },
+            { title: 'Fare and pricing (old)', url: '/inventory/fares', permission: 'fares.manage' },
+          ],
+        },
         { title: 'Modification', url: '/inventory/bookings', permission: 'bookings.view', icon: Ticket },
         {
           title: 'Override baggage allowance',
@@ -183,12 +200,16 @@ export function visibleNavGroups(user: AuthUser | null): NavGroup[] {
         .map((item) =>
           item.items ? { ...item, items: item.items.filter((sub) => allowed(sub.permission)) } : item
         )
-        .filter((item) => (item.items ? item.items.length > 0 : allowed(item.permission))),
+        .filter((item) => (item.items ? item.items.length > 0 : allowed(item.permission)))
+        // an agency administrator manages their own ticketing agents on the users page
+        .map((item) =>
+          user?.role?.scope === 'agency' && item.url === '/access/users' ? { ...item, title: 'Агентууд' } : item
+        ),
     }))
     .filter((group) => group.items.length > 0)
 }
 
-/** Any back-office screen at all (agency and gate-only logins use their own apps) */
+/** Any screen at all — a gate-only login uses the gate app */
 export function hasBackOfficeAccess(user: AuthUser) {
   return visibleNavGroups(user).length > 0
 }

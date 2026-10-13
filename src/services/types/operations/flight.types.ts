@@ -104,6 +104,8 @@ export interface Allocation extends Record<string, unknown> {
   deadline: string
   uses_fare_quotas: boolean
   is_waitlist: boolean
+  /** seats per cabin class, e.g. { Y: 18, C: 2 } */
+  cabins: Record<string, number>
   usage: { used: number; available: number }
   created_at: string
 }
