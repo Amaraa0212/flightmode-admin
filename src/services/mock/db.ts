@@ -1,7 +1,5 @@
 import type {
   Aircraft,
-  LoadZone,
-  SeatAssignmentProfile,
   SeatBlock,
 } from '../types/fleet/aircraft.types'
 import type {
@@ -21,10 +19,6 @@ import type {
   AirlineSsr,
   BagTagLayout,
   BaggageOverride,
-  BaggageRule,
-  Fare,
-  SeatPrice,
-  ServiceTemplate,
 } from '../types/products/product.types'
 import type {
   Airport,
@@ -531,117 +525,13 @@ export const allocations: Allocation[] = Array.from(
   }
 )
 
-// ─── Fares ───
+// ─── RBD letters per cabin (bookings) ───
 const FARE_CLASSES: Record<CabinClass, string[]> = {
   F: ['F'],
   C: ['J', 'C', 'D'],
   W: ['W'],
   Y: ['Y', 'B', 'M', 'H', 'K', 'L'],
 }
-export const fares: Fare[] = []
-ROUTES.filter((_, i) => i % 2 === 0).forEach(([, from, to]) => {
-  ;(['C', 'Y'] as CabinClass[]).forEach((cabin) => {
-    FARE_CLASSES[cabin].slice(0, 3).forEach((fareClass, fi) => {
-      ;(['OW', 'RT'] as const).forEach((trip) => {
-        const base = (cabin === 'C' ? 1_800_000 : 650_000) - fi * 90_000
-        const amount = trip === 'RT' ? Math.round(base * 1.8) : base
-        const tax = trip === 'RT' ? 180_000 : 95_000
-        fares.push({
-          id: fares.length + 1,
-          origin: from,
-          destination: to,
-          trip_type: trip,
-          cabin_class: cabin,
-          fare_class: fareClass,
-          valid_from: dateOnly(isoDaysFromNow(-60)),
-          valid_to: dateOnly(isoDaysFromNow(120)),
-          base_amount: amount,
-          tax_amount: tax,
-          total_amount: amount + tax,
-          child_discount_percent: 25,
-          infant_discount_percent: 90,
-          currency: 'MNT',
-          is_active: fares.length % 13 !== 5,
-        })
-      })
-    })
-  })
-})
-
-export const baggageRules: BaggageRule[] = [
-  {
-    id: 1,
-    name: 'Economy free allowance',
-    type: 'free',
-    ssr_code: null,
-    cabin_class: 'Y',
-    pieces: 1,
-    weight_kg: 23,
-    price: 0,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 2,
-    name: 'Business free allowance',
-    type: 'free',
-    ssr_code: null,
-    cabin_class: 'C',
-    pieces: 2,
-    weight_kg: 32,
-    price: 0,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 3,
-    name: 'Extra bag 23kg',
-    type: 'prepaid',
-    ssr_code: 'XBAG',
-    cabin_class: null,
-    pieces: 1,
-    weight_kg: 23,
-    price: 150_000,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 4,
-    name: 'Sports equipment',
-    type: 'prepaid',
-    ssr_code: 'SPEQ',
-    cabin_class: null,
-    pieces: 1,
-    weight_kg: 32,
-    price: 200_000,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 5,
-    name: 'Excess per kg (domestic)',
-    type: 'excess',
-    ssr_code: null,
-    cabin_class: null,
-    pieces: 0,
-    weight_kg: 1,
-    price: 6_000,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 6,
-    name: 'Excess per kg (international)',
-    type: 'excess',
-    ssr_code: null,
-    cabin_class: null,
-    pieces: 0,
-    weight_kg: 1,
-    price: 18_000,
-    currency: 'MNT',
-    is_active: false,
-  },
-]
 
 // ─── Bookings ───
 let ticketSeq = 1
@@ -831,6 +721,8 @@ export const activityLogs: ActivityLog[] = Array.from(
             },
       subject_type: event.split('.')[0],
       subject_id: int(1, 500),
+      flight_id: null,
+      passenger_id: null,
       ip_address: `10.0.${int(0, 20)}.${int(2, 254)}`,
       created_at: isoDaysFromNow(0, 0, -index * 37),
     }
@@ -917,121 +809,7 @@ aircraft.forEach((a) => {
   )
 })
 
-/** Flight → blocked seats (Seat Block page) */
-export const flightSeatBlocks = new Map<number, Set<string>>()
-
-// ─── Check-in hierarchy ───
-export const loadZones: LoadZone[] = []
-aircraft.forEach((a) => {
-  const zones = [
-    ...new Set(
-      seatBlocks.filter((b) => b.aircraft_id === a.id).map((b) => b.zone)
-    ),
-  ]
-  let from = 1
-  zones.forEach((zone, i) => {
-    const size = Math.round(a.total_seats / zones.length)
-    loadZones.push({
-      id: loadZones.length + 1,
-      aircraft_id: a.id,
-      zone,
-      pax_from: from,
-      pax_to: i === zones.length - 1 ? a.total_seats : from + size - 1,
-    })
-    from += size
-  })
-})
-
-export const seatAssignmentProfiles: SeatAssignmentProfile[] = aircraft.flatMap(
-  (a, i) => [
-    {
-      id: i * 2 + 1,
-      aircraft_id: a.id,
-      aircraft: a.registration,
-      name: 'Default (front to back)',
-      zones: ['A', 'B', 'C'],
-      is_default: true,
-    },
-    {
-      id: i * 2 + 2,
-      aircraft_id: a.id,
-      aircraft: a.registration,
-      name: 'Balance (middle first)',
-      zones: ['B', 'C', 'A'],
-      is_default: false,
-    },
-  ]
-)
-
 // ─── Products ───
-export const seatPrices: SeatPrice[] = [
-  {
-    id: 1,
-    name: 'Exit row extra legroom',
-    aircraft: null,
-    cabin_class: 'Y',
-    seat_type: null,
-    rows: '14-15',
-    zone: null,
-    position: 1,
-    price: 45_000,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 2,
-    name: 'Front rows',
-    aircraft: null,
-    cabin_class: 'Y',
-    seat_type: null,
-    rows: '4-6',
-    zone: 'B',
-    position: 2,
-    price: 30_000,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 3,
-    name: 'Window seat',
-    aircraft: null,
-    cabin_class: 'Y',
-    seat_type: 'window',
-    rows: '',
-    zone: null,
-    position: 3,
-    price: 15_000,
-    currency: 'MNT',
-    is_active: true,
-  },
-  {
-    id: 4,
-    name: 'Aisle seat',
-    aircraft: null,
-    cabin_class: 'Y',
-    seat_type: 'aisle',
-    rows: '',
-    zone: null,
-    position: 4,
-    price: 10_000,
-    currency: 'MNT',
-    is_active: false,
-  },
-  {
-    id: 5,
-    name: 'Business front',
-    aircraft: 'JU-1789',
-    cabin_class: 'C',
-    seat_type: null,
-    rows: '1-2',
-    zone: 'A',
-    position: 5,
-    price: 80_000,
-    currency: 'MNT',
-    is_active: true,
-  },
-]
-
 export const airlineSsrs: AirlineSsr[] = [
   ['WCHR', 'Wheelchair - ramp', 'Medical', null],
   ['WCHS', 'Wheelchair - steps', 'Medical', null],
@@ -1053,39 +831,6 @@ export const airlineSsrs: AirlineSsr[] = [
   price: price as number | null,
   currency: 'MNT',
 }))
-
-export const serviceTemplates: ServiceTemplate[] = [
-  {
-    id: 1,
-    name: 'International standard',
-    airline: airlines[0].name,
-    baggage_rule_ids: [1, 2, 3, 6],
-    seat_price_ids: [1, 2, 3],
-    oci_opens_minutes: 1440,
-    oci_closes_minutes: 120,
-    seat_assignment_profile: 'Default (front to back)',
-  },
-  {
-    id: 2,
-    name: 'Domestic',
-    airline: airlines[1].name,
-    baggage_rule_ids: [1, 5],
-    seat_price_ids: [3],
-    oci_opens_minutes: 720,
-    oci_closes_minutes: 60,
-    seat_assignment_profile: 'Default (front to back)',
-  },
-  {
-    id: 3,
-    name: 'Charter / group',
-    airline: airlines[0].name,
-    baggage_rule_ids: [1, 2],
-    seat_price_ids: [],
-    oci_opens_minutes: 0,
-    oci_closes_minutes: 0,
-    seat_assignment_profile: 'Balance (middle first)',
-  },
-]
 
 export const BAG_TAG_FIELDS = [
   'airline_logo',

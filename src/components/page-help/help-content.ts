@@ -113,12 +113,13 @@ export const PAGE_HELP: Record<string, PageHelp> = {
   },
 
   '/operations/flights': {
-    title: 'Single flight',
+    title: 'All flights',
     summary:
-      'Огноотой нислэгүүд — нэг бүрчлэн үүсгэсэн эсвэл давтамжит нислэгээс (series) автоматаар үүссэн.',
+      'Бүх огноотой нислэг нэг дор — нэг бүрчлэн үүсгэсэн (Single) болон давтамжит нислэгээс (Series) үүссэн.',
     steps: [
       '“Create flight” дарж нислэгийн дугаар, агаарын компани, онгоц, чиглэл (From / To), хөөрөх / буух цаг оруулна.',
       'Terminal, Gate-ийг дараа нь Flight manager-ээс ч өөрчилж болно.',
+      'Хайлт: нислэгийн дугаар, чиглэлийн IATA (UBN, PQC), онгоцны бүртгэл (JU-1001). Source шүүлтээр Single / Series ялгана, огнооны хүрээгээ сонгоно (default: энэ сар).',
     ],
     sections: [{ title: 'Төлөв', items: [FLIGHT_STATUSES] }],
     notes: [
@@ -135,9 +136,10 @@ export const PAGE_HELP: Record<string, PageHelp> = {
       '“Create series” дарна.',
       'Нислэгийн дугаар, онгоц, чиглэл, хөөрөх / буух цаг (HH:mm) оруулна.',
       'Days — нислэг үйлдэх гарагуудаа товчоор сонгоно.',
-      'Valid from / Valid to — хугацаа. Хадгалахад тухайн хугацааны нислэгүүд “Single flight” хуудсанд үүснэ.',
+      'Valid from / Valid to — хугацаа. Хадгалахад тухайн хугацааны нислэгүүд “All flights” хуудсанд үүснэ.',
     ],
     notes: [
+      'Series-ийн нэг нислэгийг цуцлах / өөрчлөх: “All flights” хуудаснаас тухайн нислэгийг нээж засна эсвэл Flight manager-ээс цуцална. Гараар өөрчилсөн (Series · edited) болон цуцлагдсан нислэгийг series-ийг дахин хадгалахад дарж бичихгүй.',
       'Series-ийг засахад нислэгүүд дахин үүснэ, гэхдээ зорчигчтой нислэгүүд хадгалагдана.',
       'Цагийг хөөрөх буудлын орон нутгийн цагаар оруулна.',
     ],
@@ -229,12 +231,13 @@ export const PAGE_HELP: Record<string, PageHelp> = {
   },
 
   '/dcs/activity-log': {
-    title: 'Бүртгэлийн түүх',
+    title: 'DCS history log',
     summary:
       'Системд хийгдсэн бүх үйлдлийн түүх — check-in, суудал солих, ачаа, boarding, захиалга, админы өөрчлөлт.',
     steps: [
       'Channel-аар шүүнэ (DCS, Gate, Online, Agency, Admin г.м).',
       'Огнооны хүрээ сонгоно, хайлтаар үйлдэл, тайлбар, хэрэглэгч, IP-ээр хайна.',
+      'Flight — нислэгийн дугаараар (MR105), Passenger — зорчигчийн нэр, PNR, паспортын дугаараар шүүнэ.',
     ],
     notes: [
       'Таны эрхийн хүрээнд байгаа нислэг ба ажилтнуудын үйлдэл л харагдана.',
@@ -336,6 +339,15 @@ export const PAGE_HELP: Record<string, PageHelp> = {
           'Бусад ширхгийн дүрэм — тухайн дүрмийн ширхгийн тоогоор хязгаарлагдана.',
         ],
       },
+      {
+        title: 'Limit by',
+        items: [
+          'By piece — ширхэг бүр “Kg per piece” үнэгүй, “Max pieces”-ээс илүү ширхэг авахгүй.',
+          'By kg — бүх жин илүүдэлд тооцогдоно.',
+          'Piece + kg — нэг зорчигчийн үнэгүй кг = Kg per piece × Free pieces, ширхгүүд энэ кг-ыг хуваана. Жишээ: 1 pc · 23 kg, Max pieces 2 → 2 ширхэг нийт 22 кг үнэгүй, үлдсэн 1 кг дараагийн ачаанд тооцогдоно.',
+          'Илүүдэл ачааг counter дээр төлбөрийн (billing / transaction) дугаар эсвэл waive (шалтгаан, зөвшөөрсөн хүн)-гүйгээр авахгүй.',
+        ],
+      },
     ],
   },
 
@@ -374,7 +386,7 @@ export const PAGE_HELP: Record<string, PageHelp> = {
   },
 
   '/rules/bag-tag': {
-    title: 'Bag tag position',
+    title: 'Bag Tag Orientation',
     summary:
       'Ачааны шошгон дээр ямар талбар, ямар дарааллаар хэвлэгдэхийг тохируулна.',
     steps: [

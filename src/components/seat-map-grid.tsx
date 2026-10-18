@@ -36,7 +36,13 @@ type SeatMapGridProps = {
   className?: string
 }
 
-/** Aircraft seat map (fleet seat maps, seat block, check-in hierarchy preview) */
+const SIDES = ['left', 'middle', 'right'] as const
+
+/**
+ * Aircraft seat map (fleet seat maps, seat block, check-in hierarchy preview).
+ * Seats sit under their letter column, so a 2-2 business cabin lines up with the
+ * window seats of a 3-3 economy cabin; with two aisles the row number shows on both.
+ */
 export function SeatMapGrid({
   layout,
   selected,
@@ -44,6 +50,8 @@ export function SeatMapGrid({
   showZones = true,
   className,
 }: SeatMapGridProps) {
+  const sides = SIDES.filter((side) => layout.columns[side].length > 0)
+
   return (
     <div className={cn('space-y-3', className)}>
       <div className='flex flex-wrap gap-x-3 gap-y-1'>
@@ -63,6 +71,7 @@ export function SeatMapGrid({
             const prev = layout.rows[index - 1]
             const cabinStart = row.cabin_class !== prev?.cabin_class
             const zoneStart = showZones && row.zone !== prev?.zone
+            const bySeat = new Map(row.seats.map((s) => [s.letter, s]))
             return (
               <div key={row.row}>
                 {(cabinStart || zoneStart) && (
@@ -73,29 +82,39 @@ export function SeatMapGrid({
                   </p>
                 )}
                 <div className='relative mb-1 flex items-center gap-1'>
-                  {row.seats.map((seat, i) =>
-                    seat ? (
-                      <button
-                        key={seat.number}
-                        type='button'
-                        title={`${seat.number} · ${seat.occupant ?? seat.state}${seat.is_exit ? ' · exit row' : ''}`}
-                        onClick={() => onSeatClick?.(seat)}
-                        className={cn(
-                          'flex h-7 w-8 items-center justify-center rounded-md border font-mono text-[9px] font-bold transition',
-                          seatClass(seat, !!selected?.has(seat.number)),
-                          !onSeatClick && 'cursor-default'
-                        )}
-                      >
-                        {seat.number}
-                      </button>
-                    ) : (
-                      <span
-                        key={`aisle-${i}`}
-                        className='w-5 text-center font-mono text-[9px] text-slate-500'
-                      >
-                        {i === row.seats.indexOf(null) ? row.row : ''}
-                      </span>
-                    )
+                  {sides.map((side, sideIndex) => (
+                    <div key={side} className='flex items-center gap-1'>
+                      {sideIndex > 0 && (
+                        <span className='w-5 text-center font-mono text-[9px] text-slate-500'>
+                          {row.row}
+                        </span>
+                      )}
+                      {layout.columns[side].map((letter) => {
+                        const seat = bySeat.get(letter)
+                        return seat ? (
+                          <button
+                            key={seat.number}
+                            type='button'
+                            title={`${seat.number} · ${seat.occupant ?? seat.state}${seat.is_exit ? ' · exit row' : ''}`}
+                            onClick={() => onSeatClick?.(seat)}
+                            className={cn(
+                              'flex h-7 w-8 items-center justify-center rounded-md border font-mono text-[9px] font-bold transition',
+                              seatClass(seat, !!selected?.has(seat.number)),
+                              !onSeatClick && 'cursor-default'
+                            )}
+                          >
+                            {seat.number}
+                          </button>
+                        ) : (
+                          <span key={letter} className='h-7 w-8' aria-hidden />
+                        )
+                      })}
+                    </div>
+                  ))}
+                  {sides.length === 1 && (
+                    <span className='w-5 text-center font-mono text-[9px] text-slate-500'>
+                      {row.row}
+                    </span>
                   )}
                   {row.is_exit && (
                     <DoorOpen

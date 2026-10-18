@@ -7,7 +7,7 @@ import type { FlightPassengerRow } from '../../types/sales/booking.types'
 import type { ListParams } from '../../types/shared/common.types'
 import { api } from '@/config/api'
 import { useAuthStore } from '@/stores/auth-store'
-import { client, ok, type ApiData } from '../shared/client'
+import { client, ok, period, type ApiData } from '../shared/client'
 
 /*
 | Flight manager / flight load: /admin/flight-board (one day), status / gate / ETD / gate agents / online check-in,
@@ -61,7 +61,7 @@ async function board(date?: string) {
 export const flightOpsService = {
   /** Flight manager / station board of one day (search / status / paging here) */
   list: async (params: ListParams & { date?: string } = {}) => {
-    const rows = await board(params.date as string | undefined)
+    const rows = await board(period(params).from ?? (params.date as string | undefined))
     const q = String(params.query ?? '').trim().toLowerCase()
     const status = params.status as string | string[] | undefined
     const statuses = status ? (Array.isArray(status) ? status : [status]) : []

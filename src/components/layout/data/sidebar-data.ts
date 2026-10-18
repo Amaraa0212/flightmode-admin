@@ -59,7 +59,7 @@ export const sidebarData: SidebarData = {
           title: 'Flight schedule',
           icon: CalendarClock,
           items: [
-            { title: 'Single flight', url: '/operations/flights', permission: 'flights.view' },
+            { title: 'All flights', url: '/operations/flights', permission: 'flights.view' },
             {
               title: 'Frequency-based flight',
               url: '/operations/flight-series', permission: 'flights.manage',
@@ -81,7 +81,7 @@ export const sidebarData: SidebarData = {
         { title: 'Seat block', url: '/dcs/seat-block', permission: 'seat_blocks.manage', icon: Map },
         { title: 'Manifest', url: '/dcs/manifest', permission: 'reports.view', icon: ClipboardList },
         {
-          title: 'Бүртгэлийн түүх',
+          title: 'DCS history log',
           url: '/dcs/activity-log', permission: 'activity_logs.view',
           icon: BookOpenText,
         },
@@ -112,7 +112,7 @@ export const sidebarData: SidebarData = {
             { title: 'Seat rules', url: '/rules/seat-rules', permission: 'products.manage' },
             { title: 'SSR', url: '/rules/ssr', permission: 'products.manage' },
             { title: 'Template', url: '/rules/templates', permission: 'products.manage' },
-            { title: 'Pag tag position', url: '/rules/bag-tag', permission: 'products.manage' },
+            { title: 'Bag Tag Orientation', url: '/rules/bag-tag', permission: 'products.manage' },
           ],
         },
         {

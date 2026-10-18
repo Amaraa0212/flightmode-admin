@@ -22,6 +22,8 @@ export interface Flight extends Record<string, unknown> {
     total_seats: number
   } | null
   flight_series_id: number | null
+  /** series flight changed by hand — saving the series again leaves it as it is */
+  is_series_override?: boolean
   origin: FlightAirport
   destination: FlightAirport
   scheduled_departure_at: string
@@ -42,6 +44,7 @@ export interface Flight extends Record<string, unknown> {
 
 export interface FlightListParams extends ListParams {
   status?: string | string[]
+  source?: string | string[]
   date?: string
   start_day?: string
   end_day?: string

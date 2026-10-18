@@ -8,7 +8,7 @@ import type {
   FlightStatus,
 } from '../../types/operations/flight.types'
 import type { ListParams } from '../../types/shared/common.types'
-import { action, client, getPage, ok, pageQuery, type ApiData } from '../shared/client'
+import { action, client, getPage, ok, pageQuery, period, type ApiData } from '../shared/client'
 
 /*
 | /admin/flights, /admin/flight-series, /admin/allocations — every list is limited by the API
@@ -62,16 +62,18 @@ type ApiStatistics = {
 
 export const flightService = {
   list: (params: FlightListParams = {}) => {
-    const { start_day, end_day, date, status, query, ...rest } = params
+    const { start_day: _s, end_day: _e, date, status, source, query, ...rest } = params
+    const { from, to } = period(params)
     return getPage<ApiFlight, Flight>(
       '/admin/flights',
       {
         ...pageQuery(rest),
-        search: undefined,
-        from: start_day ?? date,
-        to: end_day ?? date,
+        from: from ?? date,
+        to: to ?? date,
         status: Array.isArray(status) ? status[0] : status,
-        flight_number: query,
+        // a single choice only — both selected means everything
+        source: Array.isArray(source) ? (source.length === 1 ? source[0] : undefined) : source,
+        search: query,
       },
       toFlight
     )

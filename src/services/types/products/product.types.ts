@@ -7,6 +7,10 @@ export interface Fare extends Record<string, unknown> {
   id: number
   origin: string
   destination: string
+  origin_airport_id: number
+  destination_airport_id: number
+  /** set when the fare is priced from a fare class (Fare classes screen) */
+  fare_class_id: number | null
   trip_type: TripType
   cabin_class: CabinClass
   fare_class: string
@@ -23,12 +27,12 @@ export interface Fare extends Record<string, unknown> {
 
 export interface FareListParams extends ListParams {
   cabin_class?: string | string[]
-  trip_type?: string
+  trip_type?: string | string[]
 }
 
 export interface FarePayload {
-  origin: string
-  destination: string
+  origin_airport_id: string
+  destination_airport_id: string
   trip_type: TripType
   cabin_class: CabinClass
   fare_class: string
@@ -41,7 +45,14 @@ export interface FarePayload {
   is_active: boolean
 }
 
-export type BaggageRuleType = 'free' | 'prepaid' | 'excess'
+/**
+ * How a rule limits bags (API `type`): piece = max pieces (max_quantity), each with weight_kg free;
+ * weight = all kg is excess; combined = max pieces and one shared free kg pool (weight_kg × pieces).
+ */
+export type BaggageRuleType = 'piece' | 'weight' | 'combined'
+
+/** What the bag is for at the counter, from the SSR code: XBAG prepaid, EBAG excess, otherwise free */
+export type BaggageUsage = 'free' | 'prepaid' | 'excess'
 
 export interface BaggageRulePayload {
   name: string
@@ -50,6 +61,7 @@ export interface BaggageRulePayload {
   cabin_class: string
   pieces: number
   weight_kg: number
+  max_quantity: number
   price: number
   is_active: boolean
 }
@@ -58,24 +70,27 @@ export interface BaggageRule extends Record<string, unknown> {
   id: number
   name: string
   type: BaggageRuleType
+  usage: BaggageUsage
   ssr_code: string | null
   cabin_class: CabinClass | null
   pieces: number
   weight_kg: number
+  /** max pieces per passenger, null = unlimited */
+  max_quantity: number | null
   price: number
   currency: string
   is_active: boolean
 }
 
 /** Legacy seat rule: paid seats */
+/** Legacy seat_rule: the first matching rule (lowest position, then the most specific) prices a seat */
 export interface SeatPrice extends Record<string, unknown> {
   id: number
   name: string
-  aircraft: string | null
   cabin_class: CabinClass
   seat_type: 'window' | 'aisle' | 'middle' | null
-  rows: string
-  zone: string | null
+  /** "14-15" or "1-3,12"; null = all rows */
+  rows: string | null
   position: number
   price: number
   currency: string
@@ -87,7 +102,6 @@ export interface SeatPricePayload {
   cabin_class: CabinClass
   seat_type: string
   rows: string
-  zone: string
   position: number
   price: number
   is_active: boolean
@@ -113,20 +127,26 @@ export interface AirlineSsrPayload {
 export interface ServiceTemplate extends Record<string, unknown> {
   id: number
   name: string
-  airline: string
+  /** null = any aircraft of the airline (then no seat assignment profile) */
+  aircraft_id: number | null
+  aircraft: string | null
+  seat_assignment_profile_id: number | null
+  seat_assignment_profile: string | null
   baggage_rule_ids: number[]
   seat_price_ids: number[]
-  oci_opens_minutes: number
-  oci_closes_minutes: number
-  seat_assignment_profile: string | null
+  checkin_opens_minutes: number
+  checkin_closes_minutes: number
 }
 
 export interface ServiceTemplatePayload {
   name: string
+  /** '' = any aircraft */
+  aircraft_id: string
+  seat_assignment_profile_id: string
   baggage_rule_ids: string[]
   seat_price_ids: string[]
-  oci_opens_minutes: number
-  oci_closes_minutes: number
+  checkin_opens_minutes: number
+  checkin_closes_minutes: number
 }
 
 /** Legacy pag_tag_position: bag tag print layout */
@@ -153,7 +173,6 @@ export interface FlightProducts extends Record<string, unknown> {
     closes_minutes: number
   }
   blocked_seats: number
-  template: string | null
 }
 
 /** Legacy airline_baggage: override baggage allowance (prepaid) */

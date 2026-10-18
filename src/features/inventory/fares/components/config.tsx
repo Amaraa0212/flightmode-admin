@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { fareService, type Fare } from '@/services'
+import { airportOptions, fareService, type Fare } from '@/services'
 import { ACTIVE_OPTIONS, CABIN_CLASS } from '@/constants/status'
 import {
   brand,
@@ -13,8 +13,8 @@ import type { ResourcePageProps } from '@/components/resource/resource-page'
 import { ActiveBadge } from '@/components/status-badge'
 
 const schema = z.object({
-  origin: z.string().trim().length(3),
-  destination: z.string().trim().length(3),
+  origin_airport_id: z.string().min(1, 'Required'),
+  destination_airport_id: z.string().min(1, 'Required'),
   trip_type: z.enum(['OW', 'RT']),
   cabin_class: z.enum(['C', 'Y', 'W', 'F']),
   fare_class: z.string().trim().length(1, 'RBD letter'),
@@ -46,7 +46,7 @@ export const pageConfig: Omit<
     'Route fares per cabin / RBD with tax and child / infant discounts',
   queryKey: 'admin-fares',
   list: fareService.list,
-  searchPlaceholder: 'Route or RBD',
+  searchPlaceholder: 'Route (UBN-PQC), airport or RBD',
   filters: [
     { columnId: 'cabin_class', title: 'Cabin', options: CABINS },
     { columnId: 'trip_type', title: 'OW/RT', options: TRIPS },
@@ -88,8 +88,8 @@ export const pageConfig: Omit<
     schema,
     maxWidth: 'xl',
     empty: {
-      origin: 'UBN',
-      destination: '',
+      origin_airport_id: '',
+      destination_airport_id: '',
       trip_type: 'OW',
       cabin_class: 'Y',
       fare_class: 'Y',
@@ -102,8 +102,8 @@ export const pageConfig: Omit<
       is_active: true,
     },
     fromRow: (r) => ({
-      origin: r.origin,
-      destination: r.destination,
+      origin_airport_id: String(r.origin_airport_id),
+      destination_airport_id: String(r.destination_airport_id),
       trip_type: r.trip_type,
       cabin_class: r.cabin_class,
       fare_class: r.fare_class,
@@ -117,16 +117,18 @@ export const pageConfig: Omit<
     }),
     fields: [
       {
-        name: 'origin',
+        name: 'origin_airport_id',
         label: 'Origin',
-        type: 'text',
+        type: 'select',
+        loadOptions: airportOptions,
         required: true,
         gridCols: 1,
       },
       {
-        name: 'destination',
+        name: 'destination_airport_id',
         label: 'Destination',
-        type: 'text',
+        type: 'select',
+        loadOptions: airportOptions,
         required: true,
         gridCols: 1,
       },

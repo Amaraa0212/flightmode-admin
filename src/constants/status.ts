@@ -71,10 +71,17 @@ export const CABIN_CLASS: Record<string, StatusMeta> = {
   Y: { label: 'Economy', tone: 'slate' },
 }
 
-export const BAGGAGE_RULE_TYPE: Record<string, StatusMeta> = {
+export const BAGGAGE_USAGE: Record<string, StatusMeta> = {
   free: { label: 'Free allowance', tone: 'green' },
   prepaid: { label: 'Prepaid (XBAG)', tone: 'cyan' },
-  excess: { label: 'Excess', tone: 'amber' },
+  excess: { label: 'Excess (EBAG)', tone: 'amber' },
+}
+
+/** How a baggage rule limits bags (API `type`) */
+export const BAGGAGE_RULE_TYPE: Record<string, StatusMeta> = {
+  piece: { label: 'By piece', tone: 'cyan' },
+  weight: { label: 'By kg (all excess)', tone: 'amber' },
+  combined: { label: 'Piece + kg', tone: 'green' },
 }
 
 export const ACTIVE: Record<string, StatusMeta> = {
@@ -90,4 +97,5 @@ export const ROLE_SCOPE_OPTIONS = toOptions(ROLE_SCOPE)
 export const ACTIVITY_CHANNEL_OPTIONS = toOptions(ACTIVITY_CHANNEL)
 export const CABIN_CLASS_OPTIONS = toOptions(CABIN_CLASS)
 export const BAGGAGE_RULE_TYPE_OPTIONS = toOptions(BAGGAGE_RULE_TYPE)
+export const BAGGAGE_USAGE_OPTIONS = toOptions(BAGGAGE_USAGE)
 export const ACTIVE_OPTIONS = toOptions(ACTIVE)

@@ -39,7 +39,7 @@ export function SeatMaps() {
     queryFn: async () => (await seatMapService.layout(aircraftId)).body,
   })
   const remove = useMutation({
-    mutationFn: async (id: number) => seatMapService.removeBlock(id),
+    mutationFn: async (block: SeatBlock) => seatMapService.removeBlock(block),
     onSuccess: (res) => {
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: ['admin-seat-map'] })
@@ -137,7 +137,7 @@ export function SeatMaps() {
                       variant='ghost'
                       size='icon'
                       className='size-8 text-red-500'
-                      onClick={() => remove.mutate(b.id)}
+                      onClick={() => remove.mutate(b)}
                       aria-label='Delete block'
                     >
                       <Trash2 className='size-4' />

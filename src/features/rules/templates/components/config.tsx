@@ -11,10 +11,10 @@ export const pageConfig: Omit<
 > = {
   title: 'Template',
   description:
-    'Bundles of baggage rules, paid seats and online check-in window applied to flights',
+    'Bundles of baggage rules, paid seats, seat profile and online check-in window applied to flights',
   queryKey: 'admin-templates',
   list: serviceTemplateService.list,
-  searchPlaceholder: 'Template name',
+  searchPlaceholder: 'Template name or aircraft',
   columns: [
     col<ServiceTemplate>('name', 'Name', (r) => (
       <span className='font-medium'>{r.name}</span>
@@ -31,16 +31,18 @@ export const pageConfig: Omit<
       (r) => brand(r.seat_price_ids.join(', ') || '-'),
       { accessor: (r) => r.seat_price_ids.join(',') }
     ),
-    col<ServiceTemplate>('oci_opens_minutes', 'OCI start', (r) =>
-      mono(minutesLabel(r.oci_opens_minutes))
+    col<ServiceTemplate>('checkin_opens_minutes', 'OCI start', (r) =>
+      mono(minutesLabel(r.checkin_opens_minutes))
     ),
-    col<ServiceTemplate>('oci_closes_minutes', 'OCI close', (r) =>
-      mono(minutesLabel(r.oci_closes_minutes))
+    col<ServiceTemplate>('checkin_closes_minutes', 'OCI close', (r) =>
+      mono(minutesLabel(r.checkin_closes_minutes))
     ),
     col<ServiceTemplate>('seat_assignment_profile', 'Seat profile', (r) =>
       muted(r.seat_assignment_profile ?? '-')
     ),
-    col<ServiceTemplate>('airline', 'Airline', (r) => muted(r.airline)),
+    col<ServiceTemplate>('aircraft', 'Aircraft', (r) =>
+      muted(r.aircraft ?? 'Any')
+    ),
   ],
   remove: {
     run: (r) => serviceTemplateService.remove(r.id),

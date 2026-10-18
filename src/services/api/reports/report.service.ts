@@ -1,7 +1,7 @@
 import type { Booking, FlightPassengerRow } from '../../types/sales/booking.types'
 import type { ListParams } from '../../types/shared/common.types'
 import { bookingService } from '../sales/booking.service'
-import { client, ok, type ApiData } from '../shared/client'
+import { client, ok, period, type ApiData } from '../shared/client'
 
 /*
 | /admin/reports/* — every report is limited by the API to the user's airline / station.
@@ -74,15 +74,6 @@ type ApiFlightOps = {
   estimated_arrival_at: string | null
   status_reason: string | null
   aircraft: { registration: string } | null
-}
-
-/** start_day / end_day (also inside sortDate from useFilterParams) → from / to */
-function period(params: ListParams) {
-  const range = params.sortDate as { start_day?: string; end_day?: string } | undefined
-  return {
-    from: (params.start_day as string | undefined) ?? range?.start_day,
-    to: (params.end_day as string | undefined) ?? range?.end_day,
-  }
 }
 
 /** search + page a full list on the client */

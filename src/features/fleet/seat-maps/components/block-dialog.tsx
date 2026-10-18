@@ -98,7 +98,7 @@ export function BlockDialog({
   const queryClient = useQueryClient()
   const save = useMutation({
     mutationFn: async (v: Form) =>
-      seatMapService.saveBlock(aircraftId, v, block?.id),
+      seatMapService.saveBlock(aircraftId, v, block),
     onSuccess: (res) => {
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: ['admin-seat-map'] })
