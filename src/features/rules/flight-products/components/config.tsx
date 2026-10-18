@@ -20,7 +20,7 @@ export const pageConfig: Omit<
   queryKey: 'admin-flight-products',
   list: flightProductService.list,
   rowKey: 'flight_id',
-  searchPlaceholder: 'Flight, route or template',
+  searchPlaceholder: 'Flight, route or aircraft',
   columns: [
     col<FlightProducts>('flight_number', 'Flight no', (r) =>
       brand(r.flight_number)
@@ -29,9 +29,6 @@ export const pageConfig: Omit<
       dateTime(r.departure_at)
     ),
     col<FlightProducts>('route', 'Route', (r) => r.route),
-    col<FlightProducts>('template', 'Template', (r) => (
-      <span className='font-medium'>{r.template ?? '-'}</span>
-    )),
     col<FlightProducts>(
       'baggage_rules',
       'Baggages',

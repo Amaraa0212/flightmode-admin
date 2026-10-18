@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { DatePicker } from '@/components/date-picker'
+import { fromDateValue, toDateValue } from '@/lib/date-value'
 import { DateTimePicker } from '../datetime-picker'
 import type { FormFieldConfig } from './config-form-dialog'
 import { SubArrayField } from './sub-array-field'
@@ -262,14 +263,10 @@ export function ArrayField<TFormData extends Record<string, unknown>>({
                               ) : itemField.type === 'date' ? (
                                 <DatePicker
                                   selected={
-                                    itemFormField.value
-                                      ? new Date(itemFormField.value as number)
-                                      : undefined
+                                    fromDateValue(itemFormField.value)
                                   }
                                   onSelect={(date) => {
-                                    itemFormField.onChange(
-                                      (date ? date.getTime() : undefined) as any
-                                    )
+                                    itemFormField.onChange(toDateValue(date) as any)
                                   }}
                                   placeholder={
                                     itemField.placeholder || 'Pick a date'

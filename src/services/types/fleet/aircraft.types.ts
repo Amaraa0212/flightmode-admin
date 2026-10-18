@@ -57,6 +57,7 @@ export interface SeatCell {
   number: string
   row: number
   letter: string
+  side: 'left' | 'middle' | 'right'
   cabin_class: CabinClass
   zone: string
   is_exit: boolean
@@ -68,13 +69,14 @@ export interface SeatMapLayout {
   aircraft_id: number
   registration: string
   type: string
-  /** null = aisle */
+  /** every seat letter of each side — a row without a letter shows a gap there, so cabins stay aligned */
+  columns: { left: string[]; middle: string[]; right: string[] }
   rows: {
     row: number
     cabin_class: CabinClass
     zone: string
     is_exit: boolean
-    seats: (SeatCell | null)[]
+    seats: SeatCell[]
   }[]
 }
 
@@ -98,15 +100,13 @@ export interface LoadZonePayload {
 export interface SeatAssignmentProfile extends Record<string, unknown> {
   id: number
   aircraft_id: number
-  aircraft: string
   name: string
+  /** zones in fill order */
   zones: string[]
-  is_default: boolean
 }
 
 export interface SeatAssignmentProfilePayload {
   aircraft_id: string
   name: string
   zones: string
-  is_default: boolean
 }

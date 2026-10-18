@@ -66,8 +66,9 @@ export function FlightProducts() {
             <DialogHeader>
               <DialogTitle>Apply template</DialogTitle>
               <DialogDescription>
-                {target.flight_number} {target.route} — replaces baggage, seat
-                rules and the online check-in window.
+                {target.flight_number} {target.route} — replaces the baggage and
+                seat rules, the online check-in window and, for an aircraft
+                template, the seat profile.
               </DialogDescription>
             </DialogHeader>
             <SimpleSelect

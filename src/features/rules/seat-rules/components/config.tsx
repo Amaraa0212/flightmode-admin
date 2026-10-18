@@ -9,9 +9,14 @@ const schema = z.object({
   name: z.string().trim().min(2),
   cabin_class: z.enum(['C', 'Y', 'W', 'F']),
   seat_type: z.string(),
-  rows: z.string().trim(),
-  zone: z.string().trim().max(2),
-  position: z.number().int().min(1),
+  rows: z
+    .string()
+    .trim()
+    .regex(
+      /^(\d{1,3}(-\d{1,3})?(\s*,\s*\d{1,3}(-\d{1,3})?)*)?$/,
+      'e.g. 14-15 or 1-3,12'
+    ),
+  position: z.number().int().min(1).max(999),
   price: z.number().min(0),
   is_active: z.boolean(),
 })
@@ -34,10 +39,10 @@ export const pageConfig: Omit<
 > = {
   title: 'Seat rules',
   description:
-    'Paid seats by cabin, rows, zone or seat type (first matching position wins)',
+    'Paid seats by cabin, rows or seat type (lowest position wins, then the most specific rule)',
   queryKey: 'admin-seat-prices',
   list: seatPriceService.list,
-  searchPlaceholder: 'Rule name, rows or zone',
+  searchPlaceholder: 'Rule name or rows',
   filters: [
     { columnId: 'cabin_class', title: 'Cabin', options: CABINS },
     { columnId: 'is_active', title: 'Status', options: ACTIVE_OPTIONS },
@@ -54,8 +59,6 @@ export const pageConfig: Omit<
       muted(r.seat_type ?? 'Any')
     ),
     col<SeatPrice>('rows', 'Rows', (r) => mono(r.rows || 'All')),
-    col<SeatPrice>('zone', 'Zone', (r) => mono(r.zone ?? '-')),
-    col<SeatPrice>('aircraft', 'Aircraft', (r) => muted(r.aircraft ?? 'All')),
     col<SeatPrice>('price', 'Price', (r) => money(r.price)),
     col<SeatPrice>(
       'is_active',
@@ -72,7 +75,6 @@ export const pageConfig: Omit<
       cabin_class: 'Y',
       seat_type: '',
       rows: '',
-      zone: '',
       position: 10,
       price: 0,
       is_active: true,
@@ -81,8 +83,7 @@ export const pageConfig: Omit<
       name: r.name,
       cabin_class: r.cabin_class,
       seat_type: r.seat_type ?? '',
-      rows: r.rows,
-      zone: r.zone ?? '',
+      rows: r.rows ?? '',
       position: r.position,
       price: r.price,
       is_active: r.is_active,
@@ -113,14 +114,7 @@ export const pageConfig: Omit<
         name: 'rows',
         label: 'Rows',
         type: 'text',
-        placeholder: '14-15',
-        gridCols: 1,
-      },
-      {
-        name: 'zone',
-        label: 'Zone',
-        type: 'text',
-        placeholder: 'B',
+        placeholder: '14-15 or 1-3,12 (empty = all)',
         gridCols: 1,
       },
       {

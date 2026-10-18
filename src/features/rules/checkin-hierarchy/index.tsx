@@ -42,34 +42,34 @@ export function CheckinHierarchy() {
 
   const { data: zones = [] } = useQuery({
     queryKey: [QUERY_KEY, 'zones', aircraftId],
-    queryFn: async () =>
-      (await loadZoneService.list({ aircraft_id: aircraftId, pageSize: 100 }))
-        .body?.items ?? [],
+    queryFn: async () => (await loadZoneService.list(aircraftId)).body ?? [],
+    enabled: !!aircraftId,
   })
   const { data: profiles = [] } = useQuery({
     queryKey: [QUERY_KEY, 'profiles', aircraftId],
-    queryFn: async () =>
-      (
-        await seatProfileService.list({
-          aircraft_id: aircraftId,
-          pageSize: 100,
-        })
-      ).body?.items ?? [],
+    queryFn: async () => (await seatProfileService.list(aircraftId)).body ?? [],
+    enabled: !!aircraftId,
   })
   const { data: layout } = useQuery({
     queryKey: [QUERY_KEY, 'layout', aircraftId],
     queryFn: async () => (await seatMapService.layout(aircraftId)).body,
+    enabled: !!aircraftId,
   })
 
   const remove = useMutation({
-    mutationFn: (vars: { kind: 'zone' | 'profile'; id: number }) =>
+    mutationFn: (
+      vars:
+        | { kind: 'zone'; zone: LoadZone }
+        | { kind: 'profile'; profile: SeatAssignmentProfile }
+    ) =>
       vars.kind === 'zone'
-        ? loadZoneService.remove(vars.id)
-        : seatProfileService.remove(vars.id),
+        ? loadZoneService.remove(vars.zone)
+        : seatProfileService.remove(vars.profile),
     onSuccess: (res) => {
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: [QUERY_KEY] })
     },
+    onError: (error: Error) => toast.error(error.message),
   })
 
   return (
@@ -138,7 +138,7 @@ export function CheckinHierarchy() {
                         size='icon'
                         className='size-8 text-red-500'
                         onClick={() =>
-                          remove.mutate({ kind: 'zone', id: z.id })
+                          remove.mutate({ kind: 'zone', zone: z })
                         }
                         aria-label='Delete zone'
                       >
@@ -183,7 +183,6 @@ export function CheckinHierarchy() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Zone order</TableHead>
-                  <TableHead>Default</TableHead>
                   <TableHead />
                 </TableRow>
               </TableHeader>
@@ -205,9 +204,6 @@ export function CheckinHierarchy() {
                         ))}
                       </div>
                     </TableCell>
-                    <TableCell className='text-xs'>
-                      {p.is_default ? 'Default' : '-'}
-                    </TableCell>
                     <TableCell className='text-end'>
                       <Button
                         variant='ghost'
@@ -223,7 +219,7 @@ export function CheckinHierarchy() {
                         size='icon'
                         className='size-8 text-red-500'
                         onClick={() =>
-                          remove.mutate({ kind: 'profile', id: p.id })
+                          remove.mutate({ kind: 'profile', profile: p })
                         }
                         aria-label='Delete profile'
                       >

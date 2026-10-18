@@ -3,6 +3,7 @@ import { getRouteApi } from '@tanstack/react-router'
 import { Settings2 } from 'lucide-react'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
 import { Button } from '@/components/ui/button'
+import { DayFilter } from '@/components/day-filter'
 import { ResourcePage } from '@/components/resource/resource-page'
 import { pageConfig } from './components/config'
 import { ManageDialog } from './components/manage-dialog'
@@ -21,6 +22,12 @@ export function FlightManager() {
         search={search}
         navigate={navigate as unknown as NavigateFn}
         onRowClick={(row) => setFlightId(row.id)}
+        toolbarExtra={
+          <DayFilter
+            search={search}
+            navigate={navigate as unknown as NavigateFn}
+          />
+        }
         customActions={(row) => (
           <Button
             variant='outline'

@@ -11,12 +11,20 @@ export interface ActivityLog extends Record<string, unknown> {
   user: { id: number; name: string } | null
   subject_type: string
   subject_id: number
+  flight_id: number | null
+  flight?: { id: number; flight_number: string; scheduled_departure_at: string | null } | null
+  passenger_id: number | null
+  passenger?: { id: number; name: string; pnr: string | null } | null
   ip_address: string
   created_at: string
 }
 
 export interface ActivityLogListParams extends ListParams {
   channel?: string | string[]
+  /** flight number prefix */
+  flight?: string
+  /** passenger name, PNR or document number */
+  passenger?: string
   start_day?: string
   end_day?: string
 }

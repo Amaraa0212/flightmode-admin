@@ -45,14 +45,22 @@ export const pageConfig: Omit<
   ResourcePageProps<Flight, Form>,
   'search' | 'navigate'
 > = {
-  title: 'Single flight',
+  title: 'All flights',
   description:
-    'Dated flights — created one by one or generated from a frequency-based series',
+    'Every dated flight — created one by one (single) or generated from a frequency-based series',
   queryKey: 'admin-flights',
   list: flightService.list,
   searchPlaceholder: 'Flight number, route or tail',
   filters: [
     { columnId: 'status', title: 'Status', options: FLIGHT_STATUS_OPTIONS },
+    {
+      columnId: 'source',
+      title: 'Source',
+      options: [
+        { label: 'Single', value: 'single' },
+        { label: 'Series', value: 'series' },
+      ],
+    },
   ],
   exportFileName: 'flights.xlsx',
   columns: [
@@ -60,6 +68,19 @@ export const pageConfig: Omit<
       accessor: (r) => r.aircraft?.registration,
     }),
     col<Flight>('flight_number', 'Flight no', (r) => brand(r.flight_number)),
+    col<Flight>(
+      'source',
+      'Source',
+      (r) =>
+        muted(
+          r.flight_series_id
+            ? r.is_series_override
+              ? 'Series · edited'
+              : 'Series'
+            : 'Single'
+        ),
+      { accessor: (r) => (r.flight_series_id ? 'series' : 'single') }
+    ),
     col<Flight>(
       'route',
       'Route',

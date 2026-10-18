@@ -21,7 +21,7 @@ export const pageConfig: Omit<
   ResourcePageProps<BagTagLayout>,
   'search' | 'navigate'
 > = {
-  title: 'Pag tag position',
+  title: 'Bag Tag Orientation',
   description:
     'Bag tag print layout — which fields are printed and in what order',
   queryKey: 'admin-bag-tag',

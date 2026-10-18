@@ -44,7 +44,7 @@ export function SeatBlock() {
   }
 
   const cells =
-    layout?.rows.flatMap((r) => r.seats.filter((s): s is SeatCell => !!s)) ?? []
+    layout?.rows.flatMap((r) => r.seats) ?? []
   const blocked = cells.filter((s) => s.state === 'blocked').length
   const selection = cells.filter((s) => selected.has(s.number))
 
@@ -74,7 +74,17 @@ export function SeatBlock() {
         <p className='text-destructive'>{(error as Error).message}</p>
       ) : layout ? (
         <div className='grid grid-cols-[minmax(0,1fr)_280px] items-start gap-4'>
-          <div className='fm-panel p-4'>
+          <div className='fm-panel space-y-3 p-4'>
+            <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1'>
+              <span className='text-muted-foreground text-xs'>Aircraft</span>
+              <span className='font-semibold'>{layout.type || '—'}</span>
+              <span className='font-mono text-sm text-cyan-600 dark:text-cyan-300'>
+                {layout.registration || 'no tail'}
+              </span>
+              <span className='text-muted-foreground text-xs'>
+                · {cells.length} seats · the seat map follows the aircraft of this flight
+              </span>
+            </div>
             <SeatMapGrid
               layout={layout}
               selected={selected}

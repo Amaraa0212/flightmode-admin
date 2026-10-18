@@ -3,20 +3,9 @@ import {
   airlineSsrs,
   bagTagLayouts,
   baggageOverrides,
-  baggageRules,
-  flightSeatBlocks,
   flights,
-  seatPrices,
-  serviceTemplates,
 } from '../../mock/db'
-import {
-  createMockResource,
-  fail,
-  mockList,
-  nextId,
-  nowIso,
-  ok,
-} from '../../mock/utils'
+import { createMockResource, nextId, nowIso } from '../../mock/utils'
 import type {
   AirlineSsr,
   AirlineSsrPayload,
@@ -30,30 +19,66 @@ import type {
   ServiceTemplatePayload,
 } from '../../types/products/product.types'
 import type { ListParams } from '../../types/shared/common.types'
+import {
+  action,
+  client,
+  getPage,
+  ok,
+  pageQuery,
+  period,
+  type ApiAction,
+  type ApiData,
+} from '../shared/client'
 
-// TODO(api): /admin/seat-prices, /admin/airline-ssrs, /admin/service-templates (+/apply), airline bag_tag_layout
+// TODO(api): /admin/airline-ssrs, airline bag_tag_layout
 
-export const seatPriceService = createMockResource<SeatPrice, SeatPricePayload>(
-  seatPrices,
-  {
-    searchKeys: ['name', 'rows', 'zone'],
-    filters: {
-      cabin_class: (row) => row.cabin_class,
-      is_active: (row) => String(row.is_active),
-    },
-    build: (payload, existing) => ({
-      aircraft: null,
-      currency: 'MNT',
-      ...existing,
-      ...payload,
-      seat_type: (payload.seat_type || null) as SeatPrice['seat_type'],
-      zone: payload.zone || null,
-      price: Number(payload.price),
-      position: Number(payload.position),
-      id: existing?.id ?? nextId(),
-    }),
-  }
-)
+const first = (v: unknown) => (Array.isArray(v) ? v : v ? [v] : []) as string[]
+
+/** Short per-airline lists: search / filters / paging run here */
+const localPage = <T>(rows: T[], params: ListParams) => {
+  const size = params.pageSize ?? 20
+  const page = params.current ?? 1
+  return ok({ total: rows.length, items: rows.slice((page - 1) * size, page * size) })
+}
+
+/** Decimals arrive as strings ("45000.00") */
+const toSeatPrice = (p: SeatPrice): SeatPrice => ({ ...p, price: Number(p.price) })
+
+const seatPriceBody = (p: SeatPricePayload) => ({
+  name: p.name.trim(),
+  cabin_class: p.cabin_class,
+  seat_type: p.seat_type || null,
+  rows: p.rows.replace(/\s+/g, '') || null,
+  position: Number(p.position),
+  price: Number(p.price),
+  is_active: p.is_active,
+})
+
+const loadSeatPrices = async () =>
+  (await client.get<ApiData<SeatPrice[]>>('/admin/seat-prices', { per_page: 500 })).data.map(toSeatPrice)
+
+/** /admin/seat-prices — legacy seat_rule; the lowest position matches first */
+export const seatPriceService = {
+  list: async (params: ListParams = {}) => {
+    const q = String(params.query ?? '').trim().toLowerCase()
+    const cabins = first(params.cabin_class)
+    const active = first(params.is_active)
+    const rows = (await loadSeatPrices())
+      .filter(
+        (r) =>
+          (!q || `${r.name} ${r.rows ?? ''}`.toLowerCase().includes(q)) &&
+          (!cabins.length || cabins.includes(r.cabin_class)) &&
+          (!active.length || active.includes(String(r.is_active)))
+      )
+      .sort((a, b) => a.position - b.position || a.id - b.id)
+    return localPage(rows, params)
+  },
+  create: (payload: SeatPricePayload) =>
+    action(client.post<ApiData<SeatPrice>>('/admin/seat-prices', seatPriceBody(payload)), toSeatPrice),
+  update: (id: number, payload: SeatPricePayload) =>
+    action(client.put<ApiData<SeatPrice>>(`/admin/seat-prices/${id}`, seatPriceBody(payload)), toSeatPrice),
+  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/seat-prices/${id}`), () => null),
+}
 
 export const airlineSsrService = createMockResource<
   AirlineSsr,
@@ -71,77 +96,100 @@ export const airlineSsrService = createMockResource<
   }),
 })
 
-const templateResource = createMockResource<
-  ServiceTemplate,
-  ServiceTemplatePayload
->(serviceTemplates, {
-  searchKeys: ['name', 'airline'],
-  build: (payload, existing) => ({
-    airline: airlines[0].name,
-    seat_assignment_profile: null,
-    ...existing,
-    name: payload.name,
-    baggage_rule_ids: payload.baggage_rule_ids.map(Number),
-    seat_price_ids: payload.seat_price_ids.map(Number),
-    oci_opens_minutes: Number(payload.oci_opens_minutes),
-    oci_closes_minutes: Number(payload.oci_closes_minutes),
-    id: existing?.id ?? nextId(),
-  }),
+const templateBody = (p: ServiceTemplatePayload) => ({
+  name: p.name.trim(),
+  aircraft_id: p.aircraft_id ? Number(p.aircraft_id) : null,
+  seat_assignment_profile_id:
+    p.aircraft_id && p.seat_assignment_profile_id ? Number(p.seat_assignment_profile_id) : null,
+  checkin_opens_minutes: Number(p.checkin_opens_minutes),
+  checkin_closes_minutes: Number(p.checkin_closes_minutes),
+  baggage_rule_ids: p.baggage_rule_ids.map(Number),
+  seat_price_ids: p.seat_price_ids.map(Number),
 })
 
-/** Which products each flight uses (legacy "Shop items") */
-const flightProductState = new Map<number, { template_id: number | null }>()
+const loadTemplates = async () =>
+  (await client.get<ApiData<ServiceTemplate[]>>('/admin/service-templates', { per_page: 500 })).data
 
+/** /admin/service-templates — online check-in window, seat profile, baggage & seat rules applied to flights */
 export const serviceTemplateService = {
-  ...templateResource,
-  /** POST /admin/service-templates/{id}/apply { flight_ids } */
-  apply: async (templateId: number, flightIds: number[]) => {
-    const template = serviceTemplates.find((t) => t.id === templateId)
-    if (!template) return fail('Template not found')
-    flightIds.forEach((id) => {
-      flightProductState.set(id, { template_id: templateId })
-      const flight = flights.find((f) => f.id === id)
-      if (flight) {
-        flight.online_checkin = {
-          enabled: template.oci_opens_minutes > 0,
-          opens_minutes: template.oci_opens_minutes,
-          closes_minutes: template.oci_closes_minutes,
-        }
-      }
-    })
-    return ok(null, `Template applied to ${flightIds.length} flight(s)`)
+  list: async (params: ListParams = {}) => {
+    const q = String(params.query ?? '').trim().toLowerCase()
+    const rows = (await loadTemplates()).filter(
+      (t) => !q || `${t.name} ${t.aircraft ?? ''}`.toLowerCase().includes(q)
+    )
+    return localPage(rows, params)
   },
-  options: () =>
-    ok(serviceTemplates.map((t) => ({ label: t.name, value: String(t.id) }))),
+  create: (payload: ServiceTemplatePayload) =>
+    action(client.post<ApiData<ServiceTemplate>>('/admin/service-templates', templateBody(payload)), (t) => t),
+  update: (id: number, payload: ServiceTemplatePayload) =>
+    action(client.put<ApiData<ServiceTemplate>>(`/admin/service-templates/${id}`, templateBody(payload)), (t) => t),
+  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/service-templates/${id}`), () => null),
+  /** A template for one aircraft is refused for flights on another aircraft */
+  apply: async (templateId: number, flightIds: number[]) => {
+    const res = await client.post<ApiAction<null>>(`/admin/service-templates/${templateId}/apply`, {
+      flight_ids: flightIds,
+    })
+    return ok(null, res.message)
+  },
+  options: async () =>
+    ok(
+      (await loadTemplates()).map((t) => ({
+        label: t.aircraft ? `${t.name} · ${t.aircraft}` : t.name,
+        value: String(t.id),
+      }))
+    ),
 }
 
+type ApiFlightProducts = {
+  id: number
+  flight_number: string
+  scheduled_departure_at: string
+  origin: { iata_code: string }
+  destination: { iata_code: string }
+  online_checkin: {
+    enabled: boolean
+    opens_minutes: number | null
+    closes_minutes: number | null
+    baggage_rules?: string[]
+    seat_prices_count?: number
+    seat_assignment_profile?: string | null
+  }
+  blocked_seats_count?: number
+}
+
+const toFlightProducts = (f: ApiFlightProducts): FlightProducts => ({
+  flight_id: f.id,
+  flight_number: f.flight_number,
+  departure_at: f.scheduled_departure_at,
+  route: `${f.origin.iata_code}-${f.destination.iata_code}`,
+  baggage_rules: f.online_checkin.baggage_rules ?? [],
+  seat_prices: f.online_checkin.seat_prices_count ?? 0,
+  seat_profile: f.online_checkin.seat_assignment_profile ?? null,
+  online_checkin: {
+    enabled: f.online_checkin.enabled,
+    opens_minutes: f.online_checkin.opens_minutes ?? 0,
+    closes_minutes: f.online_checkin.closes_minutes ?? 0,
+  },
+  blocked_seats: f.blocked_seats_count ?? 0,
+})
+
+const isoDate = (days: number) =>
+  new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10)
+
+/** Products each flight uses (legacy "Shop items"): /admin/flights?with_products — upcoming, not departed / cancelled */
 export const flightProductService = {
-  list: (params: ListParams) => {
-    const rows: FlightProducts[] = flights
-      .filter((f) => f.status !== 'departed' && f.status !== 'cancelled')
-      .map((f) => {
-        const templateId =
-          flightProductState.get(f.id)?.template_id ??
-          (f.flight_number.startsWith('MR') ? 2 : 1)
-        const template = serviceTemplates.find((t) => t.id === templateId)
-        return {
-          flight_id: f.id,
-          flight_number: f.flight_number,
-          departure_at: f.scheduled_departure_at,
-          route: `${f.origin.iata_code}-${f.destination.iata_code}`,
-          baggage_rules: (template?.baggage_rule_ids ?? [])
-            .map((id) => baggageRules.find((r) => r.id === id)?.name)
-            .filter((n): n is string => !!n),
-          seat_prices: template?.seat_price_ids.length ?? 0,
-          seat_profile: template?.seat_assignment_profile ?? null,
-          online_checkin: f.online_checkin,
-          blocked_seats: flightSeatBlocks.get(f.id)?.size ?? 0,
-          template: template?.name ?? null,
-        }
-      })
-    return mockList(rows, params, {
-      searchKeys: ['flight_number', 'route', 'template'],
-    })
+  list: (params: ListParams = {}) => {
+    const { from, to } = period(params)
+    return getPage<ApiFlightProducts, FlightProducts>(
+      '/admin/flights',
+      pageQuery(params, {
+        from: from ?? isoDate(0),
+        to: to ?? isoDate(60),
+        open: 1,
+        with_products: 1,
+      }),
+      toFlightProducts
+    )
   },
 }
 
@@ -181,7 +229,19 @@ export const baggageOverrideService = createMockResource<
   }),
 })
 
-export const baggageRuleOptions = () =>
-  baggageRules.map((r) => ({ label: r.name, value: String(r.id) }))
-export const seatPriceOptions = () =>
-  seatPrices.map((p) => ({ label: p.name, value: String(p.id) }))
+/** Active baggage rules for select fields (/admin/baggage-rules) */
+export const baggageRuleOptions = async () => {
+  const res = await client.get<ApiData<{ id: number; name: string; is_active: boolean }[]>>(
+    '/admin/baggage-rules',
+    { per_page: 500 }
+  )
+  return res.data
+    .filter((r) => r.is_active)
+    .map((r) => ({ label: r.name, value: String(r.id) }))
+}
+/** Active seat rules for select fields (/admin/seat-prices) */
+export const seatPriceOptions = async () =>
+  (await loadSeatPrices())
+    .filter((p) => p.is_active)
+    .sort((a, b) => a.position - b.position)
+    .map((p) => ({ label: p.name, value: String(p.id) }))

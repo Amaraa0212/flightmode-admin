@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { DatePicker } from '@/components/date-picker'
+import { fromDateValue, toDateValue } from '@/lib/date-value'
 import { DateTimePicker } from '../datetime-picker'
 import { ArrayField } from './array-field'
 import { BaseFormDialog } from './base-form-dialog'
@@ -475,14 +476,10 @@ export function ConfigFormDialog<TFormData extends Record<string, unknown>>({
                 <div className='w-full'>
                   <DatePicker
                     selected={
-                      formField.value
-                        ? new Date(formField.value as number)
-                        : undefined
+                      fromDateValue(formField.value)
                     }
                     onSelect={(date) => {
-                      formField.onChange(
-                        (date ? date.getTime() : undefined) as any
-                      )
+                      formField.onChange(toDateValue(date) as any)
                     }}
                     placeholder={field.placeholder || 'Pick a date'}
                   />

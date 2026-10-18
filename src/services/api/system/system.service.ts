@@ -20,6 +20,7 @@ import {
   client,
   getPage,
   pageQuery,
+  period,
   type ApiAction,
   type ApiData,
 } from '../shared/client'
@@ -27,16 +28,16 @@ import {
 /** /admin/activity-logs — limited by the API to the user's flights and staff */
 export const activityLogService = {
   list: (params: ActivityLogListParams = {}) => {
-    const { channel, start_day, end_day, query, ...rest } = params
+    const { channel, start_day: _s, end_day: _e, ...rest } = params
+    const { from, to } = period(params)
     return getPage<ActivityLog, ActivityLog>(
       '/admin/activity-logs',
       {
+        // query → search (event, description, user, IP); flight / passenger come from the URL as they are
         ...pageQuery(rest),
-        search: undefined,
         channel: Array.isArray(channel) ? channel[0] : channel,
-        event: query,
-        from: start_day,
-        to: end_day,
+        from,
+        to,
       },
       (l) => l
     )

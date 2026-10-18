@@ -3,6 +3,6 @@ import { withFilters } from '@/lib/list-search'
 import { Flights } from '@/features/operations/flights'
 
 export const Route = createFileRoute('/_authenticated/operations/flights/')({
-  validateSearch: withFilters('status'),
+  validateSearch: withFilters('status', 'source'),
   component: Flights,
 })

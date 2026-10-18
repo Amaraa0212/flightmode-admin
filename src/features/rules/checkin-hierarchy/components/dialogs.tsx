@@ -101,7 +101,6 @@ export function ZoneDialog({
 const profileSchema = z.object({
   name: z.string().trim().min(2),
   zones: z.string().trim().min(1, 'e.g. A, B, C'),
-  is_default: z.boolean(),
 })
 type ProfileForm = z.infer<typeof profileSchema>
 
@@ -124,9 +123,8 @@ export function ProfileDialog({
     ? {
         name: profile.name,
         zones: profile.zones.join(', '),
-        is_default: profile.is_default,
       }
-    : { name: '', zones: 'A, B, C', is_default: false }
+    : { name: '', zones: 'A, B, C' }
   return (
     <ConfigFormDialog<ProfileForm>
       open
@@ -148,12 +146,6 @@ export function ProfileDialog({
           type: 'text',
           placeholder: 'B, C, A',
           required: true,
-          gridCols: 2,
-        },
-        {
-          name: 'is_default',
-          label: 'Default profile',
-          type: 'checkbox',
           gridCols: 2,
         },
       ]}

@@ -123,8 +123,18 @@ export const ok = <T>(body: T, message = 'OK') => ({ message, body })
 
 /** Table params (current / pageSize / query) → Laravel paginator (page / per_page) */
 export function pageQuery(params: ListParams = {}, extra: Query = {}): Query {
-  const { current, pageSize, query, ...rest } = params
+  // sortDate is an object (useFilterParams) — services read it through period()
+  const { current, pageSize, query, sortDate: _sortDate, ...rest } = params
   return { ...rest, ...extra, page: current ?? 1, per_page: pageSize ?? 20, search: query }
+}
+
+/** start_day / end_day (flat, or inside sortDate from useFilterParams) → from / to */
+export function period(params: ListParams) {
+  const range = params.sortDate as { start_day?: string; end_day?: string } | undefined
+  return {
+    from: (params.start_day as string | undefined) ?? range?.start_day,
+    to: (params.end_day as string | undefined) ?? range?.end_day,
+  }
 }
 
 /** GET a Laravel paginator (or a plain collection) as { total, items } */
