@@ -1,4 +1,3 @@
-import { Plane } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type LogoImageProps = {
@@ -6,7 +5,16 @@ type LogoImageProps = {
   iconClassName?: string
 }
 
-/** Gate app-ийн логотой ижил: хар-цэнхэр дөрвөлжин + cyan онгоц */
+/** Skythium "S" bolt (brand mark) — viewBox fits the mark tightly so it can be centred anywhere */
+export function SkythiumMark({ className }: { className?: string }) {
+  return (
+    <svg viewBox='-2 -2 103 92' className={className} fill='currentColor' aria-hidden='true'>
+      <path d='M99 0Q60 15 27 33C13 40 14 47 28 47L70 47Q36 69 0 88Q47 71 83 50C98 43 97 37 84 37L36 37Q68 21 99 0Z' />
+    </svg>
+  )
+}
+
+/** Rounded dark tile with a cyan → indigo ring and the Skythium S bolt (sign-in, sidebar, gate app) */
 export function LogoImage({ className, iconClassName }: LogoImageProps) {
   return (
     <div
@@ -17,11 +25,7 @@ export function LogoImage({ className, iconClassName }: LogoImageProps) {
       )}
     >
       <div className='flex size-full items-center justify-center rounded-[26%] bg-[#0b1a2c]'>
-        <Plane
-          className={cn('size-1/2 text-cyan-300', iconClassName)}
-          fill='currentColor'
-          strokeWidth={1.5}
-        />
+        <SkythiumMark className={cn('w-[58%] text-cyan-300', iconClassName)} />
       </div>
     </div>
   )
@@ -29,11 +33,9 @@ export function LogoImage({ className, iconClassName }: LogoImageProps) {
 
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={cn('font-bold tracking-tight', className)}>
-      <span className='text-foreground'>flight</span>
-      <span className='bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent'>
-        mode
-      </span>
+    <span className={cn('font-extrabold tracking-[0.06em] uppercase', className)}>
+      <span className='text-foreground'>Sky</span>
+      <span className='bg-gradient-to-r from-cyan-400 to-sky-400 bg-clip-text text-transparent'>thium</span>
     </span>
   )
 }
