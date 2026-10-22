@@ -35,6 +35,7 @@ import { WEEKDAYS, pageConfig } from './config'
 
 const schema = z.object({
   flight_number: z.string().trim().min(3),
+  service_type: z.enum(['scheduled', 'charter']),
   origin: z.string().min(1, 'From is required'),
   destination: z.string().min(1, 'To is required'),
   aircraft: z.string().min(1),
@@ -66,6 +67,7 @@ export function SeriesDialog({
         }
       : {
           flight_number: '',
+          service_type: 'scheduled',
           origin: '',
           destination: '',
           aircraft: '',
@@ -149,6 +151,11 @@ export function SeriesDialog({
           >
             {text('flight_number', 'Flight number', { className: 'uppercase' })}
             {select('aircraft', 'Aircraft', registrations)}
+            {select('service_type', 'Type', [
+              { label: 'Scheduled (хуваарьт)', value: 'scheduled' },
+              { label: 'Charter (захиалгат) — free baggage', value: 'charter' },
+            ])}
+            <div />
             {select('origin', 'From', airports)}
             {select('destination', 'To', airports)}
             {text('departure_time', 'Departure (HH:mm)', { type: 'time' })}

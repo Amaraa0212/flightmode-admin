@@ -90,6 +90,22 @@ export const ACTIVE: Record<string, StatusMeta> = {
 }
 
 export const FLIGHT_STATUS_OPTIONS = toOptions(FLIGHT_STATUS)
+
+/** Issue reports from the "?" help panel */
+export const ISSUE_STATUS: Record<string, StatusMeta> = {
+  open: { label: 'Open', tone: 'amber' },
+  in_progress: { label: 'In progress', tone: 'cyan' },
+  resolved: { label: 'Resolved', tone: 'green' },
+  rejected: { label: 'Rejected', tone: 'slate' },
+}
+export const ISSUE_STATUS_OPTIONS = toOptions(ISSUE_STATUS)
+
+/** Хуваарьт (scheduled, sold by fare) / захиалгат (charter: bags are free at the counter) */
+export const SERVICE_TYPE: Record<string, StatusMeta> = {
+  scheduled: { label: 'Scheduled', tone: 'cyan' },
+  charter: { label: 'Charter', tone: 'amber' },
+}
+export const SERVICE_TYPE_OPTIONS = toOptions(SERVICE_TYPE)
 export const BOOKING_STATUS_OPTIONS = toOptions(BOOKING_STATUS)
 export const BOOKING_SOURCE_OPTIONS = toOptions(BOOKING_SOURCE)
 export const CHARTER_STATUS_OPTIONS = toOptions(CHARTER_STATUS)

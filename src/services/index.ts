@@ -27,7 +27,11 @@ export {
 } from './api/organisation/user.service'
 
 // ─── Fleet ───
-export { aircraftService, aircraftOptions } from './api/fleet/aircraft.service'
+export {
+  aircraftService,
+  aircraftOptions,
+  parseSeatConfiguration,
+} from './api/fleet/aircraft.service'
 export {
   seatMapService,
   loadZoneService,

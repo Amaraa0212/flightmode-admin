@@ -5,6 +5,7 @@ import { seatMapService, type SeatCell } from '@/services'
 import { Lock, LockOpen, MousePointerClick } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { FlightPicker } from '@/components/flight-picker'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/page-header'
@@ -17,6 +18,7 @@ export function SeatBlock() {
   const navigate = route.useNavigate()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [releaseAllOpen, setReleaseAllOpen] = useState(false)
 
   const { data: layout, error } = useQuery({
     queryKey: ['admin-seat-block', flight],
@@ -34,6 +36,18 @@ export function SeatBlock() {
     },
   })
 
+  // every blocked seat of the flight in one request
+  const releaseAll = useMutation({
+    mutationFn: async (seats: string[]) =>
+      seatMapService.toggleBlock(flight!, seats, false),
+    onSuccess: (res) => {
+      toast.success(res.message)
+      setSelected(new Set())
+      setReleaseAllOpen(false)
+      queryClient.invalidateQueries({ queryKey: ['admin-seat-block', flight] })
+    },
+  })
+
   const onSeatClick = (seat: SeatCell) => {
     if (seat.state === 'occupied')
       return toast.info(`${seat.number} is taken by ${seat.occupant}`)
@@ -43,9 +57,11 @@ export function SeatBlock() {
     setSelected(next)
   }
 
-  const cells =
-    layout?.rows.flatMap((r) => r.seats) ?? []
-  const blocked = cells.filter((s) => s.state === 'blocked').length
+  const cells = layout?.rows.flatMap((r) => r.seats) ?? []
+  const blockedSeats = cells
+    .filter((s) => s.state === 'blocked')
+    .map((s) => s.number)
+  const blocked = blockedSeats.length
   const selection = cells.filter((s) => selected.has(s.number))
 
   return (
@@ -130,10 +146,29 @@ export function SeatBlock() {
                 <LockOpen className='size-4' />
                 Release selected
               </Button>
+              <Button
+                variant='ghost'
+                className='text-destructive gap-2'
+                disabled={!blocked || releaseAll.isPending}
+                onClick={() => setReleaseAllOpen(true)}
+              >
+                <LockOpen className='size-4' />
+                Release all ({blocked})
+              </Button>
             </div>
           </div>
         </div>
       ) : null}
+      <ConfirmDialog
+        open={releaseAllOpen}
+        onOpenChange={setReleaseAllOpen}
+        title='Release all blocked seats?'
+        desc={`${blocked} seat(s) become free for check-in and online seat selection: ${blockedSeats.join(', ')}`}
+        confirmText='Release all'
+        destructive
+        isLoading={releaseAll.isPending}
+        handleConfirm={() => releaseAll.mutate(blockedSeats)}
+      />
     </Main>
   )
 }

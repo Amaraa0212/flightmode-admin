@@ -56,6 +56,7 @@ import { Route as AuthenticatedRulesFlightProductsIndexRouteImport } from './rou
 import { Route as AuthenticatedRulesSeatRulesIndexRouteImport } from './routes/_authenticated/rules/seat-rules/index'
 import { Route as AuthenticatedRulesSsrIndexRouteImport } from './routes/_authenticated/rules/ssr/index'
 import { Route as AuthenticatedRulesTemplatesIndexRouteImport } from './routes/_authenticated/rules/templates/index'
+import { Route as AuthenticatedSystemIssueReportsIndexRouteImport } from './routes/_authenticated/system/issue-reports/index'
 import { Route as AuthenticatedSystemNotificationsIndexRouteImport } from './routes/_authenticated/system/notifications/index'
 import { Route as AuthenticatedSystemTermsIndexRouteImport } from './routes/_authenticated/system/terms/index'
 
@@ -332,6 +333,12 @@ const AuthenticatedRulesTemplatesIndexRoute =
     path: '/rules/templates/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedSystemIssueReportsIndexRoute =
+  AuthenticatedSystemIssueReportsIndexRouteImport.update({
+    id: '/system/issue-reports/',
+    path: '/system/issue-reports/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedSystemNotificationsIndexRoute =
   AuthenticatedSystemNotificationsIndexRouteImport.update({
     id: '/system/notifications/',
@@ -392,6 +399,7 @@ export interface FileRoutesByFullPath {
   '/rules/seat-rules/': typeof AuthenticatedRulesSeatRulesIndexRoute
   '/rules/ssr/': typeof AuthenticatedRulesSsrIndexRoute
   '/rules/templates/': typeof AuthenticatedRulesTemplatesIndexRoute
+  '/system/issue-reports/': typeof AuthenticatedSystemIssueReportsIndexRoute
   '/system/notifications/': typeof AuthenticatedSystemNotificationsIndexRoute
   '/system/terms/': typeof AuthenticatedSystemTermsIndexRoute
 }
@@ -442,6 +450,7 @@ export interface FileRoutesByTo {
   '/rules/seat-rules': typeof AuthenticatedRulesSeatRulesIndexRoute
   '/rules/ssr': typeof AuthenticatedRulesSsrIndexRoute
   '/rules/templates': typeof AuthenticatedRulesTemplatesIndexRoute
+  '/system/issue-reports': typeof AuthenticatedSystemIssueReportsIndexRoute
   '/system/notifications': typeof AuthenticatedSystemNotificationsIndexRoute
   '/system/terms': typeof AuthenticatedSystemTermsIndexRoute
 }
@@ -494,6 +503,7 @@ export interface FileRoutesById {
   '/_authenticated/rules/seat-rules/': typeof AuthenticatedRulesSeatRulesIndexRoute
   '/_authenticated/rules/ssr/': typeof AuthenticatedRulesSsrIndexRoute
   '/_authenticated/rules/templates/': typeof AuthenticatedRulesTemplatesIndexRoute
+  '/_authenticated/system/issue-reports/': typeof AuthenticatedSystemIssueReportsIndexRoute
   '/_authenticated/system/notifications/': typeof AuthenticatedSystemNotificationsIndexRoute
   '/_authenticated/system/terms/': typeof AuthenticatedSystemTermsIndexRoute
 }
@@ -546,6 +556,7 @@ export interface FileRouteTypes {
     | '/rules/seat-rules/'
     | '/rules/ssr/'
     | '/rules/templates/'
+    | '/system/issue-reports/'
     | '/system/notifications/'
     | '/system/terms/'
   fileRoutesByTo: FileRoutesByTo
@@ -596,6 +607,7 @@ export interface FileRouteTypes {
     | '/rules/seat-rules'
     | '/rules/ssr'
     | '/rules/templates'
+    | '/system/issue-reports'
     | '/system/notifications'
     | '/system/terms'
   id:
@@ -647,6 +659,7 @@ export interface FileRouteTypes {
     | '/_authenticated/rules/seat-rules/'
     | '/_authenticated/rules/ssr/'
     | '/_authenticated/rules/templates/'
+    | '/_authenticated/system/issue-reports/'
     | '/_authenticated/system/notifications/'
     | '/_authenticated/system/terms/'
   fileRoutesById: FileRoutesById
@@ -992,6 +1005,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRulesTemplatesIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/system/issue-reports/': {
+      id: '/_authenticated/system/issue-reports/'
+      path: '/system/issue-reports'
+      fullPath: '/system/issue-reports/'
+      preLoaderRoute: typeof AuthenticatedSystemIssueReportsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/system/notifications/': {
       id: '/_authenticated/system/notifications/'
       path: '/system/notifications'
@@ -1050,6 +1070,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRulesSeatRulesIndexRoute: typeof AuthenticatedRulesSeatRulesIndexRoute
   AuthenticatedRulesSsrIndexRoute: typeof AuthenticatedRulesSsrIndexRoute
   AuthenticatedRulesTemplatesIndexRoute: typeof AuthenticatedRulesTemplatesIndexRoute
+  AuthenticatedSystemIssueReportsIndexRoute: typeof AuthenticatedSystemIssueReportsIndexRoute
   AuthenticatedSystemNotificationsIndexRoute: typeof AuthenticatedSystemNotificationsIndexRoute
   AuthenticatedSystemTermsIndexRoute: typeof AuthenticatedSystemTermsIndexRoute
 }
@@ -1117,6 +1138,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRulesSeatRulesIndexRoute: AuthenticatedRulesSeatRulesIndexRoute,
   AuthenticatedRulesSsrIndexRoute: AuthenticatedRulesSsrIndexRoute,
   AuthenticatedRulesTemplatesIndexRoute: AuthenticatedRulesTemplatesIndexRoute,
+  AuthenticatedSystemIssueReportsIndexRoute:
+    AuthenticatedSystemIssueReportsIndexRoute,
   AuthenticatedSystemNotificationsIndexRoute:
     AuthenticatedSystemNotificationsIndexRoute,
   AuthenticatedSystemTermsIndexRoute: AuthenticatedSystemTermsIndexRoute,

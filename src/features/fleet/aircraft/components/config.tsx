@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { aircraftService, type Aircraft } from '@/services'
+import {
+  aircraftService,
+  parseSeatConfiguration,
+  type Aircraft,
+} from '@/services'
 import { ACTIVE_OPTIONS } from '@/constants/status'
 import { brand, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
@@ -8,8 +12,13 @@ import { ActiveBadge } from '@/components/status-badge'
 const schema = z.object({
   registration: z.string().trim().min(4, 'e.g. JU-1088'),
   type: z.string().trim().min(2),
-  seat_configuration: z.string().trim().min(2, 'e.g. C12Y150'),
-  total_seats: z.number().int().min(1),
+  seat_configuration: z
+    .string()
+    .trim()
+    .refine(
+      (v) => parseSeatConfiguration(v) !== null,
+      'Cabin letter + seats, e.g. C12Y150 or W16Y120 (F, C, W, Y)'
+    ),
   max_infants: z.number().int().min(0),
   is_active: z.boolean(),
 })
@@ -70,15 +79,13 @@ export const pageConfig: Omit<
       registration: '',
       type: '',
       seat_configuration: '',
-      total_seats: 150,
       max_infants: 10,
       is_active: true,
     },
     fromRow: (r) => ({
       registration: r.registration,
       type: r.type,
-      seat_configuration: r.seat_configuration,
-      total_seats: r.total_seats,
+      seat_configuration: r.seat_configuration ?? '',
       max_infants: r.max_infants,
       is_active: r.is_active,
     }),
@@ -100,17 +107,12 @@ export const pageConfig: Omit<
       },
       {
         name: 'seat_configuration',
-        label: 'Seat configuration',
+        label:
+          'Seat configuration (cabins + seats: W16Y120 → W 16, Y 120 = 136)',
         type: 'text',
+        placeholder: 'C12Y150',
         required: true,
         gridCols: 2,
-      },
-      {
-        name: 'total_seats',
-        label: 'Total seats',
-        type: 'number',
-        required: true,
-        gridCols: 1,
       },
       {
         name: 'max_infants',

@@ -414,6 +414,7 @@ for (let day = -5; day <= 9; day++) {
     flights.push({
       id,
       flight_number: number,
+      service_type: 'scheduled',
       airline: number.startsWith('MR')
         ? { id: 2, name: airlines[1].name, iata_code: 'MR' }
         : { id: 1, name: airlines[0].name, iata_code: 'OM' },
@@ -457,6 +458,7 @@ export const flightSeries: FlightSeries[] = ROUTES.map(
     const hhmm = (m: number) =>
       `${pad(Math.floor(m / 60), 2)}:${pad(m % 60, 2)}`
     return {
+      service_type: 'scheduled' as const,
       id: index + 1,
       flight_number: number,
       origin: from,

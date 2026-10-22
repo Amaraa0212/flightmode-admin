@@ -103,3 +103,26 @@ export interface CarriageDocument {
   body: string
   updated_at: string
 }
+
+export type IssueReportStatus = 'open' | 'in_progress' | 'resolved' | 'rejected'
+
+/** A problem a user sent from the "?" help panel of a page (/admin/issue-reports) */
+export interface IssueReport extends Record<string, unknown> {
+  id: number
+  user: { id: number; name: string; email: string } | null
+  airline: { id: number; name: string } | null
+  agency: { id: number; name: string } | null
+  page_path: string
+  page_title: string | null
+  message: string
+  user_agent: string | null
+  status: IssueReportStatus
+  resolution_note: string | null
+  resolved_by: { id: number; name: string } | null
+  resolved_at: string | null
+  created_at: string
+}
+
+export interface IssueReportListParams extends ListParams {
+  status?: string | string[]
+}

@@ -191,6 +191,45 @@ export const flightProductService = {
       toFlightProducts
     )
   },
+
+  /** What one flight uses now (ids for the edit dialog) — GET /admin/flights/{id} loads rules and seat prices */
+  get: async (flightId: number) => {
+    const f = (
+      await client.get<
+        ApiData<{
+          aircraft: { id: number } | null
+          online_checkin: {
+            baggage_rule_ids?: number[]
+            seat_price_ids?: number[]
+            seat_assignment_profile_id: number | null
+          }
+        }>
+      >(`/admin/flights/${flightId}`)
+    ).data
+    return ok({
+      aircraft_id: f.aircraft?.id ?? null,
+      baggage_rule_ids: f.online_checkin.baggage_rule_ids ?? [],
+      seat_price_ids: f.online_checkin.seat_price_ids ?? [],
+      seat_assignment_profile_id: f.online_checkin.seat_assignment_profile_id,
+    })
+  },
+
+  /** Shop items of one flight — PUT /admin/flights/{id}/products */
+  save: (
+    flightId: number,
+    payload: {
+      baggage_rule_ids: number[]
+      seat_price_ids: number[]
+      seat_assignment_profile_id: number | null
+    }
+  ) =>
+    action(
+      client.put<ApiAction<unknown>>(
+        `/admin/flights/${flightId}/products`,
+        payload
+      ),
+      () => null
+    ),
 }
 
 export const bagTagLayoutService = createMockResource<

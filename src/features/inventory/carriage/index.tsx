@@ -7,8 +7,8 @@ import { toast } from 'sonner'
 import { formatDate } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
 import { Main } from '@/components/layout/main'
+import { MarkdownPreview, MarkdownToolbarEditor } from '@/components/markdown'
 import { PageHeader } from '@/components/page-header'
 
 const route = getRouteApi('/_authenticated/inventory/carriage/')
@@ -45,7 +45,7 @@ export function Carriage() {
     <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
       <PageHeader
         title='Conditions of carriage'
-        description='Shown on the e-ticket and in the agency portal (Markdown)'
+        description='Each airline edits its own conditions — shown on the e-ticket and in the agency portal'
         actions={
           <Button
             size='sm'
@@ -74,29 +74,20 @@ export function Carriage() {
         <div className='grid grid-cols-2 gap-4'>
           <div className='fm-panel space-y-2 p-4'>
             <p className='fm-label'>Editor</p>
-            <Textarea
+            <MarkdownToolbarEditor
               value={body}
-              onChange={(e) => setBody(e.target.value)}
-              rows={24}
-              className='font-mono text-xs'
+              onChange={setBody}
+              placeholder='# Conditions of carriage'
             />
-            <p className='text-muted-foreground text-xs'>
-              Last saved {formatDate(doc.updated_at, 'YYYY-MM-DD HH:mm')}
-            </p>
+            {doc.updated_at && (
+              <p className='text-muted-foreground text-xs'>
+                Last saved {formatDate(doc.updated_at, 'YYYY-MM-DD HH:mm')}
+              </p>
+            )}
           </div>
           <div className='fm-panel space-y-2 p-4'>
             <p className='fm-label'>Preview</p>
-            <article className='space-y-2 text-sm leading-relaxed'>
-              {body.split('\n').map((line, i) =>
-                line.startsWith('# ') ? (
-                  <h3 key={i} className='text-lg font-bold'>
-                    {line.slice(2)}
-                  </h3>
-                ) : line.trim() ? (
-                  <p key={i}>{line}</p>
-                ) : null
-              )}
-            </article>
+            <MarkdownPreview value={body} />
           </div>
         </div>
       )}

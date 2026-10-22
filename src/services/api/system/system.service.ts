@@ -1,15 +1,15 @@
-import {
-  carriageDocuments,
-  policyDocuments,
-  requiredNotifications,
-} from '../../mock/db'
+import { policyDocuments, requiredNotifications } from '../../mock/db'
 import { createMockResource, fail, nextId, nowIso, ok } from '../../mock/utils'
 import type {
   ActivityLog,
   ActivityLogListParams,
   Announcement,
   AnnouncementPayload,
+  CarriageDocument,
   DashboardStats,
+  IssueReport,
+  IssueReportListParams,
+  IssueReportStatus,
   PolicyDocument,
   PolicyDocumentPayload,
   RequiredNotification,
@@ -125,6 +125,28 @@ export const issueReportService = {
       client.post<ApiAction<{ id: number }>>('/issue-reports', payload),
       (r) => r
     ),
+
+  /** GET /admin/issue-reports — newest first; search, status and date range on the API */
+  list: (params: IssueReportListParams = {}) => {
+    const { status, start_day: _s, end_day: _e, ...rest } = params
+    const { from, to } = period(params)
+    const statuses = ([] as string[]).concat(status ?? [])
+    return getPage<IssueReport, IssueReport>(
+      '/admin/issue-reports',
+      { ...pageQuery(rest), status: statuses.length === 1 ? statuses[0] : undefined, from, to },
+      (r) => r
+    )
+  },
+
+  /** PATCH /admin/issue-reports/{id} — closing (resolved / rejected) stamps who and when */
+  update: (id: number, payload: { status: IssueReportStatus; resolution_note: string }) =>
+    action(
+      client.patch<ApiData<IssueReport>>(`/admin/issue-reports/${id}`, {
+        status: payload.status,
+        resolution_note: payload.resolution_note.trim() || null,
+      }),
+      (r) => r
+    ),
 }
 
 // ─── Notifications / terms / carriage ───
@@ -161,14 +183,34 @@ export const policyDocumentService = createMockResource<
   }),
 })
 
-// TODO(api): airlines.conditions_of_carriage (PUT /admin/airlines/{id})
+type ApiCarriageAirline = {
+  id: number
+  name: string
+  conditions_of_carriage: string | null
+  updated_at: string | null
+}
+
+const toCarriage = (a: ApiCarriageAirline): CarriageDocument => ({
+  airline_id: a.id,
+  airline: a.name,
+  body: a.conditions_of_carriage ?? '',
+  updated_at: a.updated_at ?? '',
+})
+
+/** airlines.conditions_of_carriage — an airline user sees and edits only their own airline */
 export const carriageService = {
-  list: () => ok(carriageDocuments),
-  save: (airlineId: number, body: string) => {
-    const doc = carriageDocuments.find((d) => d.airline_id === airlineId)
-    if (!doc) return fail('Airline not found')
-    doc.body = body
-    doc.updated_at = nowIso()
-    return ok(doc, 'Conditions of carriage saved')
+  list: async () => {
+    const res = await client.get<ApiData<ApiCarriageAirline[]>>(
+      '/admin/airlines',
+      { per_page: 100 }
+    )
+    return ok(res.data.map(toCarriage))
   },
+  save: (airlineId: number, body: string) =>
+    action(
+      client.put<ApiData<ApiCarriageAirline>>(`/admin/airlines/${airlineId}`, {
+        conditions_of_carriage: body,
+      }),
+      toCarriage
+    ),
 }
