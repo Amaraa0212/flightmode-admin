@@ -18,6 +18,8 @@ type BaseNavItem = {
   icon?: React.ElementType
   /** permission key (flightmode-api PermissionKey) needed to see the entry */
   permission?: string
+  /** only for the system administrator (the platform owner), whatever the role's keys */
+  systemAdminOnly?: boolean
 }
 
 type NavLink = BaseNavItem & {

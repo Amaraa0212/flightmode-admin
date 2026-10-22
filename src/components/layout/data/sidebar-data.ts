@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   BarChart3,
   Bell,
+  Bug,
   BookOpenText,
   Building2,
   CalendarClock,
@@ -20,7 +21,6 @@ import {
   Search,
   ShieldCheck,
   SlidersHorizontal,
-  Tag,
   Tags,
   Ticket,
   TowerControl,
@@ -156,26 +156,46 @@ export const sidebarData: SidebarData = {
           title: 'Reports',
           icon: BarChart3,
           items: [
-            { title: 'Traffic & PAX summary', url: '/reports/traffic', permission: 'reports.view' },
-            { title: 'PNL report', url: '/reports/pnl', permission: 'reports.view' },
-            { title: 'Fare info', url: '/reports/fare-info', permission: 'reports.view' },
-            { title: 'Sales report', url: '/reports/sales', permission: 'reports.view' },
-            { title: 'Station report', url: '/reports/station', permission: 'reports.view' },
+            {
+              title: 'Traffic & PAX summary',
+              url: '/reports/traffic',
+              permission: 'reports.view',
+            },
+            {
+              title: 'PNL report',
+              url: '/reports/pnl',
+              permission: 'reports.view',
+            },
+            {
+              title: 'Sales report',
+              url: '/reports/sales',
+              permission: 'reports.view',
+            },
+            {
+              title: 'Station report',
+              url: '/reports/station',
+              permission: 'reports.view',
+            },
           ],
         },
         { title: 'PAX search', url: '/reports/pax-search', permission: 'reports.view', icon: Search },
       ],
     },
     {
-      title: 'Requests & access',
+      title: 'Access',
       items: [
         {
-          title: 'Requests from agencies',
-          url: '/requests/charter', permission: 'charters.view',
-          icon: Tag,
+          title: 'Users',
+          url: '/access/users',
+          permission: 'users.manage',
+          icon: Users,
         },
-        { title: 'Users', url: '/access/users', permission: 'users.manage', icon: Users },
-        { title: 'Roles', url: '/access/roles', permission: 'roles.manage', icon: ShieldCheck },
+        {
+          title: 'Roles',
+          url: '/access/roles',
+          permission: 'roles.manage',
+          icon: ShieldCheck,
+        },
       ],
     },
     {
@@ -183,6 +203,7 @@ export const sidebarData: SidebarData = {
       items: [
         { title: 'Notifications', url: '/system/notifications', permission: 'announcements.manage', icon: Bell },
         { title: 'Terms & condition', url: '/system/terms', permission: 'reference.manage', icon: FileText },
+        { title: 'Issue reports', url: '/system/issue-reports', systemAdminOnly: true, icon: Bug },
       ],
     },
   ],
@@ -190,17 +211,23 @@ export const sidebarData: SidebarData = {
 
 /** Menu entries the user's permissions allow; groups and sub-menus without any are dropped */
 export function visibleNavGroups(user: AuthUser | null): NavGroup[] {
-  const allowed = (permission?: string) =>
-    !permission || (!!user && (user.is_system_admin || user.permissions.includes(permission)))
+  const allowed = (permission?: string, systemAdminOnly?: boolean) =>
+    systemAdminOnly
+      ? !!user?.is_system_admin
+      : !permission || (!!user && (user.is_system_admin || user.permissions.includes(permission)))
 
   return sidebarData.navGroups
     .map((group) => ({
       ...group,
       items: group.items
         .map((item) =>
-          item.items ? { ...item, items: item.items.filter((sub) => allowed(sub.permission)) } : item
+          item.items
+            ? { ...item, items: item.items.filter((sub) => allowed(sub.permission, sub.systemAdminOnly)) }
+            : item
         )
-        .filter((item) => (item.items ? item.items.length > 0 : allowed(item.permission)))
+        .filter((item) =>
+          item.items ? item.items.length > 0 : allowed(item.permission, item.systemAdminOnly)
+        )
         // an agency administrator manages their own ticketing agents on the users page
         .map((item) =>
           user?.role?.scope === 'agency' && item.url === '/access/users' ? { ...item, title: 'Агентууд' } : item

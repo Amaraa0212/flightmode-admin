@@ -14,9 +14,17 @@ import { client, ok, period, type ApiData } from '../shared/client'
 | /admin/flights/{id}/passengers and the flight documents (manifest json, PNL text).
 */
 
+/** Seats sold per agency on a flight (agency null = sold directly by the airline) */
+export type AgencySale = {
+  agency: { id: number; name: string } | null
+  seats: number
+  sold: number
+}
+
 export interface FlightBoardRow extends Flight {
   ops: FlightOperations
   pax: { booked: number; checked_in: number; boarded: number; capacity: number }
+  agency_sales: AgencySale[]
 }
 
 type ApiBoardFlight = Flight & {
@@ -25,13 +33,20 @@ type ApiBoardFlight = Flight & {
   estimated_arrival_at: string | null
   gate_agents?: { id: number; name: string }[]
   passenger_counts?: { booked: number; checked_in: number; boarded: number }
+  agency_sales?: AgencySale[]
 }
 
 function toBoardRow(f: ApiBoardFlight): FlightBoardRow {
   return {
     ...f,
     segments_count: f.segments_count ?? 0,
-    online_checkin: f.online_checkin ?? { enabled: false, opens_minutes: 0, closes_minutes: 0 },
+    service_type: f.service_type ?? 'scheduled',
+    agency_sales: f.agency_sales ?? [],
+    online_checkin: f.online_checkin ?? {
+      enabled: false,
+      opens_minutes: 0,
+      closes_minutes: 0,
+    },
     ops: {
       gate: f.gate,
       estimated_departure_at: f.estimated_departure_at,
@@ -65,6 +80,9 @@ export const flightOpsService = {
     const q = String(params.query ?? '').trim().toLowerCase()
     const status = params.status as string | string[] | undefined
     const statuses = status ? (Array.isArray(status) ? status : [status]) : []
+    const types = ([] as string[]).concat(
+      (params.service_type as string | string[] | undefined) ?? []
+    )
     const found = rows.filter(
       (f) =>
         (!q ||
@@ -72,7 +90,8 @@ export const flightOpsService = {
             .join(' ')
             .toLowerCase()
             .includes(q)) &&
-        (!statuses.length || statuses.includes(f.status))
+        (!statuses.length || statuses.includes(f.status)) &&
+        (!types.length || types.includes(f.service_type))
     )
     const size = params.pageSize ?? 20
     const page = params.current ?? 1

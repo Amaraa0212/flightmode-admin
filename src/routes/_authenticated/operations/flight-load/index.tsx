@@ -4,7 +4,7 @@ import { FlightLoad } from '@/features/operations/flight-load'
 
 export const Route = createFileRoute('/_authenticated/operations/flight-load/')(
   {
-    validateSearch: withFilters('status'),
+    validateSearch: withFilters('status', 'service_type'),
     component: FlightLoad,
   }
 )

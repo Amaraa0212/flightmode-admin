@@ -649,6 +649,17 @@ export const PAGE_HELP: Record<string, PageHelp> = {
       'Хэл бүрт тусад нь текст үүсгэнэ.',
     ],
   },
+
+  '/system/issue-reports': {
+    title: 'Issue reports',
+    summary:
+      'Хэрэглэгчид хуудас бүрийн “?” туслах цонхноос илгээсэн асуудлууд — зөвхөн System administrator харна.',
+    steps: [
+      'Status-аар шүүнэ (Open, In progress, Resolved, Rejected), огнооны хүрээ, хайлтаар (мессеж, хуудас, хэрэглэгч) хайна.',
+      'Мөр дээр дарж бүтэн мессежийг харна, Status-ыг сольж юу хийснээ Note-д бичнэ.',
+    ],
+    notes: ['Resolved / Rejected болгоход хэн, хэзээ хаасан нь автоматаар хадгалагдана; дахин нээхэд арилна.'],
+  },
 }
 
 export function helpForPath(pathname: string): PageHelp | undefined {

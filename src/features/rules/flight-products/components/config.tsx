@@ -16,7 +16,7 @@ export const pageConfig: Omit<
 > = {
   title: 'Shop items',
   description:
-    'Products per flight — baggage, paid seats, zone profile, online check-in window',
+    'Products per flight — click a flight to edit its baggage, paid seats and zone profile, or apply a template',
   queryKey: 'admin-flight-products',
   list: flightProductService.list,
   rowKey: 'flight_id',

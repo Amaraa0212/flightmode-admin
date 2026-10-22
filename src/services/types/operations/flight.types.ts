@@ -22,6 +22,8 @@ export interface Flight extends Record<string, unknown> {
     total_seats: number
   } | null
   flight_series_id: number | null
+  /** scheduled (fares) | charter (free baggage at the counter) */
+  service_type: 'scheduled' | 'charter'
   /** series flight changed by hand — saving the series again leaves it as it is */
   is_series_override?: boolean
   origin: FlightAirport
@@ -45,6 +47,7 @@ export interface Flight extends Record<string, unknown> {
 export interface FlightListParams extends ListParams {
   status?: string | string[]
   source?: string | string[]
+  service_type?: string | string[]
   date?: string
   start_day?: string
   end_day?: string
@@ -52,6 +55,7 @@ export interface FlightListParams extends ListParams {
 
 export interface FlightPayload {
   flight_number: string
+  service_type: 'scheduled' | 'charter'
   origin_airport_id: string
   destination_airport_id: string
   aircraft_id: string
@@ -73,6 +77,7 @@ export interface FlightStatistics {
 export interface FlightSeries extends Record<string, unknown> {
   id: number
   flight_number: string
+  service_type: 'scheduled' | 'charter'
   /** IATA codes (display) */
   origin: string
   destination: string

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { serviceTemplateService, type FlightProducts as Row } from '@/services'
-import { PackagePlus } from 'lucide-react'
+import { PackagePlus, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
 import { Button } from '@/components/ui/button'
@@ -17,6 +17,7 @@ import {
 import { ResourcePage } from '@/components/resource/resource-page'
 import { SimpleSelect } from '@/components/simple-select'
 import { pageConfig } from './components/config'
+import { ProductsDialog } from './components/products-dialog'
 
 const route = getRouteApi('/_authenticated/rules/flight-products/')
 
@@ -25,6 +26,7 @@ export function FlightProducts() {
   const navigate = route.useNavigate()
   const queryClient = useQueryClient()
   const [target, setTarget] = useState<Row | null>(null)
+  const [editing, setEditing] = useState<Row | null>(null)
   const [templateId, setTemplateId] = useState<string>()
 
   const { data: templates = [] } = useQuery({
@@ -48,18 +50,43 @@ export function FlightProducts() {
         {...pageConfig}
         search={search}
         navigate={navigate as unknown as NavigateFn}
+        onRowClick={(row) => setEditing(row)}
         customActions={(row) => (
-          <Button
-            variant='outline'
-            size='sm'
-            className='h-7 gap-1.5 text-xs'
-            onClick={() => setTarget(row)}
-          >
-            <PackagePlus className='size-3.5' />
-            Apply template
-          </Button>
+          <div className='flex gap-1.5'>
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-7 gap-1.5 text-xs'
+              onClick={(e) => {
+                e.stopPropagation()
+                setEditing(row)
+              }}
+            >
+              <Pencil className='size-3.5' />
+              Edit
+            </Button>
+            <Button
+              variant='outline'
+              size='sm'
+              className='h-7 gap-1.5 text-xs'
+              onClick={(e) => {
+                e.stopPropagation()
+                setTarget(row)
+              }}
+            >
+              <PackagePlus className='size-3.5' />
+              Apply template
+            </Button>
+          </div>
         )}
       />
+      {editing && (
+        <ProductsDialog
+          flight={editing}
+          queryKey={pageConfig.queryKey}
+          onClose={() => setEditing(null)}
+        />
+      )}
       {target && (
         <Dialog open onOpenChange={(open) => !open && setTarget(null)}>
           <DialogContent className='sm:max-w-md'>

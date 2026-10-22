@@ -6,7 +6,12 @@ import {
   flightService,
   type Flight,
 } from '@/services'
-import { FLIGHT_STATUS, FLIGHT_STATUS_OPTIONS } from '@/constants/status'
+import {
+  FLIGHT_STATUS,
+  FLIGHT_STATUS_OPTIONS,
+  SERVICE_TYPE,
+  SERVICE_TYPE_OPTIONS,
+} from '@/constants/status'
 import {
   brand,
   chip,
@@ -20,6 +25,7 @@ import type { ResourcePageProps } from '@/components/resource/resource-page'
 const schema = z
   .object({
     flight_number: z.string().trim().min(3),
+    service_type: z.enum(['scheduled', 'charter']),
     airline_id: z.string(),
     origin_airport_id: z.string().min(1, 'From is required'),
     destination_airport_id: z.string().min(1, 'To is required'),
@@ -53,6 +59,7 @@ export const pageConfig: Omit<
   searchPlaceholder: 'Flight number, route or tail',
   filters: [
     { columnId: 'status', title: 'Status', options: FLIGHT_STATUS_OPTIONS },
+    { columnId: 'service_type', title: 'Type', options: SERVICE_TYPE_OPTIONS },
     {
       columnId: 'source',
       title: 'Source',
@@ -81,6 +88,9 @@ export const pageConfig: Omit<
         ),
       { accessor: (r) => (r.flight_series_id ? 'series' : 'single') }
     ),
+    col<Flight>('service_type', 'Type', (r) =>
+      chip(r.service_type, SERVICE_TYPE)
+    ),
     col<Flight>(
       'route',
       'Route',
@@ -108,6 +118,7 @@ export const pageConfig: Omit<
     maxWidth: 'xl',
     empty: {
       flight_number: '',
+      service_type: 'scheduled',
       airline_id: '',
       origin_airport_id: '',
       destination_airport_id: '',
@@ -119,6 +130,7 @@ export const pageConfig: Omit<
     },
     fromRow: (r) => ({
       flight_number: r.flight_number,
+      service_type: r.service_type ?? 'scheduled',
       airline_id: r.airline ? String(r.airline.id) : '',
       origin_airport_id: String(r.origin.id),
       destination_airport_id: String(r.destination.id),
@@ -133,6 +145,17 @@ export const pageConfig: Omit<
         name: 'flight_number',
         label: 'Flight number',
         type: 'text',
+        required: true,
+        gridCols: 1,
+      },
+      {
+        name: 'service_type',
+        label: 'Type',
+        type: 'select',
+        options: [
+          { label: 'Scheduled (хуваарьт) — sold by fare', value: 'scheduled' },
+          { label: 'Charter (захиалгат) — free baggage', value: 'charter' },
+        ],
         required: true,
         gridCols: 1,
       },

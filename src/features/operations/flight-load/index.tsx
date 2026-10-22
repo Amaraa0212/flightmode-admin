@@ -1,6 +1,7 @@
 import { getRouteApi } from '@tanstack/react-router'
 import { useDrawer } from '@/context/drawer-provider'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
+import { DayFilter } from '@/components/day-filter'
 import { FlightPassengersTable } from '@/components/flight-passengers-table'
 import { ResourcePage } from '@/components/resource/resource-page'
 import { pageConfig } from './components/config'
@@ -17,6 +18,12 @@ export function FlightLoad() {
       {...pageConfig}
       search={search}
       navigate={navigate as unknown as NavigateFn}
+      toolbarExtra={
+        <DayFilter
+          search={search}
+          navigate={navigate as unknown as NavigateFn}
+        />
+      }
       onRowClick={(row) =>
         openDrawer({
           title: `${row.flight_number} ${row.origin.iata_code}-${row.destination.iata_code}`,

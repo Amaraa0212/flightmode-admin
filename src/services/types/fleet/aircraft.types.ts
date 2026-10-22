@@ -20,8 +20,8 @@ export interface AircraftListParams extends ListParams {
 export interface AircraftPayload {
   registration: string
   type: string
+  /** e.g. C12Y150 / W16Y120 — gives the cabins and the total seats */
   seat_configuration: string
-  total_seats: number
   max_infants: number
   is_active: boolean
 }

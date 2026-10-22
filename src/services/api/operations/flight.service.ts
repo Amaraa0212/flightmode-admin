@@ -19,6 +19,7 @@ type ApiFlight = Flight & { segments_count?: number }
 
 const toFlight = (f: ApiFlight): Flight => ({
   ...f,
+  service_type: f.service_type ?? 'scheduled',
   segments_count: f.segments_count ?? 0,
   online_checkin: f.online_checkin ?? { enabled: false, opens_minutes: 0, closes_minutes: 0 },
 })
@@ -33,6 +34,7 @@ type FlightBody = FlightPayload & { airline_id?: string }
 
 const flightBody = (p: FlightBody) => ({
   flight_number: p.flight_number.toUpperCase(),
+  service_type: p.service_type,
   origin_airport_id: Number(p.origin_airport_id),
   destination_airport_id: Number(p.destination_airport_id),
   aircraft_id: Number(p.aircraft_id),
@@ -62,7 +64,16 @@ type ApiStatistics = {
 
 export const flightService = {
   list: (params: FlightListParams = {}) => {
-    const { start_day: _s, end_day: _e, date, status, source, query, ...rest } = params
+    const {
+      start_day: _s,
+      end_day: _e,
+      date,
+      status,
+      source,
+      service_type,
+      query,
+      ...rest
+    } = params
     const { from, to } = period(params)
     return getPage<ApiFlight, Flight>(
       '/admin/flights',
@@ -72,7 +83,16 @@ export const flightService = {
         to: to ?? date,
         status: Array.isArray(status) ? status[0] : status,
         // a single choice only — both selected means everything
-        source: Array.isArray(source) ? (source.length === 1 ? source[0] : undefined) : source,
+        source: Array.isArray(source)
+          ? source.length === 1
+            ? source[0]
+            : undefined
+          : source,
+        service_type: Array.isArray(service_type)
+          ? service_type.length === 1
+            ? service_type[0]
+            : undefined
+          : service_type,
         search: query,
       },
       toFlight
@@ -116,6 +136,7 @@ export const flightService = {
 
 // ─── Frequency-based flights ───
 export interface FlightSeriesPayload {
+  service_type?: 'scheduled' | 'charter'
   flight_number: string
   /** airport ids */
   origin: string
@@ -133,6 +154,7 @@ export interface FlightSeriesPayload {
 type ApiSeries = {
   id: number
   flight_number: string
+  service_type?: 'scheduled' | 'charter'
   origin: string
   destination: string
   origin_airport_id: number
@@ -149,6 +171,7 @@ type ApiSeries = {
 const toSeries = (s: ApiSeries): FlightSeries => ({
   id: s.id,
   flight_number: s.flight_number,
+  service_type: s.service_type ?? 'scheduled',
   origin: s.origin,
   destination: s.destination,
   origin_airport_id: s.origin_airport_id,
@@ -171,6 +194,7 @@ export const flightSeriesService = {
   save: (payload: FlightSeriesPayload, id?: number) => {
     const body = {
       flight_number: payload.flight_number.toUpperCase(),
+      service_type: payload.service_type ?? 'scheduled',
       origin_airport_id: Number(payload.origin),
       destination_airport_id: Number(payload.destination),
       aircraft_id: payload.aircraft ? Number(payload.aircraft) : null,
