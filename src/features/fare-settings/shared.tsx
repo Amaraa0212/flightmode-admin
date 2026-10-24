@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import type { BaseResponse } from '@/services'
+import type { BaseResponse, Rbd } from '@/services'
 import { Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -180,4 +180,30 @@ export function DeleteDialog({
       handleConfirm={blocked ? onClose : onConfirm}
     />
   )
+}
+
+/** Parents first, children indented under them (legacy sortRbdsByHierarchy) */
+export function byHierarchy(rbds: Rbd[]): Array<Rbd & { level: number }> {
+  const out: Array<Rbd & { level: number }> = []
+  const seen = new Set<number>()
+  const sort = (rows: Rbd[]) =>
+    [...rows].sort(
+      (a, b) =>
+        a.cabin_class.localeCompare(b.cabin_class) ||
+        a.rank - b.rank ||
+        a.code.localeCompare(b.code)
+    )
+  const walk = (parentId: number | null, level: number) => {
+    for (const r of sort(rbds.filter((x) => x.parent_id === parentId))) {
+      if (seen.has(r.id)) continue
+      seen.add(r.id)
+      out.push({ ...r, level })
+      walk(r.id, level + 1)
+    }
+  }
+  walk(null, 0)
+  sort(rbds.filter((r) => !seen.has(r.id))).forEach((r) =>
+    out.push({ ...r, level: 0 })
+  )
+  return out
 }

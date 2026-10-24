@@ -136,6 +136,14 @@ export const sidebarData: SidebarData = {
             { title: 'Fare and pricing (old)', url: '/inventory/fares', permission: 'fares.manage' },
           ],
         },
+        {
+          title: 'Seat allocations',
+          icon: Armchair,
+          items: [
+            { title: 'By flight', url: '/inventory/seat-allocations', permission: 'inventory.view' },
+            { title: 'Templates', url: '/inventory/seat-templates', permission: 'inventory.view' },
+          ],
+        },
         { title: 'Modification', url: '/inventory/bookings', permission: 'bookings.view', icon: Ticket },
         {
           title: 'Override baggage allowance',

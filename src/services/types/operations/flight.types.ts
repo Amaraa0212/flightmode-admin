@@ -86,6 +86,8 @@ export interface FlightSeries extends Record<string, unknown> {
   aircraft_id?: number | null
   /** aircraft id as a select value */
   aircraft: string
+  /** seat allocation template id as a select value ('none' = no template) */
+  inventory_template?: string
   departure_time: string
   arrival_time: string
   days_of_week: number[]

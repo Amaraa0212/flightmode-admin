@@ -255,6 +255,8 @@ export const PERMISSION_KEYS = [
   'flights.operate',
   'seat_blocks.manage',
   'allocations.manage',
+  'inventory.view',
+  'inventory.manage',
   'bookings.view',
   'bookings.manage',
   'reports.view',

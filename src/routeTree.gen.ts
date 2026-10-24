@@ -38,6 +38,8 @@ import { Route as AuthenticatedInventoryBaggageOverridesIndexRouteImport } from 
 import { Route as AuthenticatedInventoryBookingsIndexRouteImport } from './routes/_authenticated/inventory/bookings/index'
 import { Route as AuthenticatedInventoryCarriageIndexRouteImport } from './routes/_authenticated/inventory/carriage/index'
 import { Route as AuthenticatedInventoryFaresIndexRouteImport } from './routes/_authenticated/inventory/fares/index'
+import { Route as AuthenticatedInventorySeatAllocationsIndexRouteImport } from './routes/_authenticated/inventory/seat-allocations/index'
+import { Route as AuthenticatedInventorySeatTemplatesIndexRouteImport } from './routes/_authenticated/inventory/seat-templates/index'
 import { Route as AuthenticatedOperationsAllocationsIndexRouteImport } from './routes/_authenticated/operations/allocations/index'
 import { Route as AuthenticatedOperationsFlightLoadIndexRouteImport } from './routes/_authenticated/operations/flight-load/index'
 import { Route as AuthenticatedOperationsFlightSeriesIndexRouteImport } from './routes/_authenticated/operations/flight-series/index'
@@ -225,6 +227,18 @@ const AuthenticatedInventoryFaresIndexRoute =
     path: '/inventory/fares/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedInventorySeatAllocationsIndexRoute =
+  AuthenticatedInventorySeatAllocationsIndexRouteImport.update({
+    id: '/inventory/seat-allocations/',
+    path: '/inventory/seat-allocations/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedInventorySeatTemplatesIndexRoute =
+  AuthenticatedInventorySeatTemplatesIndexRouteImport.update({
+    id: '/inventory/seat-templates/',
+    path: '/inventory/seat-templates/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedOperationsAllocationsIndexRoute =
   AuthenticatedOperationsAllocationsIndexRouteImport.update({
     id: '/operations/allocations/',
@@ -381,6 +395,8 @@ export interface FileRoutesByFullPath {
   '/inventory/bookings/': typeof AuthenticatedInventoryBookingsIndexRoute
   '/inventory/carriage/': typeof AuthenticatedInventoryCarriageIndexRoute
   '/inventory/fares/': typeof AuthenticatedInventoryFaresIndexRoute
+  '/inventory/seat-allocations/': typeof AuthenticatedInventorySeatAllocationsIndexRoute
+  '/inventory/seat-templates/': typeof AuthenticatedInventorySeatTemplatesIndexRoute
   '/operations/allocations/': typeof AuthenticatedOperationsAllocationsIndexRoute
   '/operations/flight-load/': typeof AuthenticatedOperationsFlightLoadIndexRoute
   '/operations/flight-series/': typeof AuthenticatedOperationsFlightSeriesIndexRoute
@@ -432,6 +448,8 @@ export interface FileRoutesByTo {
   '/inventory/bookings': typeof AuthenticatedInventoryBookingsIndexRoute
   '/inventory/carriage': typeof AuthenticatedInventoryCarriageIndexRoute
   '/inventory/fares': typeof AuthenticatedInventoryFaresIndexRoute
+  '/inventory/seat-allocations': typeof AuthenticatedInventorySeatAllocationsIndexRoute
+  '/inventory/seat-templates': typeof AuthenticatedInventorySeatTemplatesIndexRoute
   '/operations/allocations': typeof AuthenticatedOperationsAllocationsIndexRoute
   '/operations/flight-load': typeof AuthenticatedOperationsFlightLoadIndexRoute
   '/operations/flight-series': typeof AuthenticatedOperationsFlightSeriesIndexRoute
@@ -485,6 +503,8 @@ export interface FileRoutesById {
   '/_authenticated/inventory/bookings/': typeof AuthenticatedInventoryBookingsIndexRoute
   '/_authenticated/inventory/carriage/': typeof AuthenticatedInventoryCarriageIndexRoute
   '/_authenticated/inventory/fares/': typeof AuthenticatedInventoryFaresIndexRoute
+  '/_authenticated/inventory/seat-allocations/': typeof AuthenticatedInventorySeatAllocationsIndexRoute
+  '/_authenticated/inventory/seat-templates/': typeof AuthenticatedInventorySeatTemplatesIndexRoute
   '/_authenticated/operations/allocations/': typeof AuthenticatedOperationsAllocationsIndexRoute
   '/_authenticated/operations/flight-load/': typeof AuthenticatedOperationsFlightLoadIndexRoute
   '/_authenticated/operations/flight-series/': typeof AuthenticatedOperationsFlightSeriesIndexRoute
@@ -538,6 +558,8 @@ export interface FileRouteTypes {
     | '/inventory/bookings/'
     | '/inventory/carriage/'
     | '/inventory/fares/'
+    | '/inventory/seat-allocations/'
+    | '/inventory/seat-templates/'
     | '/operations/allocations/'
     | '/operations/flight-load/'
     | '/operations/flight-series/'
@@ -589,6 +611,8 @@ export interface FileRouteTypes {
     | '/inventory/bookings'
     | '/inventory/carriage'
     | '/inventory/fares'
+    | '/inventory/seat-allocations'
+    | '/inventory/seat-templates'
     | '/operations/allocations'
     | '/operations/flight-load'
     | '/operations/flight-series'
@@ -641,6 +665,8 @@ export interface FileRouteTypes {
     | '/_authenticated/inventory/bookings/'
     | '/_authenticated/inventory/carriage/'
     | '/_authenticated/inventory/fares/'
+    | '/_authenticated/inventory/seat-allocations/'
+    | '/_authenticated/inventory/seat-templates/'
     | '/_authenticated/operations/allocations/'
     | '/_authenticated/operations/flight-load/'
     | '/_authenticated/operations/flight-series/'
@@ -879,6 +905,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedInventoryFaresIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/inventory/seat-allocations/': {
+      id: '/_authenticated/inventory/seat-allocations/'
+      path: '/inventory/seat-allocations'
+      fullPath: '/inventory/seat-allocations/'
+      preLoaderRoute: typeof AuthenticatedInventorySeatAllocationsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/inventory/seat-templates/': {
+      id: '/_authenticated/inventory/seat-templates/'
+      path: '/inventory/seat-templates'
+      fullPath: '/inventory/seat-templates/'
+      preLoaderRoute: typeof AuthenticatedInventorySeatTemplatesIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/operations/allocations/': {
       id: '/_authenticated/operations/allocations/'
       path: '/operations/allocations'
@@ -1052,6 +1092,8 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedInventoryBookingsIndexRoute: typeof AuthenticatedInventoryBookingsIndexRoute
   AuthenticatedInventoryCarriageIndexRoute: typeof AuthenticatedInventoryCarriageIndexRoute
   AuthenticatedInventoryFaresIndexRoute: typeof AuthenticatedInventoryFaresIndexRoute
+  AuthenticatedInventorySeatAllocationsIndexRoute: typeof AuthenticatedInventorySeatAllocationsIndexRoute
+  AuthenticatedInventorySeatTemplatesIndexRoute: typeof AuthenticatedInventorySeatTemplatesIndexRoute
   AuthenticatedOperationsAllocationsIndexRoute: typeof AuthenticatedOperationsAllocationsIndexRoute
   AuthenticatedOperationsFlightLoadIndexRoute: typeof AuthenticatedOperationsFlightLoadIndexRoute
   AuthenticatedOperationsFlightSeriesIndexRoute: typeof AuthenticatedOperationsFlightSeriesIndexRoute
@@ -1110,6 +1152,10 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedInventoryCarriageIndexRoute:
     AuthenticatedInventoryCarriageIndexRoute,
   AuthenticatedInventoryFaresIndexRoute: AuthenticatedInventoryFaresIndexRoute,
+  AuthenticatedInventorySeatAllocationsIndexRoute:
+    AuthenticatedInventorySeatAllocationsIndexRoute,
+  AuthenticatedInventorySeatTemplatesIndexRoute:
+    AuthenticatedInventorySeatTemplatesIndexRoute,
   AuthenticatedOperationsAllocationsIndexRoute:
     AuthenticatedOperationsAllocationsIndexRoute,
   AuthenticatedOperationsFlightLoadIndexRoute:
