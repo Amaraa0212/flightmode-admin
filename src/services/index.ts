@@ -53,6 +53,13 @@ export {
   type FlightBoardRow,
 } from './api/operations/flight-ops.service'
 
+export {
+  inventoryService,
+  inventoryAllocationService,
+  inventoryTemplateService,
+  inventoryTemplateOptions,
+} from './api/operations/inventory.service'
+
 // ─── Rules & ancillary / inventory ───
 export {
   seatPriceService,
@@ -111,6 +118,7 @@ export * from './types/reference/reference.types'
 export * from './types/organisation/organisation.types'
 export * from './types/fleet/aircraft.types'
 export * from './types/operations/flight.types'
+export * from './types/operations/inventory.types'
 export * from './types/sales/booking.types'
 export * from './types/products/product.types'
 export * from './types/products/fare-setting.types'

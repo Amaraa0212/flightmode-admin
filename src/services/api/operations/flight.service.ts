@@ -143,6 +143,8 @@ export interface FlightSeriesPayload {
   destination: string
   /** aircraft id */
   aircraft: string
+  /** seat allocation template id applied to new flights; 'none' / empty = none */
+  inventory_template?: string
   departure_time: string
   arrival_time: string
   days_of_week: string[]
@@ -160,6 +162,7 @@ type ApiSeries = {
   origin_airport_id: number
   destination_airport_id: number
   aircraft_id: number | null
+  inventory_template_id?: number | null
   period_start: string
   period_end: string
   days_of_week: number[]
@@ -178,6 +181,7 @@ const toSeries = (s: ApiSeries): FlightSeries => ({
   destination_airport_id: s.destination_airport_id,
   aircraft_id: s.aircraft_id,
   aircraft: s.aircraft_id ? String(s.aircraft_id) : '',
+  inventory_template: s.inventory_template_id ? String(s.inventory_template_id) : 'none',
   departure_time: s.departure_time,
   arrival_time: s.arrival_time,
   days_of_week: s.days_of_week,
@@ -198,6 +202,10 @@ export const flightSeriesService = {
       origin_airport_id: Number(payload.origin),
       destination_airport_id: Number(payload.destination),
       aircraft_id: payload.aircraft ? Number(payload.aircraft) : null,
+      inventory_template_id:
+        payload.inventory_template && payload.inventory_template !== 'none'
+          ? Number(payload.inventory_template)
+          : null,
       departure_time: payload.departure_time,
       arrival_time: payload.arrival_time,
       days_of_week: payload.days_of_week.map(Number).sort(),

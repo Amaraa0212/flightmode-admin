@@ -10,7 +10,8 @@ import { action, client, getPage, ok, pageQuery, type ApiData } from '../shared/
 const PERMISSION_KEYS = [
   'dashboard.view', 'airlines.manage', 'agencies.manage', 'users.manage', 'roles.manage',
   'reference.manage', 'aircraft.manage', 'fares.manage', 'products.manage', 'flights.view',
-  'flights.manage', 'flights.operate', 'seat_blocks.manage', 'allocations.manage', 'bookings.view',
+  'flights.manage', 'flights.operate', 'seat_blocks.manage', 'allocations.manage', 'inventory.view',
+  'inventory.manage', 'bookings.view',
   'bookings.manage', 'reports.view', 'activity_logs.view', 'announcements.manage', 'charters.view',
   'charters.manage', 'agency.portal', 'dcs.access', 'dcs.checkin', 'gate.access',
 ] as const

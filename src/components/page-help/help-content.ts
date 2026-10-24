@@ -504,6 +504,48 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     ],
   },
 
+  '/inventory/seat-allocations': {
+    list: false,
+    title: 'Seat allocations',
+    summary:
+      'Нислэг тус бүрийн cabin-ий суудал болон захиалгын ангиллын (RBD) nested хязгаар — ameliaRES-ийн “Seat Allocations” цонх.',
+    steps: [
+      'Огноо, нислэгийн дугаараар “Look up” хийж зүүн талын жагсаалтаас нислэгээ сонгоно.',
+      '“No limits” гэсэн нислэгт “Create from aircraft cabins” (онгоцны cabin-ий суудал, бүх RBD бүтэн нээлттэй) эсвэл “From a template…” дарж inventory үүсгэнэ.',
+      'Class of service хүснэгтэд cabin бүрийн Seats, Oversell (илүү зарах), Curtail (борлуулалтаас хасах)-ийг засаад “Save cabins”.',
+      'Booking codes хүснэгтэд ангилал бүрийн Seats-ийг засаж, Closed-оор хаагаад “Save … classes”.',
+      '“Roll forward” — энэ нислэгийн тохиргоог ижил дугаартай дараагийн нислэгүүд рүү хуулна. “Save as template” — загвар болгон хадгална.',
+    ],
+    sections: [
+      {
+        title: 'Тооцоо',
+        items: [
+          'Seats = тухайн ангилал болон түүний доорх (Parent-ээр холбогдсон) бүх ангилал нийлээд зарж болох дээд тоо.',
+          'Avail = min(Seats − Below, эцэг ангиллын Avail). Below = тухайн болон доорх ангиллуудын нийт зарагдсан.',
+          'Cabin-ий Avail = Seats + Oversell − Curtail − Sold − агентлагийн зарагдаагүй блок.',
+          'Хямд ангилал дүүрэхэд зорчигч дараагийн үнэтэй ангилал руу шилжинэ.',
+        ],
+      },
+    ],
+    notes: [
+      'Агентлагийн блокоор хийсэн захиалга ангиллын хязгаарт баригдахгүй, гэхдээ Sold-д тоологдоно.',
+      'Ангилал эцгийнхээ Seats-ээс, root ангилал cabin-аас их байж болохгүй. Cabin-ийг багасгахад дээрх хязгаарууд автоматаар буурна.',
+      'Fare class-д Waitlist (HL) асаалттай бол дүүрсэн ангиллын захиалга хүлээлгийн жагсаалтад орно.',
+      '“Remove limits” — inventory-г устгаж, нислэгийг хязгааргүй горимд буцаана.',
+    ],
+  },
+  '/inventory/seat-templates': {
+    list: false,
+    title: 'Seat allocation templates',
+    summary:
+      'Cabin-ий суудал, ангиллын хязгаарын хадгалсан загварууд. Seat allocations дээрээс нислэгүүдэд, эсвэл Flight series-ээр шинэ нислэгт автоматаар хэрэглэгдэнэ.',
+    steps: [
+      'Загвар үүсгэх: Seat allocations дээр нислэгээ тохируулаад “Save as template”.',
+      'Энд загвараа сонгож cabin болон ангиллын Seats-ийг засаад “Save template”.',
+      'Flight series-ийн “Seat template”-д сонговол тухайн series-ээс шинээр үүсэх нислэгүүдэд автоматаар тавигдана.',
+    ],
+    notes: ['Хоосон үлдээсэн ангилал загвар хэрэглэсэн нислэг дээр зарагдахгүй.'],
+  },
   '/inventory/bookings': {
     title: 'Modification',
     summary:

@@ -6,6 +6,7 @@ import {
   aircraftOptions,
   airportOptions,
   flightSeriesService,
+  inventoryTemplateOptions,
   type FlightSeries,
 } from '@/services'
 import { Loader2 } from 'lucide-react'
@@ -39,6 +40,7 @@ const schema = z.object({
   origin: z.string().min(1, 'From is required'),
   destination: z.string().min(1, 'To is required'),
   aircraft: z.string().min(1),
+  inventory_template: z.string(),
   departure_time: z.string().regex(/^\d{2}:\d{2}$/, 'HH:mm'),
   arrival_time: z.string().regex(/^\d{2}:\d{2}$/, 'HH:mm'),
   days_of_week: z.array(z.string()).min(1, 'Pick at least one day'),
@@ -71,6 +73,7 @@ export function SeriesDialog({
           origin: '',
           destination: '',
           aircraft: '',
+          inventory_template: 'none',
           departure_time: '',
           arrival_time: '',
           days_of_week: [],
@@ -89,6 +92,7 @@ export function SeriesDialog({
   })
   const registrations = useOptions('aircraft', aircraftOptions)
   const airports = useOptions('airports', airportOptions)
+  const templates = useOptions('inventory-templates', inventoryTemplateOptions)
 
   const text = (
     name: keyof Form,
@@ -155,7 +159,10 @@ export function SeriesDialog({
               { label: 'Scheduled (хуваарьт)', value: 'scheduled' },
               { label: 'Charter (захиалгат) — free baggage', value: 'charter' },
             ])}
-            <div />
+            {select('inventory_template', 'Seat template (new flights)', [
+              { label: '— none —', value: 'none' },
+              ...templates,
+            ])}
             {select('origin', 'From', airports)}
             {select('destination', 'To', airports)}
             {text('departure_time', 'Departure (HH:mm)', { type: 'time' })}
