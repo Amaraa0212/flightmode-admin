@@ -10,10 +10,15 @@ import {
   ACTIVE_OPTIONS,
   ROLE_SCOPE,
   ROLE_SCOPE_OPTIONS,
+  type StatusMeta,
 } from '@/constants/status'
 import { chip, col, dateTime, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 import { ActiveBadge } from '@/components/status-badge'
+
+const TWO_FACTOR: Record<string, StatusMeta> = {
+  true: { label: 'On', tone: 'green' },
+}
 
 const schema = z.object({
   name: z.string().trim().min(2),
@@ -21,7 +26,9 @@ const schema = z.object({
   phone: z.string().trim(),
   role_id: z.string().min(1, 'Role is required'),
   // required for a new user (checked in create); empty on edit keeps the password
-  password: z.string().refine((v) => v === '' || v.length >= 8, 'At least 8 characters'),
+  password: z
+    .string()
+    .refine((v) => v === '' || v.length >= 8, 'At least 8 characters'),
   airline_id: z.string(),
   airport_id: z.string(),
   agency_id: z.string(),
@@ -66,6 +73,12 @@ export const pageConfig: Omit<
         accessor: (r) =>
           r.airline?.name ?? r.agency?.name ?? r.airport?.iata_code,
       }
+    ),
+    col<User>(
+      'two_factor_enabled',
+      '2FA',
+      (r) => (r.two_factor_enabled ? chip('true', TWO_FACTOR) : muted('—')),
+      { accessor: (r) => (r.two_factor_enabled ? 'On' : 'Off') }
     ),
     col<User>('last_login_at', 'Last login', (r) => dateTime(r.last_login_at)),
     col<User>(

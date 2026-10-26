@@ -1,5 +1,5 @@
 import type { ListParams } from '../../types/shared/common.types'
-import { client, ok, type ApiData } from '../shared/client'
+import { action, client, ok, type ApiData } from '../shared/client'
 
 /*
 | Agency portal (/agency/*): an agency user sees only their own agency's seat quotas and passengers.
@@ -110,10 +110,16 @@ export const agencyPortalService = {
     return ok({ total: q ? items.length : (res.meta?.total ?? items.length), items })
   },
 
-  /** POST /agency/bookings — one PNR for the passengers, on the quota's flight */
-  book: async (quotaId: number, passengers: AgencyBookingPassenger[], contact: { phone: string; email: string }) => {
+  /** POST /agency/bookings — one PNR for the passengers, on the quota's flight (or on seats of a hold) */
+  book: async (
+    quotaId: number,
+    passengers: AgencyBookingPassenger[],
+    contact: { phone: string; email: string },
+    hold?: { id: number; allocation_fare_id: number | null }
+  ) => {
     const res = await client.post<{ message: string; data: { pnr: string } }>('/agency/bookings', {
       allocation_id: quotaId,
+      hold_id: hold?.id,
       contact_phone: orNull(contact.phone),
       contact_email: orNull(contact.email),
       passengers: passengers.map((p) => ({
@@ -128,6 +134,7 @@ export const agencyPortalService = {
         phone: orNull(p.phone),
         email: orNull(p.email),
         cabin_class: p.cabin_class,
+        allocation_fare_id: hold?.allocation_fare_id ?? undefined,
       })),
     })
     return ok(res.data, `${res.message} PNR ${res.data.pnr}`)
@@ -183,4 +190,196 @@ export const agencyPortalService = {
       )
     )
   },
+}
+
+// ─── Find flights of a day, hold seats, enter names later ───
+
+export interface AgencyFare {
+  id: number
+  fare_class: string | null
+  cabin_class: string
+  seats: number
+  sold: number
+  held: number
+  /** null = no limit on the fare */
+  remaining: number | null
+  price: { fare: string | number; tax: string | number } | null
+}
+
+/** One allocation of the agency on the searched day */
+export interface AgencyFlight {
+  id: number
+  airline: string
+  flight_number: string
+  route: string
+  departure_local: string | null
+  arrival_local: string | null
+  return_flight: string | null
+  seats: number
+  used: number
+  held: number
+  remaining: number
+  uses_fare_quotas: boolean
+  cabins: {
+    cabin_class: string
+    seats: number
+    used: number
+    held: number
+    remaining: number
+  }[]
+  fares: AgencyFare[]
+  names_deadline_at: string | null
+  is_open_for_names: boolean
+}
+
+export interface AgencyHold {
+  id: number
+  allocation_id: number
+  allocation_fare_id: number | null
+  cabin_class: string
+  seats: number
+  status: 'active' | 'released'
+  fare: {
+    fare_class: string | null
+    price: { fare: string | number; tax: string | number }
+  } | null
+  flight_number: string
+  route: string
+  departure_local: string | null
+  return_flight: string | null
+  names_deadline_at: string | null
+  usage: {
+    seats: number
+    named: number
+    remaining: number
+    is_open_for_names: boolean
+  }
+  created_by: string | null
+  created_at: string | null
+}
+
+export interface AgencyAccount {
+  id: number
+  airline: { id: number; name: string; iata_code: string } | null
+  balance: string
+  currency: string
+  updated_at: string | null
+}
+
+export interface AccountTransaction {
+  id: number
+  type: 'topup' | 'ticket' | 'refund' | 'adjustment'
+  amount: string
+  balance_after: string
+  note: string | null
+  pnr: string | null
+  passenger: string | null
+  created_by: string | null
+  created_at: string | null
+}
+
+type ApiLocalFlight = ApiFlight & {
+  departure_local?: string | null
+  scheduled_arrival_local?: string | null
+}
+
+type ApiDayAllocation = Omit<
+  ApiQuota,
+  'outbound_flight' | 'return_flight' | 'usage'
+> & {
+  outbound_flight: ApiLocalFlight
+  return_flight: ApiLocalFlight | null
+  uses_fare_quotas: boolean
+  usage: {
+    used: number
+    held: number
+    remaining: number
+    is_open_for_names: boolean
+    names_deadline_at: string
+    cabins: AgencyFlight['cabins']
+    fares: AgencyFare[]
+  }
+}
+
+type ApiHold = Omit<
+  AgencyHold,
+  'flight_number' | 'route' | 'departure_local' | 'return_flight'
+> & {
+  outbound_flight: ApiLocalFlight | null
+  return_flight: ApiLocalFlight | null
+}
+
+export const agencyHoldService = {
+  /** The agency's allocations whose flight departs on `date` (YYYY-MM-DD, local) */
+  flights: async (date: string) => {
+    const res = await client.get<ApiData<ApiDayAllocation[]>>(
+      '/agency/flights',
+      { date }
+    )
+    return ok(
+      res.data.map((a): AgencyFlight => ({
+        id: a.id,
+        airline: a.airline?.name ?? '',
+        flight_number: a.outbound_flight.flight_number,
+        route: route(a.outbound_flight),
+        departure_local: a.outbound_flight.departure_local ?? null,
+        arrival_local: a.outbound_flight.scheduled_arrival_local ?? null,
+        return_flight: a.return_flight
+          ? `${a.return_flight.flight_number} ${route(a.return_flight)} ${a.return_flight.departure_local ?? ''}`
+          : null,
+        seats: a.seats,
+        used: a.usage.used,
+        held: a.usage.held,
+        remaining: a.usage.remaining,
+        uses_fare_quotas: a.uses_fare_quotas,
+        cabins: a.usage.cabins,
+        fares: a.usage.fares,
+        names_deadline_at: a.usage.names_deadline_at,
+        is_open_for_names: a.usage.is_open_for_names,
+      }))
+    )
+  },
+
+  /** status: active (default) | all */
+  list: async (status: 'active' | 'all' = 'active') => {
+    const res = await client.get<ApiData<ApiHold[]>>('/agency/holds', {
+      status,
+    })
+    return ok(
+      res.data.map((h): AgencyHold => ({
+        ...h,
+        flight_number: h.outbound_flight?.flight_number ?? '',
+        route: route(h.outbound_flight),
+        departure_local: h.outbound_flight?.departure_local ?? null,
+        return_flight: h.return_flight
+          ? `${h.return_flight.flight_number} ${route(h.return_flight)}`
+          : null,
+      }))
+    )
+  },
+
+  create: (payload: {
+    allocation_id: number
+    cabin_class: string
+    seats: number
+    allocation_fare_id: number | null
+  }) =>
+    action(client.post<ApiData<ApiHold>>('/agency/holds', payload), (h) => h),
+
+  release: (id: number) =>
+    action(client.delete<ApiData<ApiHold>>(`/agency/holds/${id}`), (h) => h),
+}
+
+export const agencyAccountPortalService = {
+  accounts: async () =>
+    ok((await client.get<ApiData<AgencyAccount[]>>('/agency/accounts')).data),
+  transactions: async (accountId: number) =>
+    ok(
+      (
+        await client.get<ApiData<AccountTransaction[]>>(
+          `/agency/accounts/${accountId}/transactions`,
+          { per_page: 100 }
+        )
+      ).data
+    ),
 }

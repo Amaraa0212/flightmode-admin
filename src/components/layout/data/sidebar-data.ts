@@ -23,8 +23,10 @@ import {
   SlidersHorizontal,
   Tags,
   Ticket,
+  Timer,
   TowerControl,
   Users,
+  Wallet,
 } from 'lucide-react'
 import type { AuthUser } from '@/services/types/shared/auth.types'
 import { type NavGroup, type SidebarData } from '../types'
@@ -42,7 +44,10 @@ export const sidebarData: SidebarData = {
       title: 'Agency',
       items: [
         // agency users (travel agents): their seat quotas and the passengers sold on them
-        { title: 'Миний квот', url: '/agency/quotas', permission: 'agency.portal', icon: Ticket },
+        { title: 'Нислэг хайх', url: '/agency/search', permission: 'agency.portal', agencyOnly: true, icon: Search },
+        { title: 'Hold-ууд', url: '/agency/holds', permission: 'agency.portal', agencyOnly: true, icon: Timer },
+        { title: 'Миний квот', url: '/agency/quotas', permission: 'agency.portal', agencyOnly: true, icon: Ticket },
+        { title: 'Миний данс', url: '/agency/account', permission: 'agency.portal', agencyOnly: true, icon: Wallet },
       ],
     },
     {
@@ -93,6 +98,7 @@ export const sidebarData: SidebarData = {
         { title: 'Company', url: '/company/airlines', permission: 'airlines.manage', icon: Building2 },
         { title: 'Airports', url: '/company/airports', permission: 'reference.manage', icon: PlaneTakeoff },
         { title: 'Agencies', url: '/company/agencies', permission: 'agencies.manage', icon: Handshake },
+        { title: 'Agency accounts', url: '/company/agency-accounts', permission: 'agency_accounts.manage', icon: Wallet },
         {
           title: 'Agents permission',
           url: '/company/agency-access', permission: 'airlines.manage',
@@ -218,11 +224,18 @@ export const sidebarData: SidebarData = {
 }
 
 /** Menu entries the user's permissions allow; groups and sub-menus without any are dropped */
+type Access = { permission?: string; systemAdminOnly?: boolean; agencyOnly?: boolean }
+
+/** Whether the user may see a menu entry / open its page */
+function allowedFor(user: AuthUser | null, { permission, systemAdminOnly, agencyOnly }: Access): boolean {
+  if (systemAdminOnly) return !!user?.is_system_admin
+  if (agencyOnly && user?.role?.scope !== 'agency') return false
+  return !permission || (!!user && (user.is_system_admin || user.permissions.includes(permission)))
+}
+
 export function visibleNavGroups(user: AuthUser | null): NavGroup[] {
-  const allowed = (permission?: string, systemAdminOnly?: boolean) =>
-    systemAdminOnly
-      ? !!user?.is_system_admin
-      : !permission || (!!user && (user.is_system_admin || user.permissions.includes(permission)))
+  const allowed = (permission?: string, systemAdminOnly?: boolean, agencyOnly?: boolean) =>
+    allowedFor(user, { permission, systemAdminOnly, agencyOnly })
 
   return sidebarData.navGroups
     .map((group) => ({
@@ -230,11 +243,11 @@ export function visibleNavGroups(user: AuthUser | null): NavGroup[] {
       items: group.items
         .map((item) =>
           item.items
-            ? { ...item, items: item.items.filter((sub) => allowed(sub.permission, sub.systemAdminOnly)) }
+            ? { ...item, items: item.items.filter((sub) => allowed(sub.permission, sub.systemAdminOnly, sub.agencyOnly)) }
             : item
         )
         .filter((item) =>
-          item.items ? item.items.length > 0 : allowed(item.permission, item.systemAdminOnly)
+          item.items ? item.items.length > 0 : allowed(item.permission, item.systemAdminOnly, item.agencyOnly)
         )
         // an agency administrator manages their own ticketing agents on the users page
         .map((item) =>
@@ -254,4 +267,28 @@ export function firstAllowedUrl(user: AuthUser | null): string | undefined {
   const first = visibleNavGroups(user)[0]?.items[0]
   if (!first) return undefined
   return String(first.items ? first.items[0].url : first.url)
+}
+
+/**
+ * Whether the user may open a URL typed in by hand: the menu entry with the longest matching URL decides
+ * (its permission / systemAdminOnly / agencyOnly). Pages that are not in the menu are open to every login.
+ */
+export function canOpenPath(user: AuthUser | null, pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, '') || '/'
+  if (path === '/') return true // the dashboard route sends users without it to their first screen
+
+  let match: (Access & { url: string }) | undefined
+  for (const group of sidebarData.navGroups) {
+    for (const item of group.items) {
+      for (const entry of item.items ?? [item]) {
+        const url = String(entry.url ?? '')
+        if (url === '/' || !(path === url || path.startsWith(`${url}/`))) continue
+        if (!match || url.length > match.url.length) {
+          match = { ...entry, url, permission: entry.permission ?? item.permission }
+        }
+      }
+    }
+  }
+
+  return !match || allowedFor(user, match)
 }

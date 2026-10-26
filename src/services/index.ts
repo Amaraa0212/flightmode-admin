@@ -19,6 +19,9 @@ export {
   agencyService,
   agencyContractService,
   agencyOptions,
+  agencyAccountService,
+  type AgencyAccountRow,
+  type AgencyAccountTransactionRow,
 } from './api/organisation/agency.service'
 export {
   userService,
@@ -127,6 +130,13 @@ export * from './types/system/system.types'
 // ─── Agency portal ───
 export {
   agencyPortalService,
+  agencyHoldService,
+  agencyAccountPortalService,
+  type AgencyFlight,
+  type AgencyFare,
+  type AgencyHold,
+  type AgencyAccount,
+  type AccountTransaction,
   type AgencyQuota,
   type AgencyPassenger,
   type AgencyBookingPassenger,

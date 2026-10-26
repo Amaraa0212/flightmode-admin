@@ -10,7 +10,7 @@ import { action, client, getPage, ok, pageQuery, type ApiData } from '../shared/
 const PERMISSION_KEYS = [
   'dashboard.view', 'airlines.manage', 'agencies.manage', 'users.manage', 'roles.manage',
   'reference.manage', 'aircraft.manage', 'fares.manage', 'products.manage', 'flights.view',
-  'flights.manage', 'flights.operate', 'seat_blocks.manage', 'allocations.manage', 'inventory.view',
+  'flights.manage', 'flights.operate', 'seat_blocks.manage', 'allocations.manage', 'agency_accounts.manage', 'inventory.view',
   'inventory.manage', 'bookings.view',
   'bookings.manage', 'reports.view', 'activity_logs.view', 'announcements.manage', 'charters.view',
   'charters.manage', 'agency.portal', 'dcs.access', 'dcs.checkin', 'gate.access',
@@ -42,6 +42,9 @@ export const userService = {
   update: (id: number, payload: UserPayload) =>
     action(client.put<ApiData<User>>(`/admin/users/${id}`, toUserBody(payload)), (u) => u),
   remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/users/${id}`), () => null),
+  /** Lost phone: turns Google Authenticator off (system administrators only) */
+  resetTwoFactor: (id: number) =>
+    action(client.delete<ApiData<User>>(`/admin/users/${id}/two-factor`), (u) => u),
   /** Roles this administrator may assign */
   roleOptions: async () => {
     const res = await client.get<ApiData<{ id: number; name: string; scope: string }[]>>(

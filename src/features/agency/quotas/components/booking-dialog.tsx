@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Loader2, Plus, Search, Trash2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { agencyPortalService, type AgencyQuota } from '@/services'
+import { agencyPortalService, type AgencyHold, type AgencyQuota } from '@/services'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -74,9 +74,18 @@ function Field({ label, error, children, className }: { label: string; error?: s
  * A returning passenger is found by passport (this agency's earlier bookings) and filled in.
  * The API checks the remaining seats and the names deadline; the seats are taken from the quota.
  */
-export function BookingDialog({ quota, onClose }: { quota: AgencyQuota | null; onClose: () => void }) {
+export function BookingDialog({
+  quota,
+  hold,
+  onClose,
+}: {
+  quota: AgencyQuota | null
+  /** names entered on the seats of this hold (its cabin and fare are fixed) */
+  hold?: AgencyHold | null
+  onClose: () => void
+}) {
   const queryClient = useQueryClient()
-  const cabins = quota?.cabin_classes.length ? quota.cabin_classes : ['Y']
+  const cabins = hold ? [hold.cabin_class] : quota?.cabin_classes.length ? quota.cabin_classes : ['Y']
   const form = useForm<Form>({
     resolver: zodResolver(schema),
     values: { passengers: [blank(cabins[0])], contact_phone: '', contact_email: '' },
@@ -85,17 +94,25 @@ export function BookingDialog({ quota, onClose }: { quota: AgencyQuota | null; o
 
   const book = useMutation({
     mutationFn: (v: Form) =>
-      agencyPortalService.book(quota!.id, v.passengers, { phone: v.contact_phone, email: v.contact_email }),
+      agencyPortalService.book(
+        quota!.id,
+        v.passengers,
+        { phone: v.contact_phone, email: v.contact_email },
+        hold ? { id: hold.id, allocation_fare_id: hold.allocation_fare_id } : undefined
+      ),
     onSuccess: (res) => {
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: ['agency-quotas'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-holds'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-flights'] })
+      queryClient.invalidateQueries({ queryKey: ['agency-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['agency-quota-passengers', quota?.id] })
       onClose()
     },
     onError: (error: Error) => toast.error(error.message),
   })
 
-  const remaining = quota?.remaining ?? 0
+  const remaining = hold ? hold.usage.remaining : (quota?.remaining ?? 0)
   const tooMany = rows.fields.length > remaining
   const errors = form.formState.errors
 

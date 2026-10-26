@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation } from '@tanstack/react-query'
 import { useNavigate } from '@tanstack/react-router'
 import { authService } from '@/services'
-import { hasBackOfficeAccess } from '@/components/layout/data/sidebar-data'
+import type { AuthUser } from '@/services/types/shared/auth.types'
 import {
   ArrowRight,
   Eye,
@@ -25,6 +25,17 @@ import {
   FormItem,
   FormMessage,
 } from '@/components/ui/form'
+import { hasBackOfficeAccess } from '@/components/layout/data/sidebar-data'
+import { TwoFactorLoginStep } from '@/components/two-factor'
+
+// a gate-only login has no screen here (it uses the gate app)
+function assertBackOfficeAccess(user: AuthUser) {
+  if (!hasBackOfficeAccess(user)) {
+    throw new Error(
+      'Энэ эрхээр admin системд нэвтрэх боломжгүй (gate хэрэглэгч gate app ашиглана).'
+    )
+  }
+}
 
 const formSchema = z.object({
   email: z.email({
@@ -53,6 +64,8 @@ export function UserAuthForm({ className, redirectTo }: UserAuthFormProps) {
   const navigate = useNavigate()
   const { auth } = useAuthStore()
   const [showPassword, setShowPassword] = useState(false)
+  // Google Authenticator on: password accepted, waiting for the 6-digit code
+  const [challenge, setChallenge] = useState<string | null>(null)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -62,21 +75,38 @@ export function UserAuthForm({ className, redirectTo }: UserAuthFormProps) {
   const loginMutation = useMutation({
     mutationFn: async (data: FormValues) => {
       const res = await authService.login(data)
-      // a gate-only login has no screen here (it uses the gate app)
-      if (!hasBackOfficeAccess(res.body.user)) {
-        throw new Error('Энэ эрхээр admin системд нэвтрэх боломжгүй (gate хэрэглэгч gate app ашиглана).')
-      }
+      if (!('two_factor_required' in res.body))
+        assertBackOfficeAccess(res.body.user)
       return res
     },
     onSuccess: (res) => {
+      if ('two_factor_required' in res.body) {
+        setChallenge(res.body.challenge)
+        return
+      }
       auth.setSession(res.body.user, res.body.token)
-      navigate({ to: redirectTo || '/', replace: true })
-      toast.success('Амжилттай нэвтэрлээ')
+      signedIn()
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Алдаа гарлаа')
     },
   })
+
+  function signedIn() {
+    navigate({ to: redirectTo || '/', replace: true })
+    toast.success('Амжилттай нэвтэрлээ')
+  }
+
+  if (challenge) {
+    return (
+      <TwoFactorLoginStep
+        challenge={challenge}
+        check={assertBackOfficeAccess}
+        onBack={() => setChallenge(null)}
+        onSignedIn={signedIn}
+      />
+    )
+  }
 
   return (
     <Form {...form}>
