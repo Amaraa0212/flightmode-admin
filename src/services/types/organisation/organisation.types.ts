@@ -77,6 +77,8 @@ export interface User extends Record<string, unknown> {
   airline: { id: number; name: string } | null
   agency: { id: number; name: string } | null
   airport: { id: number; iata_code: string; name?: string } | null
+  /** Google Authenticator on (login asks for a 6-digit code) */
+  two_factor_enabled?: boolean
   last_login_at: string | null
   created_at: string
 }

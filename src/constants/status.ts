@@ -58,6 +58,7 @@ export const ROLE_SCOPE: Record<string, StatusMeta> = {
 export const ACTIVITY_CHANNEL: Record<string, StatusMeta> = {
   admin: { label: 'Admin', tone: 'indigo' },
   agency: { label: 'Agency', tone: 'slate' },
+  auth: { label: 'Sign-in', tone: 'amber' },
   dcs: { label: 'DCS', tone: 'green' },
   gate: { label: 'Gate', tone: 'amber' },
   online: { label: 'Online', tone: 'cyan' },

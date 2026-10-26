@@ -6,6 +6,7 @@ import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { ConfigDrawer } from '@/components/config-drawer'
+import { TwoFactorSetupPrompt } from '@/components/two-factor'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { Header } from '@/components/layout/header'
 import { PageHelp } from '@/components/page-help/page-help'
@@ -47,6 +48,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
               </Header>
               {children ?? <Outlet />}
               <PageHelp />
+              <TwoFactorSetupPrompt />
             </SidebarInset>
           </SidebarProvider>
         </DrawerProvider>
