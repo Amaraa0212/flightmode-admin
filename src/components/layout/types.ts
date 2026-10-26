@@ -20,6 +20,8 @@ type BaseNavItem = {
   permission?: string
   /** only for the system administrator (the platform owner), whatever the role's keys */
   systemAdminOnly?: boolean
+  /** only for travel-agency logins (role scope "agency"), not for airline or system administrators */
+  agencyOnly?: boolean
 }
 
 type NavLink = BaseNavItem & {

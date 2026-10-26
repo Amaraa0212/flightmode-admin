@@ -19,9 +19,13 @@ import { Route as errors503RouteImport } from './routes/(errors)/503'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAccessRolesIndexRouteImport } from './routes/_authenticated/access/roles/index'
 import { Route as AuthenticatedAccessUsersIndexRouteImport } from './routes/_authenticated/access/users/index'
+import { Route as AuthenticatedAgencyAccountIndexRouteImport } from './routes/_authenticated/agency/account/index'
+import { Route as AuthenticatedAgencyHoldsIndexRouteImport } from './routes/_authenticated/agency/holds/index'
 import { Route as AuthenticatedAgencyQuotasIndexRouteImport } from './routes/_authenticated/agency/quotas/index'
+import { Route as AuthenticatedAgencySearchIndexRouteImport } from './routes/_authenticated/agency/search/index'
 import { Route as AuthenticatedCompanyAgenciesIndexRouteImport } from './routes/_authenticated/company/agencies/index'
 import { Route as AuthenticatedCompanyAgencyAccessIndexRouteImport } from './routes/_authenticated/company/agency-access/index'
+import { Route as AuthenticatedCompanyAgencyAccountsIndexRouteImport } from './routes/_authenticated/company/agency-accounts/index'
 import { Route as AuthenticatedCompanyAirlinesIndexRouteImport } from './routes/_authenticated/company/airlines/index'
 import { Route as AuthenticatedCompanyAirportsIndexRouteImport } from './routes/_authenticated/company/airports/index'
 import { Route as AuthenticatedDcsActivityLogIndexRouteImport } from './routes/_authenticated/dcs/activity-log/index'
@@ -113,10 +117,28 @@ const AuthenticatedAccessUsersIndexRoute =
     path: '/access/users/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedAgencyAccountIndexRoute =
+  AuthenticatedAgencyAccountIndexRouteImport.update({
+    id: '/agency/account/',
+    path: '/agency/account/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAgencyHoldsIndexRoute =
+  AuthenticatedAgencyHoldsIndexRouteImport.update({
+    id: '/agency/holds/',
+    path: '/agency/holds/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedAgencyQuotasIndexRoute =
   AuthenticatedAgencyQuotasIndexRouteImport.update({
     id: '/agency/quotas/',
     path: '/agency/quotas/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAgencySearchIndexRoute =
+  AuthenticatedAgencySearchIndexRouteImport.update({
+    id: '/agency/search/',
+    path: '/agency/search/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCompanyAgenciesIndexRoute =
@@ -129,6 +151,12 @@ const AuthenticatedCompanyAgencyAccessIndexRoute =
   AuthenticatedCompanyAgencyAccessIndexRouteImport.update({
     id: '/company/agency-access/',
     path: '/company/agency-access/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCompanyAgencyAccountsIndexRoute =
+  AuthenticatedCompanyAgencyAccountsIndexRouteImport.update({
+    id: '/company/agency-accounts/',
+    path: '/company/agency-accounts/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedCompanyAirlinesIndexRoute =
@@ -376,9 +404,13 @@ export interface FileRoutesByFullPath {
   '/503': typeof errors503Route
   '/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
   '/access/users/': typeof AuthenticatedAccessUsersIndexRoute
+  '/agency/account/': typeof AuthenticatedAgencyAccountIndexRoute
+  '/agency/holds/': typeof AuthenticatedAgencyHoldsIndexRoute
   '/agency/quotas/': typeof AuthenticatedAgencyQuotasIndexRoute
+  '/agency/search/': typeof AuthenticatedAgencySearchIndexRoute
   '/company/agencies/': typeof AuthenticatedCompanyAgenciesIndexRoute
   '/company/agency-access/': typeof AuthenticatedCompanyAgencyAccessIndexRoute
+  '/company/agency-accounts/': typeof AuthenticatedCompanyAgencyAccountsIndexRoute
   '/company/airlines/': typeof AuthenticatedCompanyAirlinesIndexRoute
   '/company/airports/': typeof AuthenticatedCompanyAirportsIndexRoute
   '/dcs/activity-log/': typeof AuthenticatedDcsActivityLogIndexRoute
@@ -429,9 +461,13 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/access/roles': typeof AuthenticatedAccessRolesIndexRoute
   '/access/users': typeof AuthenticatedAccessUsersIndexRoute
+  '/agency/account': typeof AuthenticatedAgencyAccountIndexRoute
+  '/agency/holds': typeof AuthenticatedAgencyHoldsIndexRoute
   '/agency/quotas': typeof AuthenticatedAgencyQuotasIndexRoute
+  '/agency/search': typeof AuthenticatedAgencySearchIndexRoute
   '/company/agencies': typeof AuthenticatedCompanyAgenciesIndexRoute
   '/company/agency-access': typeof AuthenticatedCompanyAgencyAccessIndexRoute
+  '/company/agency-accounts': typeof AuthenticatedCompanyAgencyAccountsIndexRoute
   '/company/airlines': typeof AuthenticatedCompanyAirlinesIndexRoute
   '/company/airports': typeof AuthenticatedCompanyAirportsIndexRoute
   '/dcs/activity-log': typeof AuthenticatedDcsActivityLogIndexRoute
@@ -484,9 +520,13 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/_authenticated/access/roles/': typeof AuthenticatedAccessRolesIndexRoute
   '/_authenticated/access/users/': typeof AuthenticatedAccessUsersIndexRoute
+  '/_authenticated/agency/account/': typeof AuthenticatedAgencyAccountIndexRoute
+  '/_authenticated/agency/holds/': typeof AuthenticatedAgencyHoldsIndexRoute
   '/_authenticated/agency/quotas/': typeof AuthenticatedAgencyQuotasIndexRoute
+  '/_authenticated/agency/search/': typeof AuthenticatedAgencySearchIndexRoute
   '/_authenticated/company/agencies/': typeof AuthenticatedCompanyAgenciesIndexRoute
   '/_authenticated/company/agency-access/': typeof AuthenticatedCompanyAgencyAccessIndexRoute
+  '/_authenticated/company/agency-accounts/': typeof AuthenticatedCompanyAgencyAccountsIndexRoute
   '/_authenticated/company/airlines/': typeof AuthenticatedCompanyAirlinesIndexRoute
   '/_authenticated/company/airports/': typeof AuthenticatedCompanyAirportsIndexRoute
   '/_authenticated/dcs/activity-log/': typeof AuthenticatedDcsActivityLogIndexRoute
@@ -539,9 +579,13 @@ export interface FileRouteTypes {
     | '/503'
     | '/access/roles/'
     | '/access/users/'
+    | '/agency/account/'
+    | '/agency/holds/'
     | '/agency/quotas/'
+    | '/agency/search/'
     | '/company/agencies/'
     | '/company/agency-access/'
+    | '/company/agency-accounts/'
     | '/company/airlines/'
     | '/company/airports/'
     | '/dcs/activity-log/'
@@ -592,9 +636,13 @@ export interface FileRouteTypes {
     | '/'
     | '/access/roles'
     | '/access/users'
+    | '/agency/account'
+    | '/agency/holds'
     | '/agency/quotas'
+    | '/agency/search'
     | '/company/agencies'
     | '/company/agency-access'
+    | '/company/agency-accounts'
     | '/company/airlines'
     | '/company/airports'
     | '/dcs/activity-log'
@@ -646,9 +694,13 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/_authenticated/access/roles/'
     | '/_authenticated/access/users/'
+    | '/_authenticated/agency/account/'
+    | '/_authenticated/agency/holds/'
     | '/_authenticated/agency/quotas/'
+    | '/_authenticated/agency/search/'
     | '/_authenticated/company/agencies/'
     | '/_authenticated/company/agency-access/'
+    | '/_authenticated/company/agency-accounts/'
     | '/_authenticated/company/airlines/'
     | '/_authenticated/company/airports/'
     | '/_authenticated/dcs/activity-log/'
@@ -772,11 +824,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAccessUsersIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/agency/account/': {
+      id: '/_authenticated/agency/account/'
+      path: '/agency/account'
+      fullPath: '/agency/account/'
+      preLoaderRoute: typeof AuthenticatedAgencyAccountIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agency/holds/': {
+      id: '/_authenticated/agency/holds/'
+      path: '/agency/holds'
+      fullPath: '/agency/holds/'
+      preLoaderRoute: typeof AuthenticatedAgencyHoldsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/agency/quotas/': {
       id: '/_authenticated/agency/quotas/'
       path: '/agency/quotas'
       fullPath: '/agency/quotas/'
       preLoaderRoute: typeof AuthenticatedAgencyQuotasIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agency/search/': {
+      id: '/_authenticated/agency/search/'
+      path: '/agency/search'
+      fullPath: '/agency/search/'
+      preLoaderRoute: typeof AuthenticatedAgencySearchIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/company/agencies/': {
@@ -791,6 +864,13 @@ declare module '@tanstack/react-router' {
       path: '/company/agency-access'
       fullPath: '/company/agency-access/'
       preLoaderRoute: typeof AuthenticatedCompanyAgencyAccessIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/company/agency-accounts/': {
+      id: '/_authenticated/company/agency-accounts/'
+      path: '/company/agency-accounts'
+      fullPath: '/company/agency-accounts/'
+      preLoaderRoute: typeof AuthenticatedCompanyAgencyAccountsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/company/airlines/': {
@@ -1073,9 +1153,13 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedAccessRolesIndexRoute: typeof AuthenticatedAccessRolesIndexRoute
   AuthenticatedAccessUsersIndexRoute: typeof AuthenticatedAccessUsersIndexRoute
+  AuthenticatedAgencyAccountIndexRoute: typeof AuthenticatedAgencyAccountIndexRoute
+  AuthenticatedAgencyHoldsIndexRoute: typeof AuthenticatedAgencyHoldsIndexRoute
   AuthenticatedAgencyQuotasIndexRoute: typeof AuthenticatedAgencyQuotasIndexRoute
+  AuthenticatedAgencySearchIndexRoute: typeof AuthenticatedAgencySearchIndexRoute
   AuthenticatedCompanyAgenciesIndexRoute: typeof AuthenticatedCompanyAgenciesIndexRoute
   AuthenticatedCompanyAgencyAccessIndexRoute: typeof AuthenticatedCompanyAgencyAccessIndexRoute
+  AuthenticatedCompanyAgencyAccountsIndexRoute: typeof AuthenticatedCompanyAgencyAccountsIndexRoute
   AuthenticatedCompanyAirlinesIndexRoute: typeof AuthenticatedCompanyAirlinesIndexRoute
   AuthenticatedCompanyAirportsIndexRoute: typeof AuthenticatedCompanyAirportsIndexRoute
   AuthenticatedDcsActivityLogIndexRoute: typeof AuthenticatedDcsActivityLogIndexRoute
@@ -1121,11 +1205,16 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedAccessRolesIndexRoute: AuthenticatedAccessRolesIndexRoute,
   AuthenticatedAccessUsersIndexRoute: AuthenticatedAccessUsersIndexRoute,
+  AuthenticatedAgencyAccountIndexRoute: AuthenticatedAgencyAccountIndexRoute,
+  AuthenticatedAgencyHoldsIndexRoute: AuthenticatedAgencyHoldsIndexRoute,
   AuthenticatedAgencyQuotasIndexRoute: AuthenticatedAgencyQuotasIndexRoute,
+  AuthenticatedAgencySearchIndexRoute: AuthenticatedAgencySearchIndexRoute,
   AuthenticatedCompanyAgenciesIndexRoute:
     AuthenticatedCompanyAgenciesIndexRoute,
   AuthenticatedCompanyAgencyAccessIndexRoute:
     AuthenticatedCompanyAgencyAccessIndexRoute,
+  AuthenticatedCompanyAgencyAccountsIndexRoute:
+    AuthenticatedCompanyAgencyAccountsIndexRoute,
   AuthenticatedCompanyAirlinesIndexRoute:
     AuthenticatedCompanyAirlinesIndexRoute,
   AuthenticatedCompanyAirportsIndexRoute:
