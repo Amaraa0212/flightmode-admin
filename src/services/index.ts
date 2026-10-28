@@ -44,6 +44,8 @@ export {
 // ─── Operations ───
 export {
   flightService,
+  type FlightsBulkPayload,
+  type FlightTemplate,
   flightSeriesService,
   allocationService,
   flightOptions,
@@ -51,9 +53,19 @@ export {
   type AllocationPayload,
 } from './api/operations/flight.service'
 export {
+  allocationBoardService,
+  type BoardAllocation,
+  type DistributeRow,
+  type FlightQuota,
+} from './api/operations/allocation-board.service'
+export {
   flightOpsService,
   flightPassengerService,
+  type CalendarFlight,
   type FlightBoardRow,
+  type PaxCounts,
+  type Reconciliation,
+  type ReconciliationResult,
 } from './api/operations/flight-ops.service'
 
 export {

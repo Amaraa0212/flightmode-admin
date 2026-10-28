@@ -30,14 +30,18 @@ export function Panel({
   subtitle,
   actions,
   children,
+  className,
+  bodyClassName,
 }: {
   title: string
   subtitle?: ReactNode
   actions?: ReactNode
   children: ReactNode
+  className?: string
+  bodyClassName?: string
 }) {
   return (
-    <div className='fm-panel overflow-hidden'>
+    <div className={cn('fm-panel overflow-hidden', className)}>
       <div className='flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3'>
         <div>
           <p className='text-sm font-semibold'>{title}</p>
@@ -47,9 +51,19 @@ export function Panel({
         </div>
         {actions && <div className='flex items-center gap-2'>{actions}</div>}
       </div>
-      <div className='overflow-x-auto'>{children}</div>
+      <div className={cn('overflow-x-auto', bodyClassName)}>{children}</div>
     </div>
   )
+}
+
+/**
+ * A Panel that, on wide screens, fills its grid cell and scrolls on its own with a sticky table header
+ * (side-by-side panels: each list scrolls without moving the other).
+ */
+export const SCROLL_PANEL = {
+  className: 'xl:flex xl:min-h-0 xl:flex-col',
+  bodyClassName:
+    'xl:min-h-0 xl:flex-1 xl:overflow-auto xl:[&_[data-slot=table-container]]:overflow-visible xl:[&_thead_th]:sticky xl:[&_thead_th]:top-0 xl:[&_thead_th]:z-10 xl:[&_thead_th]:bg-card',
 }
 
 /** Y / N flag cell */

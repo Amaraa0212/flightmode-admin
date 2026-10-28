@@ -1,5 +1,6 @@
 import type {
   Allocation,
+  AllocationMode,
   Flight,
   FlightListParams,
   FlightPayload,
@@ -62,7 +63,46 @@ type ApiStatistics = {
   by_cabin: Record<string, { total: number }>
 }
 
+/** POST /admin/flights/bulk: one flight on several local days */
+export interface FlightsBulkPayload {
+  airline_id?: number
+  aircraft_id: number
+  flight_number: string
+  origin_airport_id: number
+  destination_airport_id: number
+  service_type: 'scheduled' | 'charter'
+  /** HH:MM, local time of the origin */
+  departure_time: string
+  block_minutes: number
+  terminal?: string
+  gate?: string
+  /** YYYY-MM-DD, local days of the origin */
+  dates: string[]
+}
+
+/** GET /admin/flights/latest: what the latest flight with a number had */
+export interface FlightTemplate {
+  aircraft_id: number
+  origin_airport_id: number
+  destination_airport_id: number
+  service_type: 'scheduled' | 'charter'
+  departure_time: string
+  block_minutes: number
+  terminal: string | null
+  last_date: string
+}
+
 export const flightService = {
+  createMany: (payload: FlightsBulkPayload) =>
+    action(
+      client.post<ApiData<{ created: number[]; skipped: string[] }>>('/admin/flights/bulk', payload),
+      (r) => r
+    ),
+  latest: async (flightNumber: string) =>
+    ok(
+      (await client.get<ApiData<FlightTemplate | null>>('/admin/flights/latest', { flight_number: flightNumber }))
+        .data
+    ),
   list: (params: FlightListParams = {}) => {
     const {
       start_day: _s,
@@ -226,11 +266,13 @@ export const flightSeriesService = {
 
 // ─── Agency quotas ───
 export interface AllocationPayload {
+  mode: AllocationMode
   agency_id: string
   outbound_flight_id: string
   return_flight_id: string
+  /** fixed: the seats; pool: a limit, 0 = none */
   seats: number
-  /** business seats inside `seats`; the rest is economy */
+  /** business seats inside `seats`; the rest is economy (fixed only) */
   business_seats: number
   deadline: string
   is_waitlist: boolean
@@ -238,6 +280,7 @@ export interface AllocationPayload {
 
 type ApiAllocation = {
   id: number
+  mode?: AllocationMode
   agency: { id: number; name: string }
   outbound_flight: ApiFlight
   return_flight: ApiFlight | null
@@ -246,7 +289,8 @@ type ApiAllocation = {
   uses_fare_quotas: boolean
   is_waitlist: boolean
   cabins?: Record<string, number> | []
-  usage?: { used: number; remaining: number }
+  usage?: { used: number; held?: number; remaining: number }
+  chinggis?: { synced_at: string | null; error: string | null }
   created_at: string
 }
 
@@ -257,8 +301,9 @@ const flightRef = (f: ApiFlight) => ({
   route: route(f),
 })
 
-const toAllocation = (a: ApiAllocation): Allocation => ({
+export const toAllocation = (a: ApiAllocation): Allocation => ({
   id: a.id,
+  mode: a.mode ?? 'fixed',
   agency: a.agency,
   outbound_flight: flightRef(a.outbound_flight),
   return_flight: a.return_flight?.id ? flightRef(a.return_flight) : null,
@@ -267,24 +312,34 @@ const toAllocation = (a: ApiAllocation): Allocation => ({
   uses_fare_quotas: a.uses_fare_quotas,
   is_waitlist: a.is_waitlist,
   cabins: Array.isArray(a.cabins) ? {} : (a.cabins ?? {}),
-  usage: { used: a.usage?.used ?? 0, available: a.usage?.remaining ?? a.seats },
+  usage: {
+    used: a.usage?.used ?? 0,
+    held: a.usage?.held ?? 0,
+    available: a.usage?.remaining ?? a.seats,
+  },
+  chinggis: a.chinggis ?? { synced_at: null, error: null },
   created_at: a.created_at,
 })
 
 export const allocationService = {
   save: (payload: AllocationPayload, id?: number) => {
+    const pool = payload.mode === 'pool'
     const body = {
+      mode: payload.mode,
       agency_id: Number(payload.agency_id),
       outbound_flight_id: Number(payload.outbound_flight_id),
       return_flight_id: payload.return_flight_id ? Number(payload.return_flight_id) : null,
       seats: Number(payload.seats),
       deadline: payload.deadline,
       is_waitlist: payload.is_waitlist,
-      // fare buckets are not edited here — the API keeps them when "fares" is left out
-      cabins: {
-        C: Number(payload.business_seats) || 0,
-        Y: Math.max(0, Number(payload.seats) - (Number(payload.business_seats) || 0)),
-      },
+      // fare buckets are not edited here — the API keeps them when "fares" is left out;
+      // a pool without cabins sells every cabin of the aircraft
+      cabins: pool
+        ? {}
+        : {
+            C: Number(payload.business_seats) || 0,
+            Y: Math.max(0, Number(payload.seats) - (Number(payload.business_seats) || 0)),
+          },
     }
     return action(
       id
@@ -295,6 +350,10 @@ export const allocationService = {
   },
 
   remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/allocations/${id}`), () => null),
+
+  /** Send the allocation to the Chinggis agent API now */
+  pushToChinggis: (id: number) =>
+    action(client.post<ApiData<ApiAllocation>>(`/admin/allocations/${id}/chinggis-push`), toAllocation),
 
   list: (params: ListParams = {}) =>
     getPage<ApiAllocation, Allocation>('/admin/allocations', pageQuery(params), toAllocation),

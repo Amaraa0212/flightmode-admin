@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { bookingService } from '@/services'
-import { Ban, Mail, Phone } from 'lucide-react'
+import { Ban, Mail, Phone, Ticket } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatDate, formatMnt } from '@/lib/utils'
 import {
@@ -25,6 +25,14 @@ export function BookingDetail({
   const { data: booking } = useQuery({
     queryKey: [pageConfig.queryKey, 'detail', id],
     queryFn: async () => (await bookingService.getById(id)).body,
+  })
+  const issue = useMutation({
+    mutationFn: () => bookingService.issue(id),
+    onSuccess: (res) => {
+      toast.success(res.message)
+      queryClient.invalidateQueries({ queryKey: [pageConfig.queryKey] })
+    },
+    onError: (error: Error) => toast.error(error.message),
   })
   const cancel = useMutation({
     mutationFn: () => bookingService.cancel(id),
@@ -102,7 +110,7 @@ export function BookingDetail({
                   dot={false}
                 />
                 <span className='font-mono'>RBD {s.fare_class}</span>
-                <span className='font-mono'>ETKT {s.ticket_number}</span>
+                <span className='font-mono'>ETKT {s.ticket_number ?? 'not issued'}</span>
                 <span className='ms-auto font-mono'>
                   {formatMnt(s.total_amount)}
                 </span>
@@ -117,6 +125,30 @@ export function BookingDetail({
         <span className='text-sm'>
           Total <b className='font-mono'>{formatMnt(booking.total_amount)}</b>
         </span>
+        {booking.status === 'on_hold' && (
+          <div className='ms-auto me-2 flex items-center gap-2'>
+            {booking.ticketing_deadline_at && (
+              <span className='text-muted-foreground font-mono text-xs'>
+                TL{' '}
+                {new Date(booking.ticketing_deadline_at).toLocaleString('en-GB', {
+                  day: '2-digit',
+                  month: 'short',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            )}
+            <Button
+              size='sm'
+              className='gap-2'
+              disabled={issue.isPending}
+              onClick={() => issue.mutate()}
+            >
+              <Ticket className='size-4' />
+              Issue tickets
+            </Button>
+          </div>
+        )}
         {booking.status !== 'cancelled' && (
           <Button
             variant='destructive'

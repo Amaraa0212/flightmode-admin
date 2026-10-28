@@ -29,15 +29,23 @@ export interface AirlinePayload {
   is_active: boolean
 }
 
+/** Sales channel: a travel agency, or the airline's own ticket office / web / call center */
+export type AgencyChannel = 'agency' | 'ticket_office' | 'web' | 'call_center'
+
 export interface Agency extends Record<string, unknown> {
   id: number
   name: string
+  channel: AgencyChannel
+  /** set: a sales channel of this airline only (other airlines never see it) */
+  owner_airline_id: number | null
   code: string
   email: string
   phone: string
   address: string
   registration_no: string
   api_enabled: boolean
+  /** its allocations are pushed to the Chinggis agent API */
+  chinggis_sync: boolean
   is_active: boolean
   airlines: { id: number; name: string; contract_active: boolean }[]
 }
@@ -45,16 +53,19 @@ export interface Agency extends Record<string, unknown> {
 export interface AgencyListParams extends ListParams {
   is_active?: string
   api_enabled?: string
+  channel?: string[]
 }
 
 export interface AgencyPayload {
   name: string
+  channel: AgencyChannel
   code: string
   email: string
   phone: string
   address: string
   registration_no: string
   api_enabled: boolean
+  chinggis_sync: boolean
   is_active: boolean
 }
 

@@ -41,6 +41,8 @@ export interface InventoryAgency {
   allocation_id: number
   agency_id: number
   agency: string | null
+  /** pool: no seats taken out — seats is a limit (0 = none), available its unnamed holds */
+  mode: 'fixed' | 'pool'
   cabin_class: CabinCode
   seats: number
   sold: number
@@ -52,16 +54,21 @@ export interface InventoryAgency {
   return_flight_id: number | null
   deadline: string | null
   uses_fare_quotas: boolean
+  /** pool: seats the agency can still sell in this cabin */
+  pool_free: number | null
 }
 
 /** POST / PUT /admin/allocations from the seat allocation screen */
 export interface AllocationCabinPayload {
+  mode: 'fixed' | 'pool'
+  /** pool only: the allocation limit, 0 = none */
+  seats?: number
   agency_id: number
   outbound_flight_id: number
   return_flight_id: number | null
   deadline: string
   is_waitlist: boolean
-  /** seats per cabin, e.g. { C: 2, Y: 18 } */
+  /** seats per cabin, e.g. { C: 2, Y: 18 }; pool: the cabins it may sell with their limit (0 = none) */
   cabins: Partial<Record<CabinCode, number>>
 }
 

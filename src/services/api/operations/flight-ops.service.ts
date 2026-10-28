@@ -7,7 +7,7 @@ import type { FlightPassengerRow } from '../../types/sales/booking.types'
 import type { ListParams } from '../../types/shared/common.types'
 import { api } from '@/config/api'
 import { useAuthStore } from '@/stores/auth-store'
-import { client, ok, period, type ApiData } from '../shared/client'
+import { client, ok, period, saveBlob, type ApiData } from '../shared/client'
 
 /*
 | Flight manager / flight load: /admin/flight-board (one day), status / gate / ETD / gate agents / online check-in,
@@ -73,7 +73,26 @@ async function board(date?: string) {
   return res.data.map(toBoardRow)
 }
 
+/** One flight on the flight load month calendar (local departure day of the origin) */
+export type CalendarFlight = {
+  id: number
+  flight_number: string
+  route: string
+  date: string
+  time: string
+  status: string
+  service_type: 'scheduled' | 'charter'
+  capacity: number
+  /** passengers holding a seat; total = seats (ADT + CHD) */
+  booked: { ADT: number; CHD: number; INF: number; total: number }
+  free: number
+}
+
 export const flightOpsService = {
+  /** Flight load month calendar, month = YYYY-MM */
+  calendar: async (month: string) =>
+    ok((await client.get<ApiData<CalendarFlight[]>>('/admin/flight-board/calendar', { month })).data),
+
   /** Flight manager / station board of one day (search / status / paging here) */
   list: async (params: ListParams & { date?: string } = {}) => {
     const rows = await board(period(params).from ?? (params.date as string | undefined))
@@ -197,6 +216,41 @@ type ApiManifest = {
   }
 }
 
+/** PNL reconciliation (PassengerReconciliation): who was on the name list and who flew */
+export type ReconciliationResult =
+  | 'flown'
+  | 'no_show'
+  | 'offloaded'
+  | 'not_boarded'
+  | 'cancelled'
+  | 'waitlisted'
+
+/** ADT / CHD / INF; total = seats (ADT + CHD) */
+export type PaxCounts = { ADT: number; CHD: number; INF: number; total: number }
+
+export type Reconciliation = {
+  flight: { id: number; flight_number: string; route: string; departure_at: string; status: string }
+  /** gate closed / departed: a passenger who did not board is a no-show */
+  closed: boolean
+  summary: Record<'pnl' | 'go_show' | 'flown' | 'no_show' | 'offloaded' | 'not_boarded' | 'cancelled', PaxCounts>
+  rows: {
+    segment_id: number
+    result: ReconciliationResult
+    go_show: boolean
+    name: string
+    type: 'ADT' | 'CHD' | 'INF'
+    pnr: string | null
+    ticket_number: string | null
+    cabin_class: string
+    seat_number: string | null
+    agency: string | null
+    status: string
+    checked_in: boolean
+    offload_type: string | null
+    offload_reason: string | null
+  }[]
+}
+
 export const flightPassengerService = {
   list: async (flightId: number, params: ListParams = {}) => {
     const res = await client.get<ApiData<ApiSegment[]>>(`/admin/flights/${flightId}/passengers`, {
@@ -292,6 +346,19 @@ export const flightPassengerService = {
     if (!res.ok) throw new Error(res.status === 403 ? 'You do not have permission for this.' : 'PNL is not available')
     return ok(await res.text())
   },
+
+  /** PNL report: flown / no-show / go-show / offloaded against the name list */
+  reconciliation: async (flightId: number) =>
+    ok(
+      (await client.get<ApiData<Reconciliation>>(`/admin/flights/${flightId}/documents/reconciliation`))
+        .data
+    ),
+
+  downloadReconciliation: async (flightId: number, filename: string) =>
+    saveBlob(
+      await client.blob(`/admin/flights/${flightId}/documents/reconciliation`, { format: 'xlsx' }),
+      filename
+    ),
 }
 
 export type { FlightPassengerRow }

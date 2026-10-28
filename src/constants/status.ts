@@ -20,6 +20,7 @@ export const FLIGHT_STATUS: Record<string, StatusMeta> = {
 
 export const BOOKING_STATUS: Record<string, StatusMeta> = {
   confirmed: { label: 'Confirmed', tone: 'green' },
+  on_hold: { label: 'On hold (TL)', tone: 'indigo' },
   waitlisted: { label: 'Waitlisted', tone: 'amber' },
   cancelled: { label: 'Cancelled', tone: 'red' },
 }

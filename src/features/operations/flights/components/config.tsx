@@ -208,7 +208,7 @@ export const pageConfig: Omit<
       { name: 'terminal', label: 'Terminal', type: 'text', gridCols: 1 },
       { name: 'gate', label: 'Gate', type: 'text', gridCols: 1 },
     ],
-    create: (v) => flightService.create(toPayload(v)),
+    // new flights: NewFlightsDialog (several days at once)
     update: (row, v) => flightService.update(row.id, toPayload(v)),
   },
   remove: {

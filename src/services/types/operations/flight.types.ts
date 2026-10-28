@@ -96,8 +96,12 @@ export interface FlightSeries extends Record<string, unknown> {
   flights_count: number
 }
 
+/** fixed = seats taken out of the flight for the agency; pool = the chosen agencies sell the flight's free seats together */
+export type AllocationMode = 'fixed' | 'pool'
+
 export interface Allocation extends Record<string, unknown> {
   id: number
+  mode: AllocationMode
   agency: { id: number; name: string }
   outbound_flight: Pick<
     Flight,
@@ -116,7 +120,10 @@ export interface Allocation extends Record<string, unknown> {
   is_waitlist: boolean
   /** seats per cabin class, e.g. { Y: 18, C: 2 } */
   cabins: Record<string, number>
-  usage: { used: number; available: number }
+  /** available: seats the agency can still sell (pool: the shared room within its limit) */
+  usage: { used: number; held: number; available: number }
+  /** last push to the Chinggis agent API */
+  chinggis: { synced_at: string | null; error: string | null }
   created_at: string
 }
 
@@ -132,4 +139,9 @@ export interface FlightOperations {
 }
 
 export type FlightAction =
-  'open_checkin' | 'close_checkin' | 'close_gate' | 'depart' | 'cancel'
+  | 'open_checkin'
+  | 'close_checkin'
+  | 'close_gate'
+  | 'depart'
+  | 'cancel'
+  | 'reopen'

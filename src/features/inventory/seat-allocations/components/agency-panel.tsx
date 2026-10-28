@@ -52,7 +52,7 @@ export function AgencyPanel({ data }: { data: FlightInventory }) {
             — lower the allocations.
           </span>
         ) : (
-          'Unsold agency seats are held back from direct sale. Each class of service limits what can be given.'
+          'Fixed: unsold agency seats are held back from direct sale. Pool: the agencies sell the free seats together, only their holds are kept.'
         )
       }
       actions={
@@ -112,13 +112,27 @@ export function AgencyPanel({ data }: { data: FlightInventory }) {
                     )}
                   </TableCell>
                   <TableCell className='text-end font-mono'>
-                    {a.seats}
+                    {a.mode === 'pool' ? (
+                      <span
+                        className='text-violet-600 dark:text-violet-300'
+                        title='Pool: sells the free seats with the other pool agencies'
+                      >
+                        Pool
+                        {a.allocation_seats ? ` ≤${a.allocation_seats}` : ''}
+                      </span>
+                    ) : (
+                      a.seats
+                    )}
                   </TableCell>
                   <TableCell className='text-end font-mono font-semibold'>
                     {a.sold}
                   </TableCell>
                   <TableCell className='text-end'>
-                    <AvailCell value={a.available} />
+                    <AvailCell
+                      value={
+                        a.mode === 'pool' ? (a.pool_free ?? 0) : a.available
+                      }
+                    />
                   </TableCell>
                   <TableCell className='text-muted-foreground font-mono text-xs'>
                     {a.deadline ?? '-'}

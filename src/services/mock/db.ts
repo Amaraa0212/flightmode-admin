@@ -228,12 +228,15 @@ const AGENCY_NAMES = [
 export const agencies: Agency[] = AGENCY_NAMES.map((name, index) => ({
   id: index + 1,
   name,
+  channel: 'agency',
+  owner_airline_id: null,
   code: `AG${pad(index + 101, 3)}`,
   email: `${name.split(' ')[0].toLowerCase()}@agency.mn`,
   phone: `+976 9${int(100, 999)} ${int(1000, 9999)}`,
   address: 'Ulaanbaatar, Sukhbaatar district',
   registration_no: String(5_000_000 + index * 137),
   api_enabled: index % 3 === 0,
+  chinggis_sync: false,
   is_active: index !== 7,
   airlines: airlines
     .slice(0, (index % 3) + 1)
@@ -509,6 +512,7 @@ export const allocations: Allocation[] = Array.from(
     const used = int(0, seats)
     return {
       id: index + 1,
+      mode: 'fixed' as const,
       agency: {
         id: agencies[index % agencies.length].id,
         name: agencies[index % agencies.length].name,
@@ -524,7 +528,8 @@ export const allocations: Allocation[] = Array.from(
       uses_fare_quotas: index % 3 === 0,
       is_waitlist: index % 7 === 0,
       cabins: { Y: seats },
-      usage: { used, available: seats - used },
+      usage: { used, held: 0, available: seats - used },
+      chinggis: { synced_at: null, error: null },
       created_at: isoDaysFromNow(-int(5, 40)),
     }
   }
@@ -636,6 +641,7 @@ export const bookings: Booking[] = Array.from({ length: 86 }, (_, index) => {
     agency: agency ? { id: agency.id, name: agency.name } : null,
     source,
     status,
+    ticketing_deadline_at: null,
     contact_email: passengers[0].email ?? 'contact@mail.mn',
     contact_phone: passengers[0].phone ?? '+976 9911 2233',
     passengers,

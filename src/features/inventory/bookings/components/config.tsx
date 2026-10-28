@@ -56,7 +56,16 @@ export const pageConfig: Omit<
     }),
     col<Booking>('source', 'Source', (r) => chip(r.source, BOOKING_SOURCE)),
     col<Booking>('total_amount', 'Total', (r) => money(r.total_amount)),
-    col<Booking>('status', 'Status', (r) => chip(r.status, BOOKING_STATUS)),
+    col<Booking>('status', 'Status', (r) => (
+      <div>
+        {chip(r.status, BOOKING_STATUS)}
+        {r.status === 'on_hold' && r.ticketing_deadline_at && (
+          <p className='text-muted-foreground mt-0.5 font-mono text-[11px]'>
+            TL {r.ticketing_deadline_at.slice(0, 16).replace('T', ' ')}
+          </p>
+        )}
+      </div>
+    )),
     col<Booking>('created_at', 'Issued', (r) => dateTime(r.created_at)),
   ],
 }

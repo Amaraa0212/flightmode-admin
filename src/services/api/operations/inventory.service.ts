@@ -113,13 +113,22 @@ export const inventoryService = {
 /** Agency allocations edited per cabin from the seat allocation screen (flightmode-api AllocationController) */
 export const inventoryAllocationService = {
   save: (payload: AllocationCabinPayload, id?: number) => {
-    const cabins = Object.fromEntries(
-      Object.entries(payload.cabins).filter(([, seats]) => (seats ?? 0) > 0)
-    )
+    // pool: the cabins it may sell (limit 0 = none) and an overall limit; fixed: cabins with seats, seats = their sum
+    const cabins =
+      payload.mode === 'pool'
+        ? payload.cabins
+        : Object.fromEntries(
+            Object.entries(payload.cabins).filter(
+              ([, seats]) => (seats ?? 0) > 0
+            )
+          )
     const body = {
       ...payload,
       cabins,
-      seats: Object.values(cabins).reduce((sum, n) => sum + (n ?? 0), 0),
+      seats:
+        payload.mode === 'pool'
+          ? (payload.seats ?? 0)
+          : Object.values(cabins).reduce((sum, n) => sum + (n ?? 0), 0),
     }
     return action(
       id

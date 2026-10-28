@@ -170,7 +170,7 @@ function FlightCard({
         <div className='text-end'>
           <p className='font-mono text-2xl font-semibold'>{f.remaining}</p>
           <p className='text-muted-foreground text-xs'>
-            үлдсэн / {f.seats} · hold {f.held}
+            үлдсэн / {f.seats || '∞'} · hold {f.held}
           </p>
         </div>
       </div>
@@ -181,7 +181,7 @@ function FlightCard({
             key={c.cabin_class}
             className='bg-muted rounded-md px-2 py-0.5 font-mono text-xs'
           >
-            {c.cabin_class}: {c.remaining}/{c.seats}
+            {c.cabin_class}: {c.remaining}/{c.seats || '∞'}
           </span>
         ))}
       </div>

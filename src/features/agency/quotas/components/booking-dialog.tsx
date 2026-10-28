@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -91,6 +92,8 @@ export function BookingDialog({
     values: { passengers: [blank(cabins[0])], contact_phone: '', contact_email: '' },
   })
   const rows = useFieldArray({ control: form.control, name: 'passengers' })
+  // pay later: seats kept without tickets until the fare's time limit (TL)
+  const [onHold, setOnHold] = useState(false)
 
   const book = useMutation({
     mutationFn: (v: Form) =>
@@ -98,7 +101,8 @@ export function BookingDialog({
         quota!.id,
         v.passengers,
         { phone: v.contact_phone, email: v.contact_email },
-        hold ? { id: hold.id, allocation_fare_id: hold.allocation_fare_id } : undefined
+        hold ? { id: hold.id, allocation_fare_id: hold.allocation_fare_id } : undefined,
+        onHold
       ),
     onSuccess: (res) => {
       toast.success(res.message)
@@ -124,7 +128,7 @@ export function BookingDialog({
             Зорчигч нэмэх — {quota?.flight_number} {quota?.route}
           </DialogTitle>
           <DialogDescription>
-            Үлдсэн суудал: <b>{remaining}</b> / {quota?.seats}. Бүх зорчигч нэг захиалга (PNR) дор орно. Өмнө нь
+            Үлдсэн суудал: <b>{remaining}</b> / {quota?.seats || '∞'}. Бүх зорчигч нэг захиалга (PNR) дор орно. Өмнө нь
             захиалга хийсэн зорчигчийг паспортоор нь хайж мэдээллийг автоматаар бөглөнө.
           </DialogDescription>
         </DialogHeader>
@@ -171,6 +175,10 @@ export function BookingDialog({
 
         <DialogFooter className='items-center gap-2'>
           {tooMany && <span className='text-destructive me-auto text-xs'>Квотод {remaining} суудал л үлдсэн.</span>}
+          <label className='me-auto flex items-center gap-2 text-xs' title='Тийзийг тарифын TL хугацаанд бичнэ, түүнээс өмнө данснаас хасахгүй'>
+            <Checkbox checked={onHold} onCheckedChange={(v) => setOnHold(v === true)} />
+            Төлбөрийг дараа — TL хүртэл hold
+          </label>
           <Button type='button' variant='outline' onClick={onClose}>
             Болих
           </Button>
