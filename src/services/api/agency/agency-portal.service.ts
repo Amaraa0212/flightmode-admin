@@ -52,6 +52,10 @@ export interface AgencyPassenger {
   ticket_number: string | null
   seat_number: string | null
   status: string
+  booking_id: number
+  /** on_hold: tickets to be issued before ticketing_deadline_at */
+  booking_status: string
+  ticketing_deadline_at: string | null
 }
 
 const route = (f: ApiFlight | null) =>
@@ -115,11 +119,14 @@ export const agencyPortalService = {
     quotaId: number,
     passengers: AgencyBookingPassenger[],
     contact: { phone: string; email: string },
-    hold?: { id: number; allocation_fare_id: number | null }
+    hold?: { id: number; allocation_fare_id: number | null },
+    /** keep the seats without tickets until the fare's ticket time limit */
+    onHold = false
   ) => {
     const res = await client.post<{ message: string; data: { pnr: string } }>('/agency/bookings', {
       allocation_id: quotaId,
       hold_id: hold?.id,
+      on_hold: onHold,
       contact_phone: orNull(contact.phone),
       contact_email: orNull(contact.email),
       passengers: passengers.map((p) => ({
@@ -138,6 +145,12 @@ export const agencyPortalService = {
       })),
     })
     return ok(res.data, `${res.message} PNR ${res.data.pnr}`)
+  },
+
+  /** Issue the tickets of a booking on hold (before its time limit); the account is charged now */
+  issue: async (bookingId: number) => {
+    const res = await client.post<{ message: string }>(`/agency/bookings/${bookingId}/issue`)
+    return ok(null, res.message)
   },
 
   /** A passenger this agency booked before, by passport number (to fill the form) — null when unknown */
@@ -164,7 +177,10 @@ export const agencyPortalService = {
       ApiData<
         {
           id: number
+          booking_id: number
           pnr?: string
+          booking_status?: string
+          ticketing_deadline_at?: string | null
           type: string
           first_name: string
           last_name: string
@@ -186,6 +202,9 @@ export const agencyPortalService = {
           ticket_number: p.segments?.[0]?.ticket_number ?? null,
           seat_number: p.segments?.[0]?.seat_number ?? null,
           status: p.segments?.[0]?.status ?? '',
+          booking_id: p.booking_id,
+          booking_status: p.booking_status ?? '',
+          ticketing_deadline_at: p.ticketing_deadline_at ?? null,
         })
       )
     )

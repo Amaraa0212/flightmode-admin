@@ -47,6 +47,14 @@ export function AgencyAccess() {
           airline.iata_code,
           (r) => {
             const contract = r.airlines.find((a) => a.id === airline.id)
+            // another airline's own sales channel cannot sell this airline
+            if (r.owner_airline_id && r.owner_airline_id !== airline.id) {
+              return (
+                <span className='text-muted-foreground text-xs'>
+                  Other airline's channel
+                </span>
+              )
+            }
             return (
               <div className='flex items-center gap-2'>
                 <Switch

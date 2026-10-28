@@ -60,6 +60,10 @@ export interface FareClass extends Record<string, unknown> {
   is_group: boolean
   group_min: number | null
   group_max: number | null
+  /** TL: tickets due this many hours after booking (null = no hold) */
+  ticket_time_limit_hours: number | null
+  /** TL: and at the latest this many hours before departure */
+  ticket_time_limit_before_departure_hours: number | null
   is_active: boolean
   discounts: FareDiscount[]
   fares_count?: number
@@ -77,6 +81,8 @@ export interface FareClassPayload {
   is_group: boolean
   group_min: number | null
   group_max: number | null
+  ticket_time_limit_hours: number | null
+  ticket_time_limit_before_departure_hours: number | null
   is_active: boolean
 }
 
@@ -166,6 +172,7 @@ export interface RbdModification extends Record<string, unknown> {
   type: string
   timeframe_hours: number
   amount: string | null
+  currency: string | null
   percentage: number | null
   is_allowed: boolean
 }
@@ -175,6 +182,7 @@ export interface RbdModificationPayload {
   type: string
   timeframe_hours: number
   amount: number | null
+  currency: string | null
   percentage: number | null
   is_allowed: boolean
 }

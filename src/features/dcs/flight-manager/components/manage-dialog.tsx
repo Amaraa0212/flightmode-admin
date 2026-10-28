@@ -7,6 +7,7 @@ import {
 } from '@/services'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { useCan } from '@/stores/auth-store'
 import { FLIGHT_STATUS } from '@/constants/status'
 import { Button } from '@/components/ui/button'
 import {
@@ -140,7 +141,19 @@ function ManageForm({
   onClose: () => void
 }) {
   const [gate, setGate] = useState(flight.gate ?? '')
-  const [etd, setEtd] = useState(toLocalInput(flight.estimated_departure_at))
+  // close check-in / gate / depart: OCC only; cancel / reopen: airline administrator only
+  const can = useCan()
+  const canClose = can('flights.close')
+  const canCancel = can('flights.cancel')
+  const closeHint = canClose
+    ? undefined
+    : 'Only OCC can close check-in, the gate or the flight'
+  const cancelHint = canCancel
+    ? undefined
+    : 'Only the airline administrator can cancel or reopen a flight'
+  const reopenable = ['checkin_closed', 'gate_closed', 'cancelled'].includes(
+    flight.status
+  )
   const [agents, setAgents] = useState(
     flight.ops.gate_agents.map((a) => String(a.id))
   )
@@ -172,7 +185,7 @@ function ManageForm({
         </DialogHeader>
 
         <div className='grid grid-cols-2 gap-3'>
-          <Section title='Gate & ETD'>
+          <Section title='Gate'>
             <div className='grid gap-1.5'>
               <Label>Gate number</Label>
               <Input
@@ -181,23 +194,10 @@ function ManageForm({
                 placeholder='Enter gate number'
               />
             </div>
-            <div className='grid gap-1.5'>
-              <Label>ETD</Label>
-              <Input
-                type='datetime-local'
-                value={etd}
-                onChange={(e) => setEtd(e.target.value)}
-              />
-            </div>
             <Button
               size='sm'
               disabled={busy}
-              onClick={() =>
-                update.mutate({
-                  gate,
-                  estimated_departure_at: fromLocalInput(etd),
-                })
-              }
+              onClick={() => update.mutate({ gate })}
             >
               Update
             </Button>
@@ -251,7 +251,8 @@ function ManageForm({
               <Button
                 size='sm'
                 variant='outline'
-                disabled={busy || flight.status !== 'checkin_open'}
+                disabled={busy || !canClose || flight.status !== 'checkin_open'}
+                title={closeHint}
                 onClick={() => action.mutate({ action: 'close_checkin' })}
               >
                 Close check-in
@@ -261,8 +262,10 @@ function ManageForm({
                 variant='outline'
                 disabled={
                   busy ||
+                  !canClose ||
                   !['checkin_open', 'checkin_closed'].includes(flight.status)
                 }
+                title={closeHint}
                 onClick={() => action.mutate({ action: 'close_gate' })}
               >
                 Close gate
@@ -278,9 +281,12 @@ function ManageForm({
                 Send APIS
               </Button>
             </div>
+            {closeHint && (
+              <p className='text-muted-foreground text-xs'>{closeHint}</p>
+            )}
           </Section>
 
-          <Section title='Cancel flight'>
+          <Section title='Cancel / reopen flight'>
             <Textarea
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
@@ -292,9 +298,11 @@ function ManageForm({
               variant='destructive'
               disabled={
                 busy ||
+                !canCancel ||
                 !cancelReason.trim() ||
                 ['departed', 'cancelled', 'gate_closed'].includes(flight.status)
               }
+              title={cancelHint}
               onClick={() =>
                 action.mutate({
                   action: 'cancel',
@@ -304,6 +312,23 @@ function ManageForm({
             >
               Cancel flight
             </Button>
+            <Button
+              size='sm'
+              variant='outline'
+              disabled={busy || !canCancel || !reopenable}
+              title={
+                cancelHint ??
+                (flight.status === 'cancelled'
+                  ? 'Back to scheduled'
+                  : 'Opens check-in again')
+              }
+              onClick={() => action.mutate({ action: 'reopen' })}
+            >
+              Reopen flight
+            </Button>
+            {cancelHint && (
+              <p className='text-muted-foreground text-xs'>{cancelHint}</p>
+            )}
           </Section>
 
           <div className='col-span-2'>
@@ -345,7 +370,8 @@ function ManageForm({
                 />
               </div>
               <Button
-                disabled={busy || flight.status !== 'gate_closed'}
+                disabled={busy || !canClose || flight.status !== 'gate_closed'}
+                title={closeHint}
                 onClick={() =>
                   action.mutate({
                     action: 'depart',
@@ -363,6 +389,9 @@ function ManageForm({
                 )}
                 Close flight (departed)
               </Button>
+              {closeHint && (
+                <p className='text-muted-foreground text-xs'>{closeHint}</p>
+              )}
             </Section>
           </div>
         </div>

@@ -21,6 +21,9 @@ const schema = z
     is_group: z.boolean(),
     group_min: z.number().int().min(0),
     group_max: z.number().int().min(0),
+    // TL, 0 = not used
+    tl_hours: z.number().int().min(0),
+    tl_before_departure_hours: z.number().int().min(0),
     rule: z.string(),
     is_active: z.boolean(),
   })
@@ -45,11 +48,15 @@ export function FareClassDialog({
   onClose: () => void
 }) {
   const save = useFareMutation((v: Form) => {
+    const { tl_hours, tl_before_departure_hours, ...rest } = v
     const payload = {
-      ...v,
+      ...rest,
       rbd_id: Number(v.rbd_id),
       group_min: v.is_group ? v.group_min : null,
       group_max: v.is_group ? v.group_max : null,
+      ticket_time_limit_hours: tl_hours || null,
+      ticket_time_limit_before_departure_hours:
+        tl_before_departure_hours || null,
     }
     return fareClass
       ? fareClassService.update(fareClass.id, payload)
@@ -121,6 +128,20 @@ export function FareClassDialog({
       gridCols: 2,
       showWhen: { field: 'is_group', value: true },
     },
+    {
+      name: 'tl_hours',
+      label: 'Ticket time limit: hours after booking (0 = none)',
+      type: 'number',
+      min: '0',
+      gridCols: 2,
+    },
+    {
+      name: 'tl_before_departure_hours',
+      label: 'TL: at the latest, hours before departure (0 = none)',
+      type: 'number',
+      min: '0',
+      gridCols: 2,
+    },
     { name: 'rule', label: 'Rule', type: 'textarea', rows: 3, gridCols: 1 },
   ]
 
@@ -136,6 +157,9 @@ export function FareClassDialog({
         is_group: fareClass.is_group,
         group_min: fareClass.group_min ?? 0,
         group_max: fareClass.group_max ?? 0,
+        tl_hours: fareClass.ticket_time_limit_hours ?? 0,
+        tl_before_departure_hours:
+          fareClass.ticket_time_limit_before_departure_hours ?? 0,
         rule: fareClass.rule ?? '',
         is_active: fareClass.is_active,
       }
@@ -150,6 +174,8 @@ export function FareClassDialog({
         is_group: false,
         group_min: 0,
         group_max: 0,
+        tl_hours: 0,
+        tl_before_departure_hours: 0,
         rule: '',
         is_active: true,
       }

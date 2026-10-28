@@ -5,7 +5,8 @@ import type {
 } from '../reference/reference.types'
 import type { ListParams } from '../shared/common.types'
 
-export type BookingStatus = 'confirmed' | 'waitlisted' | 'cancelled'
+/** on_hold: seats kept without tickets until ticketing_deadline_at (fare class TL) */
+export type BookingStatus = 'confirmed' | 'on_hold' | 'waitlisted' | 'cancelled'
 export type BookingSource =
   'admin' | 'counter' | 'agency' | 'agency_api' | 'import'
 export type SegmentStatus =
@@ -49,6 +50,8 @@ export interface Booking extends Record<string, unknown> {
   agency: { id: number; name: string } | null
   source: BookingSource
   status: BookingStatus
+  /** on_hold: tickets must be issued before this, or the booking is cancelled */
+  ticketing_deadline_at: string | null
   contact_email: string
   contact_phone: string
   passengers: Passenger[]

@@ -1,10 +1,14 @@
 import { z } from 'zod'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   agencyOptions,
   allocationService,
   flightOptions,
   type Allocation,
 } from '@/services'
+import { Send } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/progress-bar'
 import {
   brand,
@@ -15,16 +19,98 @@ import {
 } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
-const schema = z.object({
-  agency_id: z.string().min(1, 'Agency is required'),
-  outbound_flight_id: z.string().min(1, 'Flight is required'),
-  return_flight_id: z.string(),
-  seats: z.number().int().min(1),
-  business_seats: z.number().int().min(0),
-  deadline: z.string().min(1, 'Names deadline is required'),
-  is_waitlist: z.boolean(),
-})
+export const MODE_OPTIONS = [
+  { label: 'Fixed — seats taken out for the agency', value: 'fixed' },
+  { label: 'Pool — agencies sell the free seats together', value: 'pool' },
+]
+
+const schema = z
+  .object({
+    mode: z.enum(['fixed', 'pool']),
+    agency_id: z.string().min(1, 'Agency is required'),
+    outbound_flight_id: z.string().min(1, 'Flight is required'),
+    return_flight_id: z.string(),
+    // pool: a limit, 0 = none
+    seats: z.number().int().min(0),
+    business_seats: z.number().int().min(0),
+    deadline: z.string().min(1, 'Names deadline is required'),
+    is_waitlist: z.boolean(),
+  })
+  .refine((v) => v.mode === 'pool' || v.seats >= 1, {
+    path: ['seats'],
+    message: 'At least 1 seat',
+  })
 type Form = z.infer<typeof schema>
+
+/** Last push to the Chinggis agent API, with "push now" */
+function ChinggisCell({ r }: { r: Allocation }) {
+  const queryClient = useQueryClient()
+  const push = useMutation({
+    mutationFn: () => allocationService.pushToChinggis(r.id),
+    onSuccess: (res) => {
+      toast.success(res.message)
+      queryClient.invalidateQueries({ queryKey: ['admin-allocations'] })
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+  return (
+    <div className='flex items-center gap-1.5'>
+      {r.chinggis.error ? (
+        <span
+          className='text-xs text-rose-600 dark:text-rose-400'
+          title={r.chinggis.error}
+        >
+          Failed
+        </span>
+      ) : r.chinggis.synced_at ? (
+        <span
+          className='font-mono text-xs text-emerald-600 dark:text-emerald-400'
+          title='Last sent'
+        >
+          ✓ {r.chinggis.synced_at.slice(5, 16).replace('T', ' ')}
+        </span>
+      ) : (
+        muted('-')
+      )}
+      <Button
+        variant='ghost'
+        size='sm'
+        className='h-6 px-1.5 text-xs'
+        disabled={push.isPending}
+        title='Send to the Chinggis agent API now'
+        onClick={(e) => {
+          e.stopPropagation()
+          push.mutate()
+        }}
+      >
+        <Send className='size-3' />
+      </Button>
+    </div>
+  )
+}
+
+/** Sold / quota; a pool shows what it may still sell from the shared seats */
+export function QuotaCell({ r }: { r: Allocation }) {
+  if (r.mode === 'pool') {
+    return (
+      <div className='space-y-0.5'>
+        <span className='rounded border border-violet-500/40 bg-violet-500/10 px-1.5 text-[10px] font-bold text-violet-700 uppercase dark:text-violet-300'>
+          Pool
+        </span>
+        <div className='font-mono text-xs'>
+          {r.usage.used} sold{r.seats ? ` / max ${r.seats}` : ''} ·{' '}
+          {r.usage.available} free
+        </div>
+      </div>
+    )
+  }
+  return (
+    <div className='w-32 space-y-1'>
+      {mono(`${r.usage.used} / ${r.seats}`)}
+      <Progress value={r.seats ? r.usage.used / r.seats : 0} />
+    </div>
+  )
+}
 
 const flightCell = (f: Allocation['outbound_flight'] | null) =>
   f ? (
@@ -42,7 +128,7 @@ export const pageConfig: Omit<
 > = {
   title: 'Assign quota to agency',
   description:
-    'Seat allocations per agency and flight (names deadline, fare quotas, waitlist)',
+    'Seat allocations per agency and flight. Fixed: seats taken out for the agency. Pool: the chosen agencies sell the free seats together (a seat one holds is gone for the others), each up to an optional limit.',
   queryKey: 'admin-allocations',
   list: allocationService.list,
   searchPlaceholder: 'Agency, flight or route',
@@ -63,18 +149,13 @@ export const pageConfig: Omit<
     col<Allocation>('return', 'Return', (r) => flightCell(r.return_flight), {
       accessor: (r) => r.return_flight?.flight_number,
     }),
-    col<Allocation>(
-      'usage',
-      'Sold / Quota',
-      (r) => (
-        <div className='w-32 space-y-1'>
-          {mono(`${r.usage.used} / ${r.seats}`)}
-          <Progress value={r.seats ? r.usage.used / r.seats : 0} />
-        </div>
-      ),
-      { accessor: (r) => r.usage.used }
-    ),
+    col<Allocation>('usage', 'Sold / Quota', (r) => <QuotaCell r={r} />, {
+      accessor: (r) => r.usage.used,
+    }),
     col<Allocation>('deadline', 'Names deadline', (r) => mono(r.deadline)),
+    col<Allocation>('chinggis', 'Chinggis', (r) => <ChinggisCell r={r} />, {
+      accessor: (r) => r.chinggis.synced_at ?? '',
+    }),
     col<Allocation>(
       'flags',
       'Options',
@@ -92,6 +173,7 @@ export const pageConfig: Omit<
     schema,
     maxWidth: 'xl',
     empty: {
+      mode: 'fixed',
       agency_id: '',
       outbound_flight_id: '',
       return_flight_id: '',
@@ -101,6 +183,7 @@ export const pageConfig: Omit<
       is_waitlist: false,
     },
     fromRow: (r) => ({
+      mode: r.mode,
       agency_id: String(r.agency.id),
       outbound_flight_id: String(r.outbound_flight.id),
       return_flight_id: r.return_flight ? String(r.return_flight.id) : '',
@@ -110,6 +193,13 @@ export const pageConfig: Omit<
       is_waitlist: r.is_waitlist,
     }),
     fields: [
+      {
+        name: 'mode',
+        label: 'Type',
+        type: 'select',
+        options: MODE_OPTIONS,
+        gridCols: 1,
+      },
       {
         name: 'agency_id',
         label: 'Agency',
@@ -136,8 +226,9 @@ export const pageConfig: Omit<
       },
       {
         name: 'seats',
-        label: 'Seats',
+        label: 'Seats (pool: limit, 0 = every free seat)',
         type: 'number',
+        min: '0',
         required: true,
         gridCols: 1,
       },
@@ -146,7 +237,9 @@ export const pageConfig: Omit<
         label: 'Of which business (C)',
         type: 'number',
         gridCols: 1,
+        showWhen: { field: 'mode', value: 'fixed' },
       },
+
       {
         name: 'deadline',
         label: 'Names deadline',

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Loader2, Search } from 'lucide-react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Loader2, Search, Ticket } from 'lucide-react'
+import { toast } from 'sonner'
 import { agencyPortalService, type AgencyQuota } from '@/services'
 import {
   Dialog,
@@ -9,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
 /** Passengers the agency booked on one quota */
@@ -17,6 +19,16 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
     queryKey: ['agency-quota-passengers', quota?.id],
     queryFn: async () => (await agencyPortalService.passengers(quota!.id)).body,
     enabled: !!quota,
+  })
+  const queryClient = useQueryClient()
+  const issue = useMutation({
+    mutationFn: (bookingId: number) => agencyPortalService.issue(bookingId),
+    onSuccess: (res) => {
+      toast.success(res.message)
+      queryClient.invalidateQueries({ queryKey: ['agency-quota-passengers', quota?.id] })
+      queryClient.invalidateQueries({ queryKey: ['agency-accounts'] })
+    },
+    onError: (error: Error) => toast.error(error.message),
   })
   const [query, setQuery] = useState('')
   // name, PNR, passport, ticket or phone
@@ -36,7 +48,7 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
             {quota?.flight_number} {quota?.route} — passengers
           </DialogTitle>
           <DialogDescription>
-            {quota && `${quota.used} sold of ${quota.seats} seats`}
+            {quota && `${quota.used} sold of ${quota.seats || '∞'} seats`}
             {query && ` · ${rows.length} found`}
           </DialogDescription>
         </DialogHeader>
@@ -81,7 +93,34 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
                     <td className='pe-3 font-mono'>{p.document_number ?? '-'}</td>
                     <td className='pe-3 font-mono'>{p.ticket_number ?? '-'}</td>
                     <td className='pe-3 font-mono'>{p.phone ?? '-'}</td>
-                    <td className='text-xs uppercase'>{p.status.replace('_', ' ')}</td>
+                    <td className='text-xs uppercase'>
+                      {p.booking_status === 'on_hold' ? (
+                        <div className='flex items-center gap-2 normal-case'>
+                          <span>
+                            HOLD
+                            {p.ticketing_deadline_at && (
+                              <span className='text-muted-foreground ms-1 font-mono'>
+                                TL {p.ticketing_deadline_at.slice(0, 16).replace('T', ' ')}
+                              </span>
+                            )}
+                          </span>
+                          {/* one button per PNR: on its first passenger */}
+                          {rows.find((r) => r.booking_id === p.booking_id) === p && (
+                            <Button
+                              size='sm'
+                              className='h-7 gap-1 text-xs'
+                              disabled={issue.isPending}
+                              onClick={() => issue.mutate(p.booking_id)}
+                            >
+                              <Ticket className='size-3.5' />
+                              Тийз бичих
+                            </Button>
+                          )}
+                        </div>
+                      ) : (
+                        p.status.replace('_', ' ')
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

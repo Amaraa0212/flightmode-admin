@@ -23,7 +23,7 @@ export const pageConfig: Omit<ResourcePageProps<AgencyQuota, Record<string, neve
     col<AgencyQuota>('cabins', 'Cabins', (r) => mono(r.cabins || '-')),
     col<AgencyQuota>('seats', 'Sold / quota', (r) => (
       <span className='font-mono'>
-        <b>{r.used}</b> / {r.seats}
+        <b>{r.used}</b> / {r.seats || '∞'}
         <span className='text-muted-foreground ms-1 text-xs'>({r.remaining} left)</span>
       </span>
     )),

@@ -61,6 +61,10 @@ export const bookingService = {
 
   getById: async (id: number) => ok(toBooking((await client.get<ApiData<ApiBooking>>(`/admin/bookings/${id}`)).data)),
 
+  /** Issue the tickets of a booking on hold, before its ticket time limit */
+  issue: (id: number) =>
+    action(client.post<ApiData<ApiBooking>>(`/admin/bookings/${id}/issue`), toBooking),
+
   /** Cancels every passenger of the booking (infants go with their adult) */
   cancel: async (id: number) => {
     const booking = (await client.get<ApiData<ApiBooking>>(`/admin/bookings/${id}`)).data

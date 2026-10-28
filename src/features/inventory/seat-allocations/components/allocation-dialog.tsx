@@ -8,6 +8,7 @@ import {
   type FlightInventory,
 } from '@/services'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 import { useOptions } from '@/hooks/use-options'
 import { BaseDialog } from '@/components/ui/base-dialog'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -73,6 +74,22 @@ export function AllocationDialog({
     current?.deadline ?? dayBefore(departure)
   )
   const [waitlist, setWaitlist] = useState(current?.is_waitlist ?? false)
+  // pool: the agencies sell the flight's free seats together, nothing is taken out
+  const [mode, setMode] = useState<'fixed' | 'pool'>(current?.mode ?? 'fixed')
+  const [poolCabins, setPoolCabins] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(
+      data.cabins.map((c) => [
+        c.cabin_class,
+        current?.mode === 'pool'
+          ? rows.some((r) => r.cabin_class === c.cabin_class)
+          : true,
+      ])
+    )
+  )
+  const [poolLimit, setPoolLimit] = useState<number | ''>(
+    current?.mode === 'pool' ? current.allocation_seats || '' : ''
+  )
+  const pool = mode === 'pool'
   const [seats, setSeats] = useState<Record<string, number | ''>>(() =>
     Object.fromEntries(
       data.cabins.map((c) => [
@@ -89,9 +106,11 @@ export function AllocationDialog({
       data.cabins.find((c) => c.cabin_class === cabin)!.free_for_allocation +
         (rows.find((r) => r.cabin_class === cabin)?.seats ?? 0)
     )
-  const invalid = data.cabins.filter(
-    (c) => Number(seats[c.cabin_class] || 0) > maxOf(c.cabin_class)
-  )
+  const invalid = pool
+    ? []
+    : data.cabins.filter(
+        (c) => Number(seats[c.cabin_class] || 0) > maxOf(c.cabin_class)
+      )
   const total = Object.values(seats).reduce<number>(
     (sum, n) => sum + Number(n || 0),
     0
@@ -105,14 +124,22 @@ export function AllocationDialog({
     () =>
       inventoryAllocationService.save(
         {
+          mode,
+          seats: pool ? Number(poolLimit || 0) : undefined,
           agency_id: Number(agencyId),
           outbound_flight_id: outboundId,
           return_flight_id: returnId === ONE_WAY ? null : Number(returnId),
           deadline,
           is_waitlist: waitlist,
-          cabins: Object.fromEntries(
-            Object.entries(seats).map(([c, n]) => [c, Number(n || 0)])
-          ) as Partial<Record<CabinCode, number>>,
+          cabins: (pool
+            ? Object.fromEntries(
+                Object.entries(poolCabins)
+                  .filter(([, on]) => on)
+                  .map(([c]) => [c, 0])
+              )
+            : Object.fromEntries(
+                Object.entries(seats).map(([c, n]) => [c, Number(n || 0)])
+              )) as Partial<Record<CabinCode, number>>,
         },
         allocationId
       ),
@@ -135,7 +162,12 @@ export function AllocationDialog({
         text: current ? 'Save' : 'Add allocation',
         onClick: () => save.mutate(undefined),
         loading: save.isPending,
-        disabled: !agencyId || !deadline || total < 1 || invalid.length > 0,
+        disabled:
+          !agencyId ||
+          !deadline ||
+          (pool
+            ? !Object.values(poolCabins).some(Boolean)
+            : total < 1 || invalid.length > 0),
       }}
     >
       <div className='grid gap-4'>
@@ -156,64 +188,153 @@ export function AllocationDialog({
         </div>
 
         <div className='grid gap-1.5'>
-          <Label>Seats per class of service</Label>
-          <div className='divide-y rounded-lg border'>
-            {data.cabins.map((c) => {
-              const max = maxOf(c.cabin_class)
-              return (
-                <div
+          <Label>Type</Label>
+          <div className='grid grid-cols-2 gap-2'>
+            {(
+              [
+                [
+                  'fixed',
+                  'Fixed seats',
+                  'Seats are taken out of the flight for this agency',
+                ],
+                [
+                  'pool',
+                  'Pool (free sale)',
+                  'Sells the free seats together with the other pool agencies',
+                ],
+              ] as const
+            ).map(([value, title, hint]) => (
+              <button
+                key={value}
+                type='button'
+                onClick={() => setMode(value)}
+                className={cn(
+                  'rounded-lg border px-3 py-2 text-start transition',
+                  mode === value
+                    ? 'border-primary bg-primary/10'
+                    : 'hover:bg-muted'
+                )}
+              >
+                <p className='text-sm font-medium'>{title}</p>
+                <p className='text-muted-foreground text-xs'>{hint}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {pool ? (
+          <div className='grid gap-1.5'>
+            <Label>Cabins the agency may sell</Label>
+            <div className='divide-y rounded-lg border'>
+              {data.cabins.map((c) => (
+                <label
                   key={c.cabin_class}
                   className='flex items-center justify-between gap-3 px-3 py-2'
                 >
-                  <div>
-                    <p className='text-sm'>
-                      <span className='font-mono font-semibold'>
-                        {c.cabin_class}
-                      </span>{' '}
-                      {CABIN_NAMES[c.cabin_class]}
-                    </p>
-                    <p
-                      className={
-                        invalid.includes(c)
-                          ? 'text-xs text-red-600 dark:text-red-400'
-                          : 'text-muted-foreground text-xs'
+                  <span className='flex items-center gap-2 text-sm'>
+                    <Checkbox
+                      checked={!!poolCabins[c.cabin_class]}
+                      onCheckedChange={(v) =>
+                        setPoolCabins((p) => ({
+                          ...p,
+                          [c.cabin_class]: v === true,
+                        }))
                       }
-                    >
-                      {invalid.includes(c) && 'Too many — '}
-                      {max} free of{' '}
-                      {c.is_set
-                        ? (c.seats ?? 0) + c.oversell - c.curtail
-                        : c.aircraft_seats}{' '}
-                      in the cabin
-                    </p>
-                  </div>
-                  <SeatInput
-                    label={`${c.cabin_class} seats for the agency`}
-                    value={seats[c.cabin_class]}
-                    placeholder='0'
-                    max={Math.max(max, Number(seats[c.cabin_class] || 0))}
-                    invalid={invalid.includes(c)}
-                    disabled={max === 0 && !seats[c.cabin_class]}
-                    hint={`Max ${max}`}
-                    onChange={(v) =>
-                      setSeats((s) => ({ ...s, [c.cabin_class]: v }))
-                    }
-                  />
-                </div>
-              )
-            })}
-            <div className='flex items-center justify-between px-3 py-2 text-sm font-semibold'>
-              <span>Total</span>
-              <span className='font-mono'>{total}</span>
+                    />
+                    <span className='font-mono font-semibold'>
+                      {c.cabin_class}
+                    </span>
+                    {CABIN_NAMES[c.cabin_class]}
+                  </span>
+                  <span className='text-muted-foreground text-xs'>
+                    {Math.max(0, c.free_for_allocation)} free on the flight
+                  </span>
+                </label>
+              ))}
+            </div>
+            <div className='mt-2 grid gap-1.5'>
+              <Label htmlFor='pool-limit'>Limit for this agency</Label>
+              <Input
+                id='pool-limit'
+                type='number'
+                min={0}
+                placeholder='No limit — every free seat'
+                value={poolLimit}
+                onChange={(e) =>
+                  setPoolLimit(
+                    e.target.value === ''
+                      ? ''
+                      : Math.max(0, Number(e.target.value))
+                  )
+                }
+              />
+              <p className='text-muted-foreground text-xs'>
+                Nothing is taken out of the flight. A seat one pool agency holds
+                or sells is gone for the others.
+              </p>
             </div>
           </div>
-          {current?.uses_fare_quotas && (
-            <p className='text-muted-foreground text-xs'>
-              Fare quotas of this allocation stay as they are (edit them under
-              Assign quota to agency).
-            </p>
-          )}
-        </div>
+        ) : (
+          <div className='grid gap-1.5'>
+            <Label>Seats per class of service</Label>
+            <div className='divide-y rounded-lg border'>
+              {data.cabins.map((c) => {
+                const max = maxOf(c.cabin_class)
+                return (
+                  <div
+                    key={c.cabin_class}
+                    className='flex items-center justify-between gap-3 px-3 py-2'
+                  >
+                    <div>
+                      <p className='text-sm'>
+                        <span className='font-mono font-semibold'>
+                          {c.cabin_class}
+                        </span>{' '}
+                        {CABIN_NAMES[c.cabin_class]}
+                      </p>
+                      <p
+                        className={
+                          invalid.includes(c)
+                            ? 'text-xs text-red-600 dark:text-red-400'
+                            : 'text-muted-foreground text-xs'
+                        }
+                      >
+                        {invalid.includes(c) && 'Too many — '}
+                        {max} free of{' '}
+                        {c.is_set
+                          ? (c.seats ?? 0) + c.oversell - c.curtail
+                          : c.aircraft_seats}{' '}
+                        in the cabin
+                      </p>
+                    </div>
+                    <SeatInput
+                      label={`${c.cabin_class} seats for the agency`}
+                      value={seats[c.cabin_class]}
+                      placeholder='0'
+                      max={Math.max(max, Number(seats[c.cabin_class] || 0))}
+                      invalid={invalid.includes(c)}
+                      disabled={max === 0 && !seats[c.cabin_class]}
+                      hint={`Max ${max}`}
+                      onChange={(v) =>
+                        setSeats((s) => ({ ...s, [c.cabin_class]: v }))
+                      }
+                    />
+                  </div>
+                )
+              })}
+              <div className='flex items-center justify-between px-3 py-2 text-sm font-semibold'>
+                <span>Total</span>
+                <span className='font-mono'>{total}</span>
+              </div>
+            </div>
+            {current?.uses_fare_quotas && (
+              <p className='text-muted-foreground text-xs'>
+                Fare quotas of this allocation stay as they are (edit them under
+                Assign quota to agency).
+              </p>
+            )}
+          </div>
+        )}
 
         {!isReturnSide && (
           <div className='grid gap-1.5'>
