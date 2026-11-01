@@ -49,6 +49,8 @@ export function FareFareTax() {
   const [from, setFrom] = useState(search.from ? String(search.from) : '')
   const [to, setTo] = useState(search.to ? String(search.to) : '')
   const routeSet = !!search.from && !!search.to
+  // taxes belong to the departure airport only
+  const fromSet = !!search.from
   const label = (id?: number) =>
     airports.find((a) => a.value === String(id))?.label.split(' — ')[0] ?? '…'
 
@@ -74,15 +76,11 @@ export function FareFareTax() {
       ).body.items ?? [],
   })
   const { data: taxes = [] } = useQuery({
-    queryKey: ['fare-settings', 'fare-taxes', search.from, search.to],
+    queryKey: ['fare-settings', 'fare-taxes', search.from],
     queryFn: async () =>
-      (
-        await fareTaxService.all({
-          origin_airport_id: search.from,
-          destination_airport_id: search.to,
-        })
-      ).body.items ?? [],
-    enabled: routeSet,
+      (await fareTaxService.all({ origin_airport_id: search.from })).body
+        .items ?? [],
+    enabled: fromSet,
   })
 
   const remove = useFareMutation(
@@ -93,15 +91,13 @@ export function FareFareTax() {
     () => setRemoval(null)
   )
 
-  const routeAirports = airports.filter(
-    (a) => a.value === String(search.from) || a.value === String(search.to)
-  )
+  const departure = airports.filter((a) => a.value === String(search.from))
 
   return (
     <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
       <PageHeader
         title='Fare + Fare Tax'
-        description='Fares of each fare class per route, and the airport taxes charged on them'
+        description='Fares of each fare class per route, and the departure airport taxes (OW / RT) charged on them'
       />
 
       <div className='fm-panel flex flex-wrap items-end gap-3 p-4'>
@@ -125,9 +121,11 @@ export function FareFareTax() {
         </div>
         <div className='flex gap-2'>
           <Button
-            disabled={!from || !to}
+            disabled={!from}
             onClick={() =>
-              navigate({ search: { from: Number(from), to: Number(to) } })
+              navigate({
+                search: { from: Number(from), to: to ? Number(to) : undefined },
+              })
             }
           >
             Search
@@ -150,7 +148,9 @@ export function FareFareTax() {
         subtitle={
           routeSet
             ? `${label(search.from)} → ${label(search.to)} · ${fares.length} fares`
-            : `All routes · ${fares.length} fares`
+            : fromSet
+              ? `From ${label(search.from)} · ${fares.length} fares`
+              : `All routes · ${fares.length} fares`
         }
         actions={
           <Button
@@ -263,15 +263,15 @@ export function FareFareTax() {
       <Panel
         title='Fare Tax'
         subtitle={
-          routeSet
-            ? `${label(search.from)} → ${label(search.to)} selected`
-            : 'Select From + To route and press Search'
+          fromSet
+            ? `${label(search.from)} · charged on every fare departing ${label(search.from)}`
+            : 'Select From airport and press Search'
         }
         actions={
           <Button
             size='sm'
             className='h-8 gap-2'
-            disabled={!routeSet}
+            disabled={!fromSet}
             onClick={() => setTaxDialog({})}
           >
             <Plus className='size-4' />
@@ -282,9 +282,9 @@ export function FareFareTax() {
         <TaxTable
           taxes={taxes}
           empty={
-            routeSet
-              ? 'No fare tax for this route'
-              : 'Select From + To and search'
+            fromSet
+              ? `No fare tax departing ${label(search.from)}`
+              : 'Select From and search'
           }
           onEdit={(t) => setTaxDialog({ tax: t })}
           onDelete={(t) => setRemoval({ kind: 'tax', row: t })}
@@ -303,7 +303,7 @@ export function FareFareTax() {
         <TaxDialog
           tax={taxDialog.tax}
           fare={taxDialog.fare}
-          airports={routeAirports}
+          airports={departure}
           onClose={() => setTaxDialog(null)}
         />
       )}
@@ -343,8 +343,8 @@ function TaxTable({
         <TableRow>
           <TableHead>ID</TableHead>
           <TableHead>Tax code</TableHead>
-          {showRoute && <TableHead>Route</TableHead>}
-          {showRoute && <TableHead>In / Out bound</TableHead>}
+          {showRoute && <TableHead>Departure</TableHead>}
+          {showRoute && <TableHead>Trip</TableHead>}
           <TableHead>Type</TableHead>
           <TableHead className='text-end'>Amount</TableHead>
           <TableHead>Refundable</TableHead>
@@ -364,9 +364,7 @@ function TaxTable({
               <TableCell className='font-mono'>{t.airport ?? '-'}</TableCell>
             )}
             {showRoute && (
-              <TableCell className='font-mono text-xs'>
-                {t.bound === 'OUT' ? 'OUT (departure)' : 'IN (arrival)'}
-              </TableCell>
+              <TableCell className='font-mono text-xs'>{t.trip_type}</TableCell>
             )}
             <TableCell className='font-mono'>{t.passenger_type}</TableCell>
             <TableCell className='text-end font-mono'>

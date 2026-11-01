@@ -456,30 +456,62 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     ],
   },
 
+  '/fare-settings/fare-families': {
+    title: 'Fare Family',
+    summary:
+      'Fare family (жишээ нь BASIC, STANDARD, FLEX) — booking class-уудыг нэг нэрийн дор бүлэглэнэ.',
+    steps: [
+      '“Create fare family” — Code, нэр, тайлбар, Rank (харуулах дараалал)-ийг оруулна.',
+      'Booking class-ийг fare family-д Booking Class - Fare Base хуудсанд booking class-ийг засахдаа хамааруулна.',
+      'Жагсаалтын “Booking classes” багана тухайн family-д хамаарах booking class-уудыг харуулна.',
+    ],
+    notes: [
+      'Fare family-г устгавал түүнд хамаарах booking class-ууд family-гүй болно.',
+    ],
+  },
+
   '/fare-settings/rbd-fare-class': {
     list: false,
-    title: 'RBD - Fare Class',
+    title: 'Booking Class - Fare Base',
     summary:
-      'Cabin бүрийн захиалгын анги (RBD), RBD бүрийн fare class (booking code), fare class бүрийн насны хөнгөлөлт.',
+      'Cabin бүрийн захиалгын анги (Booking class / RBD), booking class бүрийн fare base, fare base бүрийн насны хөнгөлөлт.',
     steps: [
-      '“Add RBD” — үсэг (Y, B, M…), Cabin, Rank (борлуулах дараалал), шаардлагатай бол Parent RBD-г оруулна.',
-      'RBD-ийн мөр дээр дарж (эсвэл “Select”) сонгоно — доод хүснэгтэд түүний fare class-ууд гарна.',
-      '“Add fare class” — Booking code (жишээ нь YOW), HK (баталгаатай) / SA (stand-by), OW / RT, Waitlist, Visible, Group fare-ийг тохируулна.',
-      'Fare class-ийн мөр дээр дарж (эсвэл “Fare discount”) хөнгөлөлтийн хүснэгтийг нээгээд “Add fare discount” — ADT / CHD / INF, нас, хөнгөлөлтийн %.',
+      '“Add Booking Class” — үсэг (Y, B, M…), Cabin, Rank (борлуулах дараалал), Fare family, Advance booking days, Upgrade, шаардлагатай бол Parent booking class-ийг оруулна.',
+      'Booking class-ийн мөр дээр дарж (эсвэл “Select”) сонгоно — баруун хүснэгтэд түүний fare base-ууд гарна.',
+      '“Add Fare Base” — Fare base (жишээ нь YOW), HK (баталгаатай) / SA (stand-by), OW / RT, Waitlist, Visible, Group fare, Min / Max stay (хоногоор)-ийг тохируулна.',
+      'Fare base-ийн мөр дээр дарж (эсвэл “Fare discount”) хөнгөлөлтийн хүснэгтийг нээгээд “Add fare discount” — ADT / CHD / INF, нас, хөнгөлөлтийн %.',
     ],
     sections: [
       {
         title: 'Тооцоо',
         items: [
           'Зорчигчийн үнэ = үндсэн үнэ × (100 − хөнгөлөлт %) / 100.',
-          'Зорчигчийн төрөл бүрт нэг л хөнгөлөлт (fare class-д дээд тал нь 3).',
+          'Зорчигчийн төрөл бүрт нэг л хөнгөлөлт (fare base-д дээд тал нь 3).',
           'Хөнгөлөлтгүй бол бүх зорчигч бүтэн үнэ төлнө.',
           'Group fare — бүлгийн захиалгын хамгийн бага / их зорчигчийн тоо (Group min / max).',
+          'Advance booking days — нислэгээс дор хаяж хэдэн хоногийн өмнө захиалах ёстой (0 = хязгааргүй).',
+          'Min / Max stay — RT-д буцах нислэг очих нислэгээс хэдэн хоногийн дараа байж болох (0 = хязгааргүй).',
+          'Upgrade — тухайн booking class-ийг upgrade-д ашиглана.',
         ],
       },
     ],
     notes: [
-      'Fare class эсвэл дэд RBD-тэй RBD-г, мөн fare-д ашиглагдаж буй fare class-ийг устгах боломжгүй — оронд нь Active-ийг унтраана.',
+      'Fare base эсвэл дэд booking class-тай booking class-ийг, мөн fare-д ашиглагдаж буй fare base-ийг устгах боломжгүй — оронд нь Active-ийг унтраана.',
+    ],
+  },
+
+  '/fare-settings/combinations': {
+    list: false,
+    title: 'Combination Fare',
+    summary:
+      'Нэг аялалд (жишээ нь очих + буцах) хамт зарж болох fare base-уудын хос.',
+    steps: [
+      'Зүүн талын “Fare Base” жагсаалтаас нэгийг check хийнэ.',
+      'Баруун талд бусад fare base-ууд гарна — хослуулах fare base-уудаа олноор нь check хийгээд “Add” дарна.',
+      'Нэмэгдсэн хослолууд доод “Combinations” жагсаалтад гарна; зүүн талд fare base сонгосон үед зөвхөн түүний хослолууд харагдана.',
+    ],
+    notes: [
+      'Хослол хоёр талдаа хүчинтэй (A ↔ B), аль хэдийн нэмэгдсэнийг баруун талд check хийсэн, идэвхгүй харуулна.',
     ],
   },
 
@@ -487,21 +519,22 @@ export const PAGE_HELP: Record<string, PageHelp> = {
     list: false,
     title: 'Fare + Fare Tax',
     summary:
-      'Чиглэл бүр дээрх fare class-ийн үндсэн үнэ (Fare) ба нисэх буудлын татвар (Fare Tax).',
+      'Чиглэл бүр дээрх fare base-ийн үндсэн үнэ (Fare) ба хөөрөх нисэх буудлын татвар (Fare Tax).',
     steps: [
-      'From, To чиглэлээ сонгоод “Search” дарна (“Clear” — бүх чиглэл).',
-      '“Add fare” — Fare class, чиглэл, үнэ, валют, хүчинтэй хугацааг (From / To date) оруулна.',
-      '“Add fare tax” — сонгосон чиглэлийн буудал дээр Tax code, зорчигчийн төрөл (ADT / CHD / INF), OUT / IN, дүнг оруулна.',
+      'From (шаардлагатай бол To) сонгоод “Search” дарна (“Clear” — бүх чиглэл).',
+      '“Add fare” — Fare base, чиглэл, үнэ, валют, хүчинтэй хугацааг (From / To date) оруулна.',
+      '“Add fare tax” — From буудал дээр Tax code, зорчигчийн төрөл (ADT / CHD / INF), Trip (OW / RT), дүнг оруулна.',
       'Нэг fare-д өөр татвар хэрэгтэй бол fare-ийн мөр дээр дарж (эсвэл “Tax override”) “Add override” хийнэ.',
     ],
     sections: [
       {
         title: 'Татвар хэрхэн бодогдох вэ',
         items: [
-          'OUT — тухайн буудлаас хөөрөх, IN — тухайн буудалд буух fare-д ногдоно.',
-          'Fare-д нэмсэн override нь ижил Tax code-той чиглэлийн татварыг зөвхөн тэр fare-д орлоно.',
+          'Татвар зөвхөн хөөрөх буудалд хамаарна: UBN дээр нэмсэн татвар UBN-ээс эхэлсэн бүх fare-д ногдоно.',
+          'OW татвар нэг чиглэлийн fare-д, RT татвар хоёр чиглэлийн fare-д ногдоно.',
+          'Fare-д нэмсэн override нь ижил Tax code-той буудлын татварыг зөвхөн тэр fare-д орлоно (fare-ийн OW / RT-г авна).',
           'Хүснэгтийн Tax (ADT) — насанд хүрэгчийн нийт татвар, Total = үнэ + татвар.',
-          'Хүүхэд / нярайн хөнгөлөлт RBD - Fare Class хуудасны fare discount-аас ирнэ.',
+          'Хүүхэд / нярайн хөнгөлөлт Booking Class - Fare Base хуудасны fare discount-аас ирнэ.',
         ],
       },
     ],

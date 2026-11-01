@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { getRouteApi } from '@tanstack/react-router'
 import type { Role } from '@/services'
 import { Plus, ShieldCheck } from 'lucide-react'
+import { usePagePermissions } from '@/hooks/use-page-permissions'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
 import { Button } from '@/components/ui/button'
 import { ResourcePage } from '@/components/resource/resource-page'
@@ -14,6 +15,7 @@ export function Roles() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const [dialog, setDialog] = useState<{ role?: Role } | null>(null)
+  const { canCreate, canUpdate } = usePagePermissions()
 
   return (
     <>
@@ -23,10 +25,16 @@ export function Roles() {
         navigate={navigate as unknown as NavigateFn}
         onRowClick={(row) => setDialog({ role: row })}
         toolbarExtra={
-          <Button size='sm' className='h-8 gap-2' onClick={() => setDialog({})}>
-            <Plus className='size-4' />
-            Create role
-          </Button>
+          canCreate && (
+            <Button
+              size='sm'
+              className='h-8 gap-2'
+              onClick={() => setDialog({})}
+            >
+              <Plus className='size-4' />
+              Create role
+            </Button>
+          )
         }
         customActions={(row) => (
           <Button
@@ -44,7 +52,11 @@ export function Roles() {
         )}
       />
       {dialog && (
-        <RoleDialog role={dialog.role} onClose={() => setDialog(null)} />
+        <RoleDialog
+          role={dialog.role}
+          readOnly={!!dialog.role && (!dialog.role.editable || !canUpdate)}
+          onClose={() => setDialog(null)}
+        />
       )}
     </>
   )

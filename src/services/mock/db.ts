@@ -282,6 +282,10 @@ export const roles: Role[] = [
     scope: 'admin',
     permissions: [...PERMISSION_KEYS],
     users_count: 2,
+    is_system: true,
+    airline_id: null,
+    airline: null,
+    editable: true,
   },
   {
     id: 2,
@@ -292,6 +296,10 @@ export const roles: Role[] = [
       (p) => !p.startsWith('roles') && !p.startsWith('airlines')
     ),
     users_count: 4,
+    is_system: true,
+    airline_id: null,
+    airline: null,
+    editable: true,
   },
   {
     id: 3,
@@ -300,6 +308,10 @@ export const roles: Role[] = [
     scope: 'airport',
     permissions: ['dcs.access', 'dcs.checkin', 'flights.view', 'bookings.view'],
     users_count: 8,
+    is_system: true,
+    airline_id: null,
+    airline: null,
+    editable: true,
   },
   {
     id: 4,
@@ -308,6 +320,10 @@ export const roles: Role[] = [
     scope: 'airport',
     permissions: ['gate.access', 'flights.view'],
     users_count: 5,
+    is_system: true,
+    airline_id: null,
+    airline: null,
+    editable: true,
   },
   {
     id: 5,
@@ -316,6 +332,10 @@ export const roles: Role[] = [
     scope: 'agency',
     permissions: ['agency.portal'],
     users_count: 12,
+    is_system: true,
+    airline_id: null,
+    airline: null,
+    editable: true,
   },
 ]
 
