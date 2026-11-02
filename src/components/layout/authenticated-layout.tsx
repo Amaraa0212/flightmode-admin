@@ -1,12 +1,13 @@
+import { useEffect } from 'react'
 import { Outlet } from '@tanstack/react-router'
 import { getCookie } from '@/lib/cookies'
+import { refreshProfile } from '@/lib/profile'
 import { cn } from '@/lib/utils'
 import { DrawerProvider } from '@/context/drawer-provider'
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { ConfigDrawer } from '@/components/config-drawer'
-import { TwoFactorSetupPrompt } from '@/components/two-factor'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 import { Header } from '@/components/layout/header'
 import { PageHelp } from '@/components/page-help/page-help'
@@ -14,6 +15,7 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { SkipToMain } from '@/components/skip-to-main'
 import { ThemeSwitch } from '@/components/theme-switch'
+import { TwoFactorSetupPrompt } from '@/components/two-factor'
 
 type AuthenticatedLayoutProps = {
   children?: React.ReactNode
@@ -21,6 +23,11 @@ type AuthenticatedLayoutProps = {
 
 export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const defaultOpen = getCookie('sidebar_state') !== 'false'
+
+  // menus / permissions may have changed since sign-in
+  useEffect(() => {
+    refreshProfile().catch(() => null)
+  }, [])
 
   return (
     <SearchProvider>

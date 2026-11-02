@@ -170,13 +170,14 @@ export const agencyPortalService = {
     quotaId: number,
     passengers: AgencyBookingPassenger[],
     contact: { phone: string; email: string },
-    hold?: { id: number; allocation_fare_id: number | null },
+    /** seats of a hold (its id), or just the fare bucket picked for every passenger */
+    hold?: { id?: number; allocation_fare_id: number | null },
     /** keep the seats without tickets until the fare's ticket time limit */
     onHold = false,
     /** false: refuse when the quota is full instead of waitlisting */
     waitlist?: boolean
   ) => {
-    const res = await client.post<{ message: string; data: { pnr: string } }>('/agency/bookings', {
+    const res = await client.post<{ message: string; data: { id: number; pnr: string; status: string } }>('/agency/bookings', {
       allocation_id: quotaId,
       hold_id: hold?.id,
       on_hold: onHold,
@@ -496,4 +497,146 @@ export const agencyAccountPortalService = {
         )
       ).data
     ),
+}
+
+// ─── Manage booking: find a PNR of the agency, its passengers and coupons ───
+
+export interface AgencyBookingSegment {
+  id: number
+  flight_number: string
+  route: string
+  departure_local: string | null
+  arrival_local: string | null
+  cabin_class: string
+  fare_class: string | null
+  ticket_number: string | null
+  seat_number: string | null
+  fare_amount: string | null
+  tax_amount: string | null
+  total_amount: string | null
+  currency: string | null
+  status: string
+}
+
+export interface AgencyBookingPax {
+  id: number
+  name: string
+  type: string
+  document_number: string | null
+  phone: string | null
+  email: string | null
+  segments: AgencyBookingSegment[]
+}
+
+export interface AgencyBooking {
+  id: number
+  pnr: string
+  /** confirmed | on_hold | waitlisted | cancelled */
+  status: string
+  ticketing_deadline_at: string | null
+  contact_phone: string | null
+  contact_email: string | null
+  created_by: string | null
+  created_at: string | null
+  passengers: AgencyBookingPax[]
+}
+
+type ApiSegment = {
+  id: number
+  flight?: ApiLocalFlight & { scheduled_arrival_local?: string | null }
+  cabin_class: string
+  fare_class: string | null
+  ticket_number: string | null
+  seat_number: string | null
+  fare_amount: string | null
+  tax_amount: string | null
+  total_amount: string | null
+  currency: string | null
+  status: string
+}
+
+type ApiBooking = {
+  id: number
+  pnr: string
+  status: string
+  ticketing_deadline_at: string | null
+  contact_phone: string | null
+  contact_email: string | null
+  created_by?: { id: number; name: string } | null
+  created_at: string | null
+  passengers?: {
+    id: number
+    type: string
+    first_name: string
+    last_name: string
+    document_number: string | null
+    phone: string | null
+    email: string | null
+    segments?: ApiSegment[]
+  }[]
+}
+
+const toBooking = (b: ApiBooking): AgencyBooking => ({
+  id: b.id,
+  pnr: b.pnr,
+  status: b.status,
+  ticketing_deadline_at: b.ticketing_deadline_at,
+  contact_phone: b.contact_phone,
+  contact_email: b.contact_email,
+  created_by: b.created_by?.name ?? null,
+  created_at: b.created_at,
+  passengers: (b.passengers ?? []).map((p) => ({
+    id: p.id,
+    name: `${p.last_name}/${p.first_name}`,
+    type: p.type,
+    document_number: p.document_number,
+    phone: p.phone,
+    email: p.email,
+    segments: (p.segments ?? []).map((s) => ({
+      id: s.id,
+      flight_number: s.flight?.flight_number ?? '',
+      route: route(s.flight ?? null),
+      departure_local: s.flight?.departure_local ?? null,
+      arrival_local: s.flight?.scheduled_arrival_local ?? null,
+      cabin_class: s.cabin_class,
+      fare_class: s.fare_class,
+      ticket_number: s.ticket_number,
+      seat_number: s.seat_number,
+      fare_amount: s.fare_amount,
+      tax_amount: s.tax_amount,
+      total_amount: s.total_amount,
+      currency: s.currency,
+      status: s.status,
+    })),
+  })),
+})
+
+export const agencyBookingService = {
+  /** search: PNR, passenger name, passport or ticket number (empty = latest bookings) */
+  list: async (search = '', perPage = 20) => {
+    const res = await client.get<ApiData<ApiBooking[]>>('/agency/bookings', {
+      search: search.trim() || undefined,
+      per_page: perPage,
+    })
+    return ok(res.data.map(toBooking))
+  },
+
+  show: async (id: number) =>
+    ok(toBooking((await client.get<ApiData<ApiBooking>>(`/agency/bookings/${id}`)).data)),
+
+  /** Download the passenger's e-ticket PDF */
+  downloadEticket: async (passengerId: number, filename: string) =>
+    saveBlob(await client.blob(`/agency/passengers/${passengerId}/eticket`), filename),
+
+  emailEticket: async (passengerId: number, email?: string) => {
+    const res = await client.post<{ message: string }>(`/agency/passengers/${passengerId}/eticket/email`, {
+      email: email || undefined,
+    })
+    return ok(null, res.message)
+  },
+
+  cancelPassenger: async (passengerId: number) => {
+    const res = await client.delete<{ message: string } | null>(`/agency/passengers/${passengerId}`)
+    return ok(null, res?.message ?? 'Passenger cancelled.')
+  },
 }

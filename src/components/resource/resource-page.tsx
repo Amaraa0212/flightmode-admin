@@ -6,6 +6,7 @@ import type { BaseResponse, PaginationResponse } from '@/services'
 import { Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useFilterParams } from '@/hooks/use-filter-params'
+import { usePagePermissions } from '@/hooks/use-page-permissions'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
 import { Button } from '@/components/ui/button'
 import {
@@ -98,6 +99,11 @@ export function ResourcePage<
   embedded = false,
 }: ResourcePageProps<TRow, TForm>) {
   const queryClient = useQueryClient()
+  // the role's create / update / delete on this page's menu
+  const { canCreate, canUpdate, canDelete } = usePagePermissions()
+  const update = canUpdate ? form?.update : undefined
+  const create = canCreate ? form?.create : undefined
+  const removable = canDelete ? remove : undefined
   const [editing, setEditing] = useState<{ row?: TRow } | null>(null)
   const [deleting, setDeleting] = useState<TRow | null>(null)
 
@@ -124,8 +130,8 @@ export function ResourcePage<
 
   const save = useMutation({
     mutationFn: async (values: TForm) => {
-      if (editing?.row && form?.update) return form.update(editing.row, values)
-      if (form?.create) return form.create(values)
+      if (editing?.row && update) return update(editing.row, values)
+      if (create) return create(values)
       throw new Error('Not supported')
     },
     onSuccess: (res) => {
@@ -137,7 +143,7 @@ export function ResourcePage<
   })
 
   const destroy = useMutation({
-    mutationFn: (row: TRow) => remove!.run(row),
+    mutationFn: (row: TRow) => removable!.run(row),
     onSuccess: (res) => {
       toast.success(res.message)
       invalidate()
@@ -173,10 +179,10 @@ export function ResourcePage<
       rowKey={rowKey}
       enableRowSelection={false}
       onRowClick={onRowClick}
-      onUpdate={form?.update ? (row) => setEditing({ row }) : undefined}
-      onDelete={remove ? (row) => setDeleting(row) : undefined}
+      onUpdate={update ? (row) => setEditing({ row }) : undefined}
+      onDelete={removable ? (row) => setDeleting(row) : undefined}
       customActions={customActions}
-      hideAction={!form?.update && !remove && !customActions}
+      hideAction={!update && !removable && !customActions}
       tableConfig={{
         pagination: { defaultPage: 1, defaultPageSize },
         globalFilter: { enabled: false },
@@ -203,7 +209,7 @@ export function ResourcePage<
         extra: (
           <>
             {toolbarExtra}
-            {form?.create && (
+            {form && create && (
               <Button
                 size='sm'
                 className='h-8 gap-2'
@@ -247,12 +253,12 @@ export function ResourcePage<
         />
       )}
 
-      {remove && deleting && (
+      {removable && deleting && (
         <ConfirmDialog
           open
           onOpenChange={(open) => !open && setDeleting(null)}
           title={`Delete ${form?.entity ?? 'record'}`}
-          desc={`Delete "${remove.label(deleting)}"? This cannot be undone.`}
+          desc={`Delete "${removable.label(deleting)}"? This cannot be undone.`}
           confirmText='Delete'
           destructive
           isLoading={destroy.isPending}

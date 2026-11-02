@@ -63,7 +63,7 @@ function useTemplateMutation<V>(
 export function SeatTemplates() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
-  const canManage = useCan()('inventory.manage')
+  const canManage = useCan()('seat_templates.update')
   const [editing, setEditing] = useState<InventoryTemplate | null>(null)
   const [removing, setRemoving] = useState<InventoryTemplate | null>(null)
 

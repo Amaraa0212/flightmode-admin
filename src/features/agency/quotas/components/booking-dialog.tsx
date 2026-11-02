@@ -38,15 +38,15 @@ const passenger = z.object({
   cabin_class: z.string().min(1),
 })
 
-const schema = z.object({
+export const schema = z.object({
   passengers: z.array(passenger).min(1),
   contact_phone: z.string().trim().min(6, 'Холбоо барих утас оруулна уу'),
   contact_email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
 })
-type Form = z.infer<typeof schema>
+export type Form = z.infer<typeof schema>
 type PassengerForm = Form['passengers'][number]
 
-const blank = (cabin: string): PassengerForm => ({
+export const blank = (cabin: string): PassengerForm => ({
   last_name: '',
   first_name: '',
   gender: 'M',
@@ -60,7 +60,7 @@ const blank = (cabin: string): PassengerForm => ({
 })
 
 /** Labelled field with its error underneath */
-function Field({ label, error, children, className }: { label: string; error?: string; children: React.ReactNode; className?: string }) {
+export function Field({ label, error, children, className }: { label: string; error?: string; children: React.ReactNode; className?: string }) {
   return (
     <label className={`grid content-start gap-1.5 ${className ?? ''}`}>
       <span className='text-muted-foreground text-xs font-medium'>{label}</span>
@@ -217,7 +217,7 @@ export function BookingDialog({
   )
 }
 
-function PassengerCard({
+export function PassengerCard({
   index,
   form,
   cabins,

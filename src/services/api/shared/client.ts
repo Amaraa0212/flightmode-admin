@@ -1,5 +1,5 @@
-import { useAuthStore } from '@/stores/auth-store'
 import { api } from '@/config/api'
+import { useAuthStore } from '@/stores/auth-store'
 import type {
   ListParams,
   PaginationResponse,
@@ -42,7 +42,8 @@ function queryString(query?: Query) {
   const params = new URLSearchParams()
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined || value === null || value === '') continue
-    if (Array.isArray(value)) value.forEach((v) => params.append(`${key}[]`, String(v)))
+    if (Array.isArray(value))
+      value.forEach((v) => params.append(`${key}[]`, String(v)))
     else params.append(key, String(value))
   }
   const s = params.toString()
@@ -64,13 +65,11 @@ async function request<T>(
     response = await fetch(`${api.base}${path}${queryString(options.query)}`, {
       method,
       headers,
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body:
+        options.body !== undefined ? JSON.stringify(options.body) : undefined,
     })
   } catch {
-    throw new ApiError(
-      UNREACHABLE,
-      0
-    )
+    throw new ApiError(UNREACHABLE, 0)
   }
 
   if (response.ok) {
@@ -85,15 +84,24 @@ async function request<T>(
     errors?: Record<string, string[]>
   } | null
 
-  if (response.status === 401 && !path.startsWith('/auth/login')) {
+  // 401, or the airline's IP restriction (403 ip_not_allowed): the session is over
+  const signedOut =
+    (response.status === 401 ||
+      (response.status === 403 && body?.code === 'ip_not_allowed')) &&
+    !path.startsWith('/auth/login')
+  if (signedOut) {
     useAuthStore.getState().auth.reset()
     if (!window.location.pathname.startsWith('/sign-in')) {
-      const redirect = encodeURIComponent(window.location.pathname + window.location.search)
+      const redirect = encodeURIComponent(
+        window.location.pathname + window.location.search
+      )
       window.location.replace(`/sign-in?redirect=${redirect}`)
     }
   }
 
-  const firstFieldError = body?.errors ? Object.values(body.errors)[0]?.[0] : undefined
+  const firstFieldError = body?.errors
+    ? Object.values(body.errors)[0]?.[0]
+    : undefined
   const message =
     firstFieldError ??
     body?.message ??
@@ -107,11 +115,16 @@ async function request<T>(
 
 export const client = {
   get: <T>(path: string, query?: Query) => request<T>('GET', path, { query }),
-  post: <T>(path: string, body?: unknown) => request<T>('POST', path, { body: body ?? {} }),
-  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, { body: body ?? {} }),
-  patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, { body: body ?? {} }),
-  delete: <T>(path: string, body?: unknown) => request<T>('DELETE', path, { body }),
-  blob: (path: string, query?: Query) => request<Blob>('GET', path, { query, blob: true }),
+  post: <T>(path: string, body?: unknown) =>
+    request<T>('POST', path, { body: body ?? {} }),
+  put: <T>(path: string, body?: unknown) =>
+    request<T>('PUT', path, { body: body ?? {} }),
+  patch: <T>(path: string, body?: unknown) =>
+    request<T>('PATCH', path, { body: body ?? {} }),
+  delete: <T>(path: string, body?: unknown) =>
+    request<T>('DELETE', path, { body }),
+  blob: (path: string, query?: Query) =>
+    request<Blob>('GET', path, { query, blob: true }),
 }
 
 export type ApiData<T> = { data: T }
@@ -125,12 +138,19 @@ export const ok = <T>(body: T, message = 'OK') => ({ message, body })
 export function pageQuery(params: ListParams = {}, extra: Query = {}): Query {
   // sortDate is an object (useFilterParams) — services read it through period()
   const { current, pageSize, query, sortDate: _sortDate, ...rest } = params
-  return { ...rest, ...extra, page: current ?? 1, per_page: pageSize ?? 20, search: query }
+  return {
+    ...rest,
+    ...extra,
+    page: current ?? 1,
+    per_page: pageSize ?? 20,
+    search: query,
+  }
 }
 
 /** start_day / end_day (flat, or inside sortDate from useFilterParams) → from / to */
 export function period(params: ListParams) {
-  const range = params.sortDate as { start_day?: string; end_day?: string } | undefined
+  const range = params.sortDate as
+    { start_day?: string; end_day?: string } | undefined
   return {
     from: (params.start_day as string | undefined) ?? range?.start_day,
     to: (params.end_day as string | undefined) ?? range?.end_day,

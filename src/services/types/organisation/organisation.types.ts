@@ -74,8 +74,28 @@ export interface Role extends Record<string, unknown> {
   name: string
   slug: string
   scope: RoleScope
+  is_system: boolean
+  /** set: a role the airline made for its own staff; null: shared */
+  airline_id: number | null
+  airline: { id: number; name: string; iata_code: string } | null
+  /** false: a shared role (for airline users), another airline's or their own */
+  editable: boolean
   permissions: string[]
   users_count: number
+}
+
+/** GET /admin/permissions: menu groups → menus → actions the signed-in user may grant */
+export interface PermissionMatrixGroup {
+  id: number | null
+  name: string
+  menus: {
+    id: number
+    key: string
+    name: string
+    scopes: RoleScope[] | null
+    is_active: boolean
+    permissions: { key: string; action: string; name: string }[]
+  }[]
 }
 
 export interface User extends Record<string, unknown> {
@@ -110,4 +130,64 @@ export interface UserPayload {
   airport_id?: string
   agency_id?: string
   is_active: boolean
+}
+
+/** GET /admin/menus: a menu with its sub-menus and the permissions it owns */
+export interface AdminMenu {
+  id: number
+  parent_id: number | null
+  menu_group_id: number | null
+  key: string | null
+  name: string
+  icon: string | null
+  path: string | null
+  /** permission needed to see it when it owns none (agency pages: agency.portal) */
+  permission_key: string | null
+  scopes: RoleScope[] | null
+  order: number
+  is_active: boolean
+  /** a key the API routes check: cannot be renamed or deleted */
+  is_system: boolean
+  permissions: {
+    id: number
+    key: string
+    action: string
+    name: string
+    is_system: boolean
+  }[]
+  children: AdminMenu[]
+}
+
+export interface AdminMenuGroup {
+  id: number | null
+  name: string
+  order: number
+  menus: AdminMenu[]
+}
+
+export interface AdminMenuPayload {
+  parent_id: number | null
+  menu_group_id: number | null
+  key: string | null
+  name: string
+  icon: string | null
+  path: string | null
+  permission_key: string | null
+  scopes: RoleScope[] | null
+  order: number
+  is_active: boolean
+  /** create only: permissions to make, default view / create / update / delete */
+  actions?: string[]
+}
+
+/** GET /admin/ip-access */
+export interface AirlineIpAccess {
+  airline: { id: number; name: string; iata_code: string }
+  enabled: boolean
+  addresses: {
+    id: number
+    ip: string
+    note: string | null
+    created_at: string
+  }[]
 }

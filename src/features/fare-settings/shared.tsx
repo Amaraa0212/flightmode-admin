@@ -19,9 +19,9 @@ export const PAX_OPTIONS = [
   { label: 'CHD - Child', value: 'CHD' },
   { label: 'INF - Infant', value: 'INF' },
 ]
-export const BOUND_OPTIONS = [
-  { label: 'OUT - departing the airport', value: 'OUT' },
-  { label: 'IN - arriving at the airport', value: 'IN' },
+export const TRIP_OPTIONS = [
+  { label: 'OW - One way', value: 'OW' },
+  { label: 'RT - Round trip', value: 'RT' },
 ]
 
 /** Card with a title row, like the legacy fare settings screens */

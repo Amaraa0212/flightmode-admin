@@ -1,257 +1,44 @@
-import {
-  Armchair,
-  BadgeCheck,
-  BarChart3,
-  Bell,
-  Bug,
-  BookOpenText,
-  Building2,
-  CalendarClock,
-  ClipboardList,
-  FileText,
-  Gauge,
-  Handshake,
-  LayoutDashboard,
-  Luggage,
-  Map,
-  PackageOpen,
-  Plane,
-  PlaneTakeoff,
-  Scale,
-  Search,
-  ShieldCheck,
-  SlidersHorizontal,
-  Tags,
-  Ticket,
-  Timer,
-  TowerControl,
-  Users,
-  Wallet,
-} from 'lucide-react'
-import type { AuthUser } from '@/services/types/shared/auth.types'
-import { type NavGroup, type SidebarData } from '../types'
+import type { AuthMenu, AuthUser } from '@/services/types/shared/auth.types'
+import { type NavGroup, type NavItem, type SidebarData } from '../types'
+import { menuIcon } from './menu-icons'
 
-/** Menu follows the legacy flightmodev2 admin (components/side.blade.php) */
+/** Sidebar user block defaults; the menu itself comes from the API (/auth/me → menus, Access → Menus) */
 export const sidebarData: SidebarData = {
   user: { name: 'Admin', email: 'admin@flightmode.mn', avatar: '' },
   teams: [],
-  navGroups: [
-    {
-      title: 'General',
-      items: [{ title: 'Dashboard', url: '/', permission: 'dashboard.view', icon: LayoutDashboard }],
-    },
-    {
-      title: 'Agency',
-      items: [
-        // agency users (travel agents): their seat quotas and the passengers sold on them
-        { title: 'Нислэг хайх', url: '/agency/search', permission: 'agency.portal', agencyOnly: true, icon: Search },
-        { title: 'Hold-ууд', url: '/agency/holds', permission: 'agency.portal', agencyOnly: true, icon: Timer },
-        { title: 'Миний квот', url: '/agency/quotas', permission: 'agency.portal', agencyOnly: true, icon: Ticket },
-        { title: 'Миний данс', url: '/agency/account', permission: 'agency.portal', agencyOnly: true, icon: Wallet },
-      ],
-    },
-    {
-      title: 'Aircraft management',
-      items: [
-        { title: 'Fleets', url: '/fleet/aircraft', permission: 'aircraft.manage', icon: Plane },
-        { title: 'Seatmap', url: '/fleet/seat-maps', permission: 'aircraft.manage', icon: Armchair },
-      ],
-    },
-    {
-      title: 'Flight',
-      items: [
-        {
-          title: 'Flight schedule',
-          icon: CalendarClock,
-          items: [
-            { title: 'All flights', url: '/operations/flights', permission: 'flights.view' },
-            {
-              title: 'Frequency-based flight',
-              url: '/operations/flight-series', permission: 'flights.manage',
-            },
-            { title: 'Assign quota to agency', url: '/operations/allocations', permission: 'allocations.manage' },
-          ],
-        },
-        { title: 'Flight load', url: '/operations/flight-load', permission: 'flights.view', icon: Gauge },
-      ],
-    },
-    {
-      title: 'DCS',
-      items: [
-        {
-          title: 'Flight manager',
-          url: '/dcs/flight-manager', permission: 'flights.operate',
-          icon: TowerControl,
-        },
-        { title: 'Seat block', url: '/dcs/seat-block', permission: 'seat_blocks.manage', icon: Map },
-        { title: 'Manifest', url: '/dcs/manifest', permission: 'reports.view', icon: ClipboardList },
-        {
-          title: 'DCS history log',
-          url: '/dcs/activity-log', permission: 'activity_logs.view',
-          icon: BookOpenText,
-        },
-      ],
-    },
-    {
-      title: 'Airport',
-      items: [
-        { title: 'Company', url: '/company/airlines', permission: 'airlines.manage', icon: Building2 },
-        { title: 'Airports', url: '/company/airports', permission: 'reference.manage', icon: PlaneTakeoff },
-        { title: 'Agencies', url: '/company/agencies', permission: 'agencies.manage', icon: Handshake },
-        { title: 'Agency accounts', url: '/company/agency-accounts', permission: 'agency_accounts.manage', icon: Wallet },
-        {
-          title: 'Agents permission',
-          url: '/company/agency-access', permission: 'airlines.manage',
-          icon: BadgeCheck,
-        },
-      ],
-    },
-    {
-      title: 'Rules and ancillary',
-      items: [
-        {
-          title: 'Rules',
-          icon: SlidersHorizontal,
-          items: [
-            { title: 'Check-in hierarchy', url: '/rules/checkin-hierarchy', permission: 'products.manage' },
-            { title: 'Baggage rules', url: '/rules/baggage-rules', permission: 'products.manage' },
-            { title: 'Seat rules', url: '/rules/seat-rules', permission: 'products.manage' },
-            { title: 'SSR', url: '/rules/ssr', permission: 'products.manage' },
-            { title: 'Template', url: '/rules/templates', permission: 'products.manage' },
-            { title: 'Bag Tag Orientation', url: '/rules/bag-tag', permission: 'products.manage' },
-          ],
-        },
-        {
-          title: 'Shop items',
-          url: '/rules/flight-products', permission: 'products.manage',
-          icon: PackageOpen,
-        },
-      ],
-    },
-    {
-      title: 'Inventory',
-      items: [
-        {
-          title: 'Fare settings',
-          icon: Tags,
-          items: [
-            { title: 'RBD - Fare Class', url: '/fare-settings/rbd-fare-class', permission: 'fares.manage' },
-            { title: 'Fare + Fare Tax', url: '/fare-settings/fare-tax', permission: 'fares.manage' },
-            { title: 'Tax Code', url: '/fare-settings/tax-codes', permission: 'fares.manage' },
-            { title: 'Modification', url: '/fare-settings/modifications', permission: 'fares.manage' },
-            { title: 'Fare and pricing (old)', url: '/inventory/fares', permission: 'fares.manage' },
-          ],
-        },
-        {
-          title: 'Seat allocations',
-          icon: Armchair,
-          items: [
-            { title: 'By flight', url: '/inventory/seat-allocations', permission: 'inventory.view' },
-            { title: 'Templates', url: '/inventory/seat-templates', permission: 'inventory.view' },
-          ],
-        },
-        { title: 'Modification', url: '/inventory/bookings', permission: 'bookings.view', icon: Ticket },
-        {
-          title: 'Override baggage allowance',
-          url: '/inventory/baggage-overrides', permission: 'products.manage',
-          icon: Luggage,
-        },
-        {
-          title: 'Conditions of carriage',
-          url: '/inventory/carriage', permission: 'products.manage',
-          icon: Scale,
-        },
-      ],
-    },
-    {
-      title: 'Reports',
-      items: [
-        {
-          title: 'Reports',
-          icon: BarChart3,
-          items: [
-            {
-              title: 'Traffic & PAX summary',
-              url: '/reports/traffic',
-              permission: 'reports.view',
-            },
-            {
-              title: 'PNL report',
-              url: '/reports/pnl',
-              permission: 'reports.view',
-            },
-            {
-              title: 'Sales report',
-              url: '/reports/sales',
-              permission: 'reports.view',
-            },
-            {
-              title: 'Station report',
-              url: '/reports/station',
-              permission: 'reports.view',
-            },
-          ],
-        },
-        { title: 'PAX search', url: '/reports/pax-search', permission: 'reports.view', icon: Search },
-      ],
-    },
-    {
-      title: 'Access',
-      items: [
-        {
-          title: 'Users',
-          url: '/access/users',
-          permission: 'users.manage',
-          icon: Users,
-        },
-        {
-          title: 'Roles',
-          url: '/access/roles',
-          permission: 'roles.manage',
-          icon: ShieldCheck,
-        },
-      ],
-    },
-    {
-      title: 'System',
-      items: [
-        { title: 'Notifications', url: '/system/notifications', permission: 'announcements.manage', icon: Bell },
-        { title: 'Terms & condition', url: '/system/terms', permission: 'reference.manage', icon: FileText },
-        { title: 'Issue reports', url: '/system/issue-reports', systemAdminOnly: true, icon: Bug },
-      ],
-    },
-  ],
+  navGroups: [],
 }
 
-/** Menu entries the user's permissions allow; groups and sub-menus without any are dropped */
-type Access = { permission?: string; systemAdminOnly?: boolean; agencyOnly?: boolean }
-
-/** Whether the user may see a menu entry / open its page */
-function allowedFor(user: AuthUser | null, { permission, systemAdminOnly, agencyOnly }: Access): boolean {
-  if (systemAdminOnly) return !!user?.is_system_admin
-  if (agencyOnly && user?.role?.scope !== 'agency') return false
-  return !permission || (!!user && (user.is_system_admin || user.permissions.includes(permission)))
+function toNavItem(menu: AuthMenu): NavItem {
+  const icon = menuIcon(menu.icon)
+  if (menu.children.length > 0) {
+    return {
+      title: menu.name,
+      icon,
+      items: menu.children
+        .filter((child) => child.path)
+        .map((child) => ({
+          title: child.name,
+          url: child.path!,
+          icon: menuIcon(child.icon),
+        })),
+    }
+  }
+  return { title: menu.name, url: menu.path ?? '/', icon }
 }
 
+/** The user's sidebar: the API already left out what their role scope / permissions do not allow */
 export function visibleNavGroups(user: AuthUser | null): NavGroup[] {
-  const allowed = (permission?: string, systemAdminOnly?: boolean, agencyOnly?: boolean) =>
-    allowedFor(user, { permission, systemAdminOnly, agencyOnly })
-
-  return sidebarData.navGroups
+  return (user?.menus ?? [])
     .map((group) => ({
-      ...group,
+      title: group.name,
       items: group.items
-        .map((item) =>
-          item.items
-            ? { ...item, items: item.items.filter((sub) => allowed(sub.permission, sub.systemAdminOnly, sub.agencyOnly)) }
-            : item
-        )
-        .filter((item) =>
-          item.items ? item.items.length > 0 : allowed(item.permission, item.systemAdminOnly, item.agencyOnly)
-        )
+        .map(toNavItem)
         // an agency administrator manages their own ticketing agents on the users page
         .map((item) =>
-          user?.role?.scope === 'agency' && item.url === '/access/users' ? { ...item, title: 'Агентууд' } : item
+          user?.role?.scope === 'agency' && item.url === '/access/users'
+            ? { ...item, title: 'Агентууд' }
+            : item
         ),
     }))
     .filter((group) => group.items.length > 0)
@@ -266,29 +53,45 @@ export function hasBackOfficeAccess(user: AuthUser) {
 export function firstAllowedUrl(user: AuthUser | null): string | undefined {
   const first = visibleNavGroups(user)[0]?.items[0]
   if (!first) return undefined
-  return String(first.items ? first.items[0].url : first.url)
+  return String(first.items ? first.items[0]?.url : first.url)
+}
+
+/** Every page menu of the user (sub-menus included) */
+function userMenus(user: AuthUser | null): AuthMenu[] {
+  const all: AuthMenu[] = []
+  const walk = (menus: AuthMenu[]) =>
+    menus.forEach((menu) => {
+      if (menu.path) all.push(menu)
+      walk(menu.children)
+    })
+  user?.menus.forEach((group) => walk(group.items))
+  return all
+}
+
+/** The menu a URL belongs to: the entry with the longest matching path (/operations/flights/12 → All flights) */
+export function menuForPath(
+  user: AuthUser | null,
+  pathname: string
+): AuthMenu | undefined {
+  const path = pathname.replace(/\/+$/, '') || '/'
+  let match: AuthMenu | undefined
+  for (const menu of userMenus(user)) {
+    const url = menu.path!
+    if (
+      url === '/' ? path !== '/' : !(path === url || path.startsWith(`${url}/`))
+    )
+      continue
+    if (!match || url.length > match.path!.length) match = menu
+  }
+  return match
 }
 
 /**
- * Whether the user may open a URL typed in by hand: the menu entry with the longest matching URL decides
- * (its permission / systemAdminOnly / agencyOnly). Pages that are not in the menu are open to every login.
+ * Whether the user may open a URL typed in by hand: it has to belong to one of their menus.
+ * The dashboard route itself sends users without it to their first screen.
  */
 export function canOpenPath(user: AuthUser | null, pathname: string): boolean {
   const path = pathname.replace(/\/+$/, '') || '/'
-  if (path === '/') return true // the dashboard route sends users without it to their first screen
-
-  let match: (Access & { url: string }) | undefined
-  for (const group of sidebarData.navGroups) {
-    for (const item of group.items) {
-      for (const entry of item.items ?? [item]) {
-        const url = String(entry.url ?? '')
-        if (url === '/' || !(path === url || path.startsWith(`${url}/`))) continue
-        if (!match || url.length > match.url.length) {
-          match = { ...entry, url, permission: entry.permission ?? item.permission }
-        }
-      }
-    }
-  }
-
-  return !match || allowedFor(user, match)
+  if (path === '/') return true
+  return menuForPath(user, path) !== undefined
 }

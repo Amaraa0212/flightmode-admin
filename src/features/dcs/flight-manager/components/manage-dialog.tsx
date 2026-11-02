@@ -143,8 +143,8 @@ function ManageForm({
   const [gate, setGate] = useState(flight.gate ?? '')
   // close check-in / gate / depart: OCC only; cancel / reopen: airline administrator only
   const can = useCan()
-  const canClose = can('flights.close')
-  const canCancel = can('flights.cancel')
+  const canClose = can('flight_manager.close')
+  const canCancel = can('flight_manager.cancel')
   const closeHint = canClose
     ? undefined
     : 'Only OCC can close check-in, the gate or the flight'

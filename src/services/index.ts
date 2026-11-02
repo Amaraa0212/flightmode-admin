@@ -28,6 +28,7 @@ export {
   roleService,
   type RolePayload,
 } from './api/organisation/user.service'
+export { menuService, ipAccessService } from './api/organisation/access.service'
 
 // ─── Fleet ───
 export {
@@ -104,6 +105,8 @@ export {
 // ─── Products ───
 export { fareService, baggageRuleService } from './api/products/product.service'
 export {
+  fareFamilyService,
+  fareCombinationService,
   rbdService,
   fareClassService,
   fareEntryService,
@@ -144,6 +147,10 @@ export {
   agencyPortalService,
   agencyHoldService,
   agencyAccountPortalService,
+  agencyBookingService,
+  type AgencyBooking,
+  type AgencyBookingPax,
+  type AgencyBookingSegment,
   type AgencyFlight,
   type AgencyFare,
   type AgencyHold,

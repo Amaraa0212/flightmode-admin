@@ -1,5 +1,6 @@
 import { z } from 'zod'
-import { rbdService, type Rbd } from '@/services'
+import { useQuery } from '@tanstack/react-query'
+import { fareFamilyService, rbdService, type Rbd } from '@/services'
 import {
   ConfigFormDialog,
   type FormFieldConfig,
@@ -16,6 +17,10 @@ const schema = z.object({
   cabin_class: z.enum(['F', 'C', 'W', 'Y']),
   rank: z.number().int().min(0).max(999),
   parent_id: z.string(),
+  fare_family_id: z.string(),
+  // 0 = can be booked any time
+  advance_booking_days: z.number().int().min(0).max(365),
+  is_upgrade: z.boolean(),
   description: z.string().max(255),
   is_active: z.boolean(),
 })
@@ -34,9 +39,17 @@ export function RbdDialog({
     const payload = {
       ...v,
       parent_id: v.parent_id === NONE ? null : Number(v.parent_id),
+      fare_family_id:
+        v.fare_family_id === NONE ? null : Number(v.fare_family_id),
+      advance_booking_days: v.advance_booking_days || null,
     }
     return rbd ? rbdService.update(rbd.id, payload) : rbdService.create(payload)
   }, onClose)
+
+  const { data: families = [] } = useQuery({
+    queryKey: ['fare-settings', 'fare-families'],
+    queryFn: async () => (await fareFamilyService.all()).body.items ?? [],
+  })
 
   const parents = [
     { label: '— none —', value: NONE },
@@ -73,9 +86,31 @@ export function RbdDialog({
     },
     {
       name: 'parent_id',
-      label: 'Parent RBD',
+      label: 'Parent booking class',
       type: 'select',
       options: parents,
+      gridCols: 2,
+    },
+    {
+      name: 'fare_family_id',
+      label: 'Fare family',
+      type: 'select',
+      options: [
+        { label: '— none —', value: NONE },
+        ...families
+          .filter((f) => f.is_active || f.id === rbd?.fare_family_id)
+          .map((f) => ({
+            label: `${f.code} · ${f.name}`,
+            value: String(f.id),
+          })),
+      ],
+      gridCols: 2,
+    },
+    {
+      name: 'advance_booking_days',
+      label: 'Advance booking days (0 = none)',
+      type: 'number',
+      min: '0',
       gridCols: 2,
     },
     {
@@ -85,7 +120,8 @@ export function RbdDialog({
       rows: 2,
       gridCols: 1,
     },
-    { name: 'is_active', label: 'Active', type: 'checkbox', gridCols: 1 },
+    { name: 'is_upgrade', label: 'Upgrade', type: 'checkbox', gridCols: 2 },
+    { name: 'is_active', label: 'Active', type: 'checkbox', gridCols: 2 },
   ]
 
   const values: Form = rbd
@@ -94,6 +130,9 @@ export function RbdDialog({
         cabin_class: rbd.cabin_class,
         rank: rbd.rank,
         parent_id: rbd.parent_id ? String(rbd.parent_id) : NONE,
+        fare_family_id: rbd.fare_family_id ? String(rbd.fare_family_id) : NONE,
+        advance_booking_days: rbd.advance_booking_days ?? 0,
+        is_upgrade: rbd.is_upgrade,
         description: rbd.description ?? '',
         is_active: rbd.is_active,
       }
@@ -102,6 +141,9 @@ export function RbdDialog({
         cabin_class: 'Y',
         rank: 0,
         parent_id: NONE,
+        fare_family_id: NONE,
+        advance_booking_days: 0,
+        is_upgrade: false,
         description: '',
         is_active: true,
       }
@@ -117,8 +159,8 @@ export function RbdDialog({
       onSubmit={async (v) => {
         await save.mutateAsync(v)
       }}
-      title={rbd ? `Edit RBD ${rbd.code}` : 'Add RBD'}
-      description='Booking class letter inside a cabin. Rank sets the selling order.'
+      title={rbd ? `Edit booking class ${rbd.code}` : 'Add Booking Class'}
+      description='Booking class (RBD) letter inside a cabin. Rank sets the selling order.'
       submitButtonText={rbd ? 'Save' : 'Create'}
       isSubmitting={save.isPending}
       maxWidth='lg'
