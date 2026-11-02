@@ -30,12 +30,14 @@ export function AgencyQuotas() {
             <Button
               size='sm'
               className='h-7 gap-1 px-2 text-xs'
-              disabled={!row.is_open_for_names || row.remaining < 1}
+              disabled={!row.is_open_for_names || (row.remaining < 1 && !row.is_waitlist)}
               title={
                 !row.is_open_for_names
-                  ? 'Names deadline has passed'
+                  ? 'Төлбөр төлөх хугацаа дууссан'
                   : row.remaining < 1
-                    ? 'No seats left on the quota'
+                    ? row.is_waitlist
+                      ? 'Квот дүүрсэн — хүлээлгийн жагсаалтад (WL) нэмнэ'
+                      : 'Квот дүүрсэн'
                     : 'Add passengers'
               }
               onClick={() => setBooking(row)}

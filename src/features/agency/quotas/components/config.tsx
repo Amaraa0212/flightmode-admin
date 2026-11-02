@@ -1,10 +1,11 @@
 import { agencyPortalService, type AgencyQuota } from '@/services'
 import { brand, col, dateTime, mono } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
+import { ScheduleChangeBadge } from '@/features/agency/schedule-change-badge'
 
 export const pageConfig: Omit<ResourcePageProps<AgencyQuota, Record<string, never>>, 'search' | 'navigate'> = {
   title: 'Миний квот',
-  description: 'Agency-д олгосон суудлын квот — нислэг, зарсан / үлдсэн суудал, нэрс оруулах хугацаа',
+  description: 'Agency-д олгосон суудлын квот — нислэг, зарагдсан / hold / үлдсэн суудал, төлбөр төлөх хугацаа',
   queryKey: 'agency-quotas',
   list: agencyPortalService.quotas,
   searchPlaceholder: 'Нислэгийн дугаар эсвэл чиглэлээр хайх (OM225, PEK)',
@@ -17,17 +18,26 @@ export const pageConfig: Omit<ResourcePageProps<AgencyQuota, Record<string, neve
   ],
   exportFileName: 'agency-quotas.xlsx',
   columns: [
-    col<AgencyQuota>('flight_number', 'Flight', (r) => brand(r.flight_number)),
+    col<AgencyQuota>('flight_number', 'Flight', (r) => (
+      <div className='flex flex-col items-start gap-1'>
+        {brand(r.flight_number)}
+        <ScheduleChangeBadge quotaId={r.id} changes={r.schedule_changes} />
+      </div>
+    )),
     col<AgencyQuota>('route', 'Route', (r) => mono(r.route)),
     col<AgencyQuota>('departure_at', 'Departure', (r) => dateTime(r.departure_at)),
     col<AgencyQuota>('cabins', 'Cabins', (r) => mono(r.cabins || '-')),
-    col<AgencyQuota>('seats', 'Sold / quota', (r) => (
-      <span className='font-mono'>
-        <b>{r.used}</b> / {r.seats || '∞'}
-        <span className='text-muted-foreground ms-1 text-xs'>({r.remaining} left)</span>
+    // held seats count against the quota too — show them, or sold + left does not add up
+    col<AgencyQuota>('seats', 'Суудал', (r) => (
+      <span className='font-mono text-xs whitespace-nowrap' title={r.cabin_usage || undefined}>
+        <b>{r.used}</b> зарагдсан
+        {r.held > 0 && <span className='text-amber-600 dark:text-amber-400'> · {r.held} hold</span>}
+        {' · '}
+        <b>{r.remaining}</b> үлдсэн
+        <span className='text-muted-foreground'> / {r.seats || '∞'}</span>
       </span>
     )),
-    col<AgencyQuota>('names_deadline_at', 'Names until', (r) => (
+    col<AgencyQuota>('names_deadline_at', 'Төлбөр төлөх хугацаа', (r) => (
       <span className={r.is_open_for_names ? '' : 'text-rose-500'}>
         {r.names_deadline_at ? dateTime(r.names_deadline_at) : '-'}
         {!r.is_open_for_names && <span className='ms-1 text-xs'>(closed)</span>}

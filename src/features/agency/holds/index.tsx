@@ -41,11 +41,15 @@ const toQuota = (h: AgencyHold): AgencyQuota => ({
   return_flight: h.return_flight,
   seats: h.seats,
   used: h.usage.named,
+  held: 0,
   remaining: h.usage.remaining,
   cabins: `${h.cabin_class} ${h.seats}`,
+  cabin_usage: '',
   cabin_classes: [h.cabin_class],
   names_deadline_at: h.names_deadline_at,
   is_open_for_names: h.usage.is_open_for_names,
+  is_waitlist: false,
+  schedule_changes: { unseen: 0, changes: [] },
 })
 
 /** Agency portal: held seats, enter the passengers' names on them or release them */
@@ -118,7 +122,7 @@ export function AgencyHolds() {
               <TableHead>Cabin / тариф</TableHead>
               <TableHead className='text-end'>Нэгж үнэ</TableHead>
               <TableHead className='text-end'>Нэртэй / hold</TableHead>
-              <TableHead>Нэр оруулах хугацаа</TableHead>
+              <TableHead>Төлбөр төлөх хугацаа</TableHead>
               <TableHead className='text-end'>Үйлдэл</TableHead>
             </TableRow>
           </TableHeader>

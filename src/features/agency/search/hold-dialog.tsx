@@ -77,7 +77,7 @@ export function HoldDialog({
       open
       onOpenChange={(open) => !open && onClose()}
       title={`Hold — ${flight.flight_number} ${flight.route}`}
-      description={`${flight.departure_local ?? ''} · нэр оруулах хугацаа ${formatDateTime(flight.names_deadline_at)}`}
+      description={`${flight.departure_local ?? ''} · төлбөр төлөх хугацаа ${formatDateTime(flight.names_deadline_at)}`}
       maxWidth='md'
       className='p-1'
       submitButton={{

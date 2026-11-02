@@ -102,7 +102,8 @@ export function BookingDialog({
         v.passengers,
         { phone: v.contact_phone, email: v.contact_email },
         hold ? { id: hold.id, allocation_fare_id: hold.allocation_fare_id } : undefined,
-        onHold
+        onHold && !waitlist,
+        waitlist
       ),
     onSuccess: (res) => {
       toast.success(res.message)
@@ -117,7 +118,11 @@ export function BookingDialog({
   })
 
   const remaining = hold ? hold.usage.remaining : (quota?.remaining ?? 0)
-  const tooMany = rows.fields.length > remaining
+  // a full quota waitlists (WL) when the airline allows it — the agent cannot opt out, and a WL booking is not held
+  const full = rows.fields.length > remaining
+  const canWaitlist = !hold && !!quota?.is_waitlist
+  const waitlist = full && canWaitlist
+  const tooMany = full && !canWaitlist
   const errors = form.formState.errors
 
   return (
@@ -153,7 +158,7 @@ export function BookingDialog({
             type='button'
             variant='outline'
             className='w-full gap-1.5 border-dashed'
-            disabled={rows.fields.length >= remaining}
+            disabled={rows.fields.length >= remaining && !canWaitlist}
             onClick={() => rows.append(blank(cabins[0]))}
           >
             <Plus className='size-4' />
@@ -174,17 +179,37 @@ export function BookingDialog({
         </form>
 
         <DialogFooter className='items-center gap-2'>
-          {tooMany && <span className='text-destructive me-auto text-xs'>Квотод {remaining} суудал л үлдсэн.</span>}
-          <label className='me-auto flex items-center gap-2 text-xs' title='Тийзийг тарифын TL хугацаанд бичнэ, түүнээс өмнө данснаас хасахгүй'>
-            <Checkbox checked={onHold} onCheckedChange={(v) => setOnHold(v === true)} />
-            Төлбөрийг дараа — TL хүртэл hold
-          </label>
+          {tooMany && <span className='text-destructive me-auto text-xs'>Квот дүүрсэн: {remaining} суудал л үлдсэн.</span>}
+          <div className='me-auto flex flex-wrap items-center gap-4 text-xs'>
+            <label
+              className={`flex items-center gap-2 ${waitlist ? 'opacity-50' : ''}`}
+              title='Тийзийг тарифын TL хугацаанд бичнэ, түүнээс өмнө данснаас хасахгүй (HK)'
+            >
+              <Checkbox checked={onHold && !waitlist} disabled={waitlist} onCheckedChange={(v) => setOnHold(v === true)} />
+              TL-HOLD
+            </label>
+            {!hold && (
+              <label
+                className='flex items-center gap-2 opacity-80'
+                title={
+                  waitlist
+                    ? 'Квот дүүрсэн: захиалга хүлээлгийн жагсаалтад (WL) орно'
+                    : canWaitlist
+                      ? 'Квот дүүрээгүй үед WL сонгох боломжгүй'
+                      : 'Энэ квот хүлээлгийн жагсаалт зөвшөөрөөгүй'
+                }
+              >
+                <Checkbox checked={waitlist} disabled />
+                Waitlist (WL)
+              </label>
+            )}
+          </div>
           <Button type='button' variant='outline' onClick={onClose}>
             Болих
           </Button>
           <Button type='submit' form='agency-booking' className='gap-2' disabled={book.isPending || tooMany}>
             {book.isPending ? <Loader2 className='size-4 animate-spin' /> : <UserPlus className='size-4' />}
-            Захиалга үүсгэх ({rows.fields.length} зорчигч)
+            {waitlist ? 'WL-д бүртгэх' : 'Захиалга үүсгэх'} ({rows.fields.length} зорчигч)
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -159,4 +159,7 @@ export {
   type AgencyQuota,
   type AgencyPassenger,
   type AgencyBookingPassenger,
+  type AgencyPassengerDetail,
+  type AgencyPassengerEdit,
+  type AgencyScheduleChanges,
 } from './api/agency/agency-portal.service'

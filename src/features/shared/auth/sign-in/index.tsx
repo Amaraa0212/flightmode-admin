@@ -1,23 +1,27 @@
+import { useEffect } from 'react'
 import { useSearch } from '@tanstack/react-router'
+import { applyDocumentTitle, isAgencyHost } from '@/config/app'
 import { LogoImage, Wordmark } from '@/components/layout/logo-image'
 import { AuthLayout } from '../auth-layout'
 import { UserAuthForm } from './components/user-auth-form'
 
-function Footer() {
+function Footer({ agency }: { agency: boolean }) {
   return (
     <p className='text-muted-foreground text-center text-xs leading-relaxed'>
-      Authorized airline, station &amp; agency staff only.
+      {agency ? 'Authorized travel agency staff only.' : 'Authorized airline, station & agency staff only.'}
       <br />
-      <span className='font-mono'>App Build 3.0.0 (Admin)</span>
+      <span className='font-mono'>App Build 3.0.0 ({agency ? 'Agency Portal' : 'Admin'})</span>
     </p>
   )
 }
 
 export function SignIn() {
   const { redirect } = useSearch({ from: '/(auth)/sign-in' })
+  const agency = isAgencyHost()
+  useEffect(() => applyDocumentTitle(), [])
 
   return (
-    <AuthLayout footer={<Footer />}>
+    <AuthLayout footer={<Footer agency={agency} />}>
       <div className='mb-10 flex flex-col items-center text-center'>
         <div className='relative mb-6 flex size-40 items-center justify-center rounded-full border border-cyan-400/15 bg-cyan-400/[0.03]'>
           <div className='fm-glow size-24 rounded-[28%]'>
@@ -26,7 +30,7 @@ export function SignIn() {
         </div>
         <Wordmark className='text-5xl' />
         <p className='text-muted-foreground mt-3 text-xs font-medium tracking-[0.2em] uppercase sm:text-sm'>
-          Airline back office • Admin
+          {agency ? 'Travel agency • Agency Portal' : 'Airline back office • Admin'}
         </p>
       </div>
       <UserAuthForm redirectTo={redirect} />
