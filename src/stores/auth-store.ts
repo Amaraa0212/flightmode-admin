@@ -1,5 +1,5 @@
-import { create } from 'zustand'
 import type { AuthUser } from '@/services/types/shared/auth.types'
+import { create } from 'zustand'
 
 const USER_INFO = 'user_info'
 const TOKEN = 'auth_token'
@@ -34,7 +34,7 @@ function write(key: string, value: string | null) {
   }
 }
 
-// a user kept by the old mock login has no token / permissions — sign in again
+// a user kept by the old mock login has no token / permissions, one from before menus has no menus — sign in again
 const storedToken = read(TOKEN, (raw) => raw)
 const storedUser = storedToken
   ? read(USER_INFO, (raw) => JSON.parse(raw) as AuthUser)
@@ -42,7 +42,12 @@ const storedUser = storedToken
 
 export const useAuthStore = create<AuthState>()((set) => ({
   auth: {
-    user: storedUser && Array.isArray(storedUser.permissions) ? storedUser : null,
+    user:
+      storedUser &&
+      Array.isArray(storedUser.permissions) &&
+      Array.isArray(storedUser.menus)
+        ? storedUser
+        : null,
     token: storedToken,
     setSession: (user, token) => {
       write(USER_INFO, JSON.stringify(user))
@@ -56,7 +61,10 @@ export const useAuthStore = create<AuthState>()((set) => ({
     reset: () => {
       write(USER_INFO, null)
       write(TOKEN, null)
-      set((state) => ({ ...state, auth: { ...state.auth, user: null, token: null } }))
+      set((state) => ({
+        ...state,
+        auth: { ...state.auth, user: null, token: null },
+      }))
     },
   },
 }))
@@ -65,12 +73,15 @@ export const useAuthStore = create<AuthState>()((set) => ({
 export function can(permission: string | undefined) {
   if (!permission) return true
   const user = useAuthStore.getState().auth.user
-  return !!user && (user.is_system_admin || user.permissions.includes(permission))
+  return (
+    !!user && (user.is_system_admin || user.permissions.includes(permission))
+  )
 }
 
 /** Hook version — re-renders when the user changes */
 export function useCan() {
   const user = useAuthStore((s) => s.auth.user)
   return (permission: string | undefined) =>
-    !permission || (!!user && (user.is_system_admin || user.permissions.includes(permission)))
+    !permission ||
+    (!!user && (user.is_system_admin || user.permissions.includes(permission)))
 }

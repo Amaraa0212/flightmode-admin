@@ -1,11 +1,15 @@
 import type {
   FareClass,
   FareClassPayload,
+  FareCombination,
+  FareCombinationPayload,
   FareDiscount,
   FareDiscountPayload,
   FareEntry,
   FareEntryListParams,
   FareEntryPayload,
+  FareFamily,
+  FareFamilyPayload,
   FareTax,
   FareTaxPayload,
   Rbd,
@@ -48,6 +52,17 @@ function crud<T, P>(path: string, prepare: (p: P) => unknown = (p) => p) {
 }
 
 const upper = (v: string | undefined) => (v ?? '').trim().toUpperCase()
+
+export const fareFamilyService = crud<FareFamily, FareFamilyPayload>(
+  'fare-families',
+  (p) => ({ ...p, code: upper(p.code) })
+)
+
+/** Pairs are symmetric; create adds one fare base with many partners */
+export const fareCombinationService = crud<
+  FareCombination,
+  FareCombinationPayload
+>('fare-combinations')
 
 export const rbdService = crud<Rbd, RbdPayload>('rbds', (p) => ({
   ...p,

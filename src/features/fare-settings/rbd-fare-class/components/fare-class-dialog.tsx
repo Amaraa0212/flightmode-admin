@@ -8,7 +8,7 @@ import { useFareMutation } from '../../shared'
 
 const schema = z
   .object({
-    rbd_id: z.string().min(1, 'Select an RBD'),
+    rbd_id: z.string().min(1, 'Select a booking class'),
     booking_code: z
       .string()
       .trim()
@@ -24,6 +24,9 @@ const schema = z
     // TL, 0 = not used
     tl_hours: z.number().int().min(0),
     tl_before_departure_hours: z.number().int().min(0),
+    // days, 0 = no limit
+    min_stay_days: z.number().int().min(0).max(365),
+    max_stay_days: z.number().int().min(0).max(365),
     rule: z.string(),
     is_active: z.boolean(),
   })
@@ -34,6 +37,10 @@ const schema = z
       path: ['group_max'],
     }
   )
+  .refine((v) => !v.max_stay_days || v.max_stay_days >= v.min_stay_days, {
+    message: 'Max stay must be ≥ min stay',
+    path: ['max_stay_days'],
+  })
 type Form = z.infer<typeof schema>
 
 export function FareClassDialog({
@@ -48,7 +55,13 @@ export function FareClassDialog({
   onClose: () => void
 }) {
   const save = useFareMutation((v: Form) => {
-    const { tl_hours, tl_before_departure_hours, ...rest } = v
+    const {
+      tl_hours,
+      tl_before_departure_hours,
+      min_stay_days,
+      max_stay_days,
+      ...rest
+    } = v
     const payload = {
       ...rest,
       rbd_id: Number(v.rbd_id),
@@ -57,6 +70,8 @@ export function FareClassDialog({
       ticket_time_limit_hours: tl_hours || null,
       ticket_time_limit_before_departure_hours:
         tl_before_departure_hours || null,
+      min_stay_days: min_stay_days || null,
+      max_stay_days: max_stay_days || null,
     }
     return fareClass
       ? fareClassService.update(fareClass.id, payload)
@@ -66,7 +81,7 @@ export function FareClassDialog({
   const fields: FormFieldConfig<Form>[] = [
     {
       name: 'rbd_id',
-      label: 'RBD',
+      label: 'Booking class',
       type: 'select',
       required: true,
       options: rbds.map((r) => ({
@@ -77,7 +92,7 @@ export function FareClassDialog({
     },
     {
       name: 'booking_code',
-      label: 'Booking code',
+      label: 'Fare base',
       type: 'text',
       required: true,
       placeholder: 'YOW',
@@ -142,6 +157,20 @@ export function FareClassDialog({
       min: '0',
       gridCols: 2,
     },
+    {
+      name: 'min_stay_days',
+      label: 'Min stay, days (0 = none)',
+      type: 'number',
+      min: '0',
+      gridCols: 2,
+    },
+    {
+      name: 'max_stay_days',
+      label: 'Max stay, days (0 = none)',
+      type: 'number',
+      min: '0',
+      gridCols: 2,
+    },
     { name: 'rule', label: 'Rule', type: 'textarea', rows: 3, gridCols: 1 },
   ]
 
@@ -160,6 +189,8 @@ export function FareClassDialog({
         tl_hours: fareClass.ticket_time_limit_hours ?? 0,
         tl_before_departure_hours:
           fareClass.ticket_time_limit_before_departure_hours ?? 0,
+        min_stay_days: fareClass.min_stay_days ?? 0,
+        max_stay_days: fareClass.max_stay_days ?? 0,
         rule: fareClass.rule ?? '',
         is_active: fareClass.is_active,
       }
@@ -176,6 +207,8 @@ export function FareClassDialog({
         group_max: 0,
         tl_hours: 0,
         tl_before_departure_hours: 0,
+        min_stay_days: 0,
+        max_stay_days: 0,
         rule: '',
         is_active: true,
       }
@@ -192,9 +225,7 @@ export function FareClassDialog({
         await save.mutateAsync(v)
       }}
       title={
-        fareClass
-          ? `Edit fare class ${fareClass.booking_code}`
-          : 'Add fare class'
+        fareClass ? `Edit fare base ${fareClass.booking_code}` : 'Add Fare Base'
       }
       submitButtonText={fareClass ? 'Save' : 'Create'}
       isSubmitting={save.isPending}

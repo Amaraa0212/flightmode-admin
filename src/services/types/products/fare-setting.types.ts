@@ -1,8 +1,30 @@
 import type { ListParams } from '../shared/common.types'
+import type { TripType } from './product.types'
 
 export type CabinCode = 'F' | 'C' | 'W' | 'Y'
 export type PaxType = 'ADT' | 'CHD' | 'INF'
-export type TaxBound = 'OUT' | 'IN'
+
+/** /admin/fare-families — brand booking classes are sold under */
+export interface FareFamily extends Record<string, unknown> {
+  id: number
+  code: string
+  name: string
+  description: string | null
+  rank: number
+  is_active: boolean
+  created_by: string | null
+  /** booking class codes of the family */
+  rbds?: string[]
+  rbds_count?: number
+}
+
+export interface FareFamilyPayload {
+  code: string
+  name: string
+  description: string
+  rank: number
+  is_active: boolean
+}
 
 /** /admin/rbds — booking class letter inside a cabin */
 export interface Rbd extends Record<string, unknown> {
@@ -12,6 +34,12 @@ export interface Rbd extends Record<string, unknown> {
   rank: number
   parent_id: number | null
   parent_code: string | null
+  fare_family_id: number | null
+  fare_family_code: string | null
+  fare_family_name: string | null
+  /** sold only this many days or more before departure (null = any time) */
+  advance_booking_days: number | null
+  is_upgrade: boolean
   description: string | null
   is_active: boolean
   created_by: string | null
@@ -24,6 +52,9 @@ export interface RbdPayload {
   cabin_class: CabinCode
   rank: number
   parent_id: number | null
+  fare_family_id: number | null
+  advance_booking_days: number | null
+  is_upgrade: boolean
   description: string
   is_active: boolean
 }
@@ -56,6 +87,9 @@ export interface FareClass extends Record<string, unknown> {
   waitlist: boolean
   is_visible: boolean
   trip_type: 'OW' | 'RT'
+  /** stay in days between departure and return (null = no limit) */
+  min_stay_days: number | null
+  max_stay_days: number | null
   rule: string | null
   is_group: boolean
   group_min: number | null
@@ -77,6 +111,8 @@ export interface FareClassPayload {
   waitlist: boolean
   is_visible: boolean
   trip_type: 'OW' | 'RT'
+  min_stay_days: number | null
+  max_stay_days: number | null
   rule: string
   is_group: boolean
   group_min: number | null
@@ -84,6 +120,29 @@ export interface FareClassPayload {
   ticket_time_limit_hours: number | null
   ticket_time_limit_before_departure_hours: number | null
   is_active: boolean
+}
+
+/** /admin/fare-combinations — two fare bases that may be sold together */
+export interface FareCombinationBase {
+  id: number
+  booking_code: string
+  rbd_code: string | null
+  trip_type: 'OW' | 'RT'
+}
+
+export interface FareCombination extends Record<string, unknown> {
+  id: number
+  fare_class_id: number
+  combinable_fare_class_id: number
+  fare_class: FareCombinationBase
+  combinable_fare_class: FareCombinationBase
+  created_by: string | null
+  created_at: string
+}
+
+export interface FareCombinationPayload {
+  fare_class_id: number
+  combinable_fare_class_ids: number[]
 }
 
 /** /admin/fares linked to a fare class */
@@ -137,14 +196,15 @@ export interface TaxCodePayload {
   is_active: boolean
 }
 
-/** /admin/fare-taxes — airport default (fare_id null) or a fare override */
+/** /admin/fare-taxes — departure airport default per trip type (fare_id null) or a fare override */
 export interface FareTax extends Record<string, unknown> {
   id: number
   tax_code_id: number
   tax_code: string
   airport_id: number | null
   airport: string | null
-  bound: TaxBound
+  /** charged on fares of this trip type departing the airport; an override has its fare's */
+  trip_type: TripType
   fare_id: number | null
   passenger_type: PaxType
   amount: string
@@ -156,7 +216,7 @@ export interface FareTaxPayload {
   tax_code_id: number
   airport_id: number | null
   fare_id: number | null
-  bound: TaxBound
+  trip_type: TripType
   passenger_type: PaxType
   amount: number
   currency: string

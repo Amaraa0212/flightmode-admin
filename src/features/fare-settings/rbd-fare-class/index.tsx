@@ -98,19 +98,19 @@ export function RbdFareClass() {
     if (!removal) return null
     if (removal.kind === 'rbd')
       return {
-        label: `RBD ${removal.row.code}`,
+        label: `booking class ${removal.row.code}`,
         blocked:
           (removal.row.fare_classes_count ?? 0) > 0 ||
           (removal.row.children_count ?? 0) > 0
-            ? 'This RBD has fare classes or child RBDs. Set its status to inactive instead.'
+            ? 'This booking class has fare bases or child booking classes. Set its status to inactive instead.'
             : undefined,
       }
     if (removal.kind === 'class')
       return {
-        label: `fare class ${removal.row.booking_code}`,
+        label: `fare base ${removal.row.booking_code}`,
         blocked:
           (removal.row.fares_count ?? 0) > 0
-            ? 'This fare class is used by fares. Set its status to inactive instead.'
+            ? 'This fare base is used by fares. Set its status to inactive instead.'
             : undefined,
       }
     return {
@@ -121,15 +121,15 @@ export function RbdFareClass() {
   return (
     <Main className='flex flex-1 flex-col gap-4 sm:gap-6'>
       <PageHeader
-        title='RBD - Fare Class'
-        description='Booking classes per cabin, their fare classes and the age discounts of each fare class'
+        title='Booking Class - Fare Base'
+        description='Booking classes per cabin, their fare bases and the age discounts of each fare base'
       />
 
-      {/* wide screens: RBD list | its fare classes, each scrolling on its own */}
+      {/* wide screens: booking class list | its fare bases, each scrolling on its own */}
       <div className='grid gap-4 xl:h-[calc(100svh-11rem)] xl:min-h-[28rem] xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]'>
         <Panel
           {...SCROLL_PANEL}
-          title='RBD'
+          title='Booking Class'
           subtitle={`${rbds.length} total`}
           actions={
             <Button
@@ -138,7 +138,7 @@ export function RbdFareClass() {
               onClick={() => setRbdDialog({})}
             >
               <Plus className='size-4' />
-              Add RBD
+              Add Booking Class
             </Button>
           }
         >
@@ -148,9 +148,12 @@ export function RbdFareClass() {
                 <TableHead>Code</TableHead>
                 <TableHead className='w-[35%]'>Description</TableHead>
                 <TableHead>Parent</TableHead>
+                <TableHead>Fare family</TableHead>
                 <TableHead>Cabin</TableHead>
                 <TableHead>Rank</TableHead>
-                <TableHead>Fare classes</TableHead>
+                <TableHead title='Advance booking days'>Adv. days</TableHead>
+                <TableHead>Upgrade</TableHead>
+                <TableHead>Fare bases</TableHead>
                 <TableHead>User</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className='text-end'>Actions</TableHead>
@@ -180,8 +183,26 @@ export function RbdFareClass() {
                   <TableCell className='font-mono'>
                     {r.parent_code ?? '-'}
                   </TableCell>
+                  <TableCell
+                    className='text-xs'
+                    title={r.fare_family_name ?? undefined}
+                  >
+                    {r.fare_family_code ? (
+                      <span className='rounded bg-violet-500/10 px-1.5 py-0.5 font-mono font-semibold text-violet-700 dark:text-violet-300'>
+                        {r.fare_family_code}
+                      </span>
+                    ) : (
+                      '-'
+                    )}
+                  </TableCell>
                   <TableCell className='font-mono'>{r.cabin_class}</TableCell>
                   <TableCell className='font-mono'>{r.rank}</TableCell>
+                  <TableCell className='font-mono'>
+                    {r.advance_booking_days ?? '-'}
+                  </TableCell>
+                  <TableCell>
+                    <YN value={r.is_upgrade} />
+                  </TableCell>
                   <TableCell className='font-mono'>
                     {r.fare_classes_count ?? 0}
                   </TableCell>
@@ -209,8 +230,8 @@ export function RbdFareClass() {
                 </TableRow>
               ))}
               {!tree.length && (
-                <EmptyRow colSpan={9}>
-                  {isLoading ? 'Loading…' : 'No RBD yet'}
+                <EmptyRow colSpan={12}>
+                  {isLoading ? 'Loading…' : 'No booking class yet'}
                 </EmptyRow>
               )}
             </TableBody>
@@ -219,11 +240,11 @@ export function RbdFareClass() {
 
         <Panel
           {...SCROLL_PANEL}
-          title='Fare Class'
+          title='Fare Base'
           subtitle={
             selected
               ? `${selected.code} selected (${classes.length} total)`
-              : 'Select an RBD'
+              : 'Select a booking class'
           }
           actions={
             <Button
@@ -233,7 +254,7 @@ export function RbdFareClass() {
               onClick={() => setClassDialog({})}
             >
               <Plus className='size-4' />
-              Add fare class
+              Add Fare Base
             </Button>
           }
         >
@@ -241,7 +262,7 @@ export function RbdFareClass() {
             <TableHeader>
               <TableRow>
                 <TableHead className='w-8' />
-                <TableHead>Booking code</TableHead>
+                <TableHead>Fare base</TableHead>
                 <TableHead>Description</TableHead>
                 <TableHead title='One way'>OW</TableHead>
                 <TableHead title='Round trip'>RT</TableHead>
@@ -252,6 +273,7 @@ export function RbdFareClass() {
                 <TableHead>GRP</TableHead>
                 <TableHead>GRP min</TableHead>
                 <TableHead>GRP max</TableHead>
+                <TableHead title='Min / max stay, days'>Stay</TableHead>
                 <TableHead>Discounts</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className='text-end'>Actions</TableHead>
@@ -304,6 +326,11 @@ export function RbdFareClass() {
                     <TableCell className='font-mono'>
                       {c.group_max ?? '-'}
                     </TableCell>
+                    <TableCell className='font-mono text-xs whitespace-nowrap'>
+                      {c.min_stay_days === null && c.max_stay_days === null
+                        ? '-'
+                        : `${c.min_stay_days ?? 0}–${c.max_stay_days ?? '∞'}d`}
+                    </TableCell>
                     <TableCell className='font-mono text-xs'>
                       {c.discounts
                         .map((d) => `${d.passenger_type} -${d.percentage}%`)
@@ -331,7 +358,7 @@ export function RbdFareClass() {
                   </TableRow>
                   {open.has(c.id) && (
                     <TableRow className='hover:bg-transparent'>
-                      <TableCell colSpan={15} className='bg-muted/30 p-3'>
+                      <TableCell colSpan={16} className='bg-muted/30 p-3'>
                         <DiscountTable
                           fareClass={c}
                           onAdd={() => setDiscountDialog({ fareClass: c })}
@@ -352,10 +379,10 @@ export function RbdFareClass() {
                 </Fragment>
               ))}
               {!classes.length && (
-                <EmptyRow colSpan={15}>
+                <EmptyRow colSpan={16}>
                   {selected
-                    ? 'No fare class for this RBD'
-                    : 'Select an RBD to see its fare classes'}
+                    ? 'No fare base for this booking class'
+                    : 'Select a booking class to see its fare bases'}
                 </EmptyRow>
               )}
             </TableBody>

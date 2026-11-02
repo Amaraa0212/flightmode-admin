@@ -46,7 +46,7 @@ export function SeatAllocations() {
   const search = route.useSearch()
   const navigate = route.useNavigate()
   const can = useCan()
-  const canManage = can('inventory.manage')
+  const canManage = can('seat_inventory.update')
 
   const from = search.from ?? isoDate(new Date())
   const to = search.to ?? plusDays(7)

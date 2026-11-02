@@ -23,7 +23,7 @@ import { AvailCell } from './shared'
 
 /** ameliaRES middle table: seats blocked for agencies, edited here in a modal */
 export function AgencyPanel({ data }: { data: FlightInventory }) {
-  const canManage = useCan()('allocations.manage')
+  const canManage = useCan()('allocations.update')
   const [editing, setEditing] = useState<{ id?: number } | null>(null)
   const [removing, setRemoving] = useState<number | null>(null)
 

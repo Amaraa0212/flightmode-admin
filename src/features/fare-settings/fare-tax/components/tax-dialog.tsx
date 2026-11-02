@@ -9,12 +9,12 @@ import {
   ConfigFormDialog,
   type FormFieldConfig,
 } from '@/components/ui/config-form-dialog'
-import { BOUND_OPTIONS, PAX_OPTIONS, useFareMutation } from '../../shared'
+import { PAX_OPTIONS, TRIP_OPTIONS, useFareMutation } from '../../shared'
 
 const schema = z.object({
   tax_code_id: z.string().min(1, 'Select a tax code'),
   airport_id: z.string(),
-  bound: z.enum(['OUT', 'IN']),
+  trip_type: z.enum(['OW', 'RT']),
   passenger_type: z.enum(['ADT', 'CHD', 'INF']),
   amount: z.number().min(0),
   currency: z.string().trim().length(3),
@@ -23,7 +23,7 @@ const schema = z.object({
 type Form = z.infer<typeof schema>
 
 /**
- * Default tax of a route airport (from = OUT, to = IN), or — with `fare` — an override saved on that fare only.
+ * Default tax of a departure airport for OW or RT fares, or — with `fare` — an override saved on that fare only.
  */
 export function TaxDialog({
   tax,
@@ -33,7 +33,7 @@ export function TaxDialog({
 }: {
   tax?: FareTax
   fare?: FareEntry
-  /** The selected route: [from, to] airport options */
+  /** The selected departure airport option */
   airports: { label: string; value: string }[]
   onClose: () => void
 }) {
@@ -43,6 +43,8 @@ export function TaxDialog({
       tax_code_id: Number(v.tax_code_id),
       airport_id: fare ? null : Number(v.airport_id),
       fare_id: fare?.id ?? tax?.fare_id ?? null,
+      // an override takes its fare's trip type
+      trip_type: fare ? fare.trip_type : v.trip_type,
     }
     return tax
       ? fareTaxService.update(tax.id, payload)
@@ -70,17 +72,17 @@ export function TaxDialog({
       : ([
           {
             name: 'airport_id',
-            label: 'Route',
+            label: 'Departure airport',
             type: 'select',
             required: true,
             options: airports,
             gridCols: 2,
           },
           {
-            name: 'bound',
-            label: 'In / Out bound',
+            name: 'trip_type',
+            label: 'Trip',
             type: 'select',
-            options: BOUND_OPTIONS,
+            options: TRIP_OPTIONS,
             gridCols: 2,
           },
         ] as FormFieldConfig<Form>[])),
@@ -99,7 +101,7 @@ export function TaxDialog({
     ? {
         tax_code_id: String(tax.tax_code_id),
         airport_id: tax.airport_id ? String(tax.airport_id) : '',
-        bound: tax.bound,
+        trip_type: tax.trip_type,
         passenger_type: tax.passenger_type,
         amount: Number(tax.amount),
         currency: tax.currency,
@@ -108,7 +110,7 @@ export function TaxDialog({
     : {
         tax_code_id: '',
         airport_id: airports[0]?.value ?? '',
-        bound: 'OUT',
+        trip_type: 'OW',
         passenger_type: 'ADT',
         amount: 0,
         currency: fare?.currency ?? 'MNT',
@@ -130,7 +132,7 @@ export function TaxDialog({
       description={
         fare
           ? 'Replaces the route default of the same tax code for this fare only.'
-          : 'OUT is charged on fares departing the airport, IN on fares arriving there.'
+          : 'Charged on every OW or RT fare departing this airport (e.g. UBN: all fares from UBN).'
       }
       submitButtonText={tax ? 'Save' : 'Create'}
       isSubmitting={save.isPending}
