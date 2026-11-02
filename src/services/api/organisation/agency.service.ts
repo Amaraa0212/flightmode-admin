@@ -70,6 +70,20 @@ export const agencyContractService = {
           : 'Contract suspended'
     )
   },
+  /** What the agency may do on the airline's flights besides selling */
+  setRights: (
+    agencyId: number,
+    airlineId: number,
+    rights: { can_import_passengers?: boolean; can_assign_seats?: boolean }
+  ) =>
+    action(
+      client.put<ApiData<null>>(
+        `/admin/airlines/${airlineId}/agencies/${agencyId}`,
+        rights
+      ),
+      () => null
+    ),
+
   airlines: async () => {
     const res = await client.get<{
       data: { id: number; name: string; iata_code: string }[]

@@ -9,6 +9,9 @@ export const Route = createFileRoute(
     from: z.string().optional(),
     to: z.string().optional(),
     flight_number: z.string().optional(),
+    // route: origin / destination airport ids
+    origin: z.number().optional(),
+    destination: z.number().optional(),
     flight: z.number().optional(),
   }),
   component: SeatAllocations,

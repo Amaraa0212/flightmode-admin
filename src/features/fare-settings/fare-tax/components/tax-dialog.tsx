@@ -132,7 +132,7 @@ export function TaxDialog({
       description={
         fare
           ? 'Replaces the route default of the same tax code for this fare only.'
-          : 'Charged on every OW or RT fare departing this airport (e.g. UBN: all fares from UBN).'
+          : 'OW: charged on OW fares departing this airport. RT: added to RT fares starting or ending here — both ends together, 70 % charged.'
       }
       submitButtonText={tax ? 'Save' : 'Create'}
       isSubmitting={save.isPending}

@@ -162,4 +162,7 @@ export {
   type AgencyPassengerDetail,
   type AgencyPassengerEdit,
   type AgencyScheduleChanges,
+  type AgencyRights,
+  type AgencySeatMap,
+  type AgencySeatPassenger,
 } from './api/agency/agency-portal.service'

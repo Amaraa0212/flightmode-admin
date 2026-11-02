@@ -110,6 +110,22 @@ export function AgencyPanel({ data }: { data: FlightInventory }) {
                         round trip
                       </span>
                     )}
+                    {a.uses_published_fares && (
+                      <span
+                        className='ms-2 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-sky-700 dark:text-sky-300'
+                        title='Sells at the fare settings prices'
+                      >
+                        Published
+                      </span>
+                    )}
+                    {a.released_seats ? (
+                      <span
+                        className='ms-2 text-xs text-amber-600 dark:text-amber-400'
+                        title='Unsold seats given back at the names deadline'
+                      >
+                        −{a.released_seats} released
+                      </span>
+                    ) : null}
                   </TableCell>
                   <TableCell className='text-end font-mono'>
                     {a.mode === 'pool' ? (

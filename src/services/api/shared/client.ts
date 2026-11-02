@@ -20,18 +20,22 @@ export class ApiError extends Error {
   status: number
   code?: string
   errors?: Record<string, string[]>
+  /** business rule details, e.g. the row errors of an import */
+  context?: Record<string, unknown>
 
   constructor(
     message: string,
     status: number,
     code?: string,
-    errors?: Record<string, string[]>
+    errors?: Record<string, string[]>,
+    context?: Record<string, unknown>
   ) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.errors = errors
+    this.context = context
   }
 }
 
@@ -58,15 +62,21 @@ async function request<T>(
   const token = useAuthStore.getState().auth.token
   const headers: Record<string, string> = { Accept: 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json'
+  // a FormData body (file upload) sets its own multipart content type
+  const form = options.body instanceof FormData
+  if (options.body !== undefined && !form)
+    headers['Content-Type'] = 'application/json'
 
   let response: Response
   try {
     response = await fetch(`${api.base}${path}${queryString(options.query)}`, {
       method,
       headers,
-      body:
-        options.body !== undefined ? JSON.stringify(options.body) : undefined,
+      body: form
+        ? (options.body as FormData)
+        : options.body !== undefined
+          ? JSON.stringify(options.body)
+          : undefined,
     })
   } catch {
     throw new ApiError(UNREACHABLE, 0)
@@ -82,6 +92,7 @@ async function request<T>(
     message?: string
     code?: string
     errors?: Record<string, string[]>
+    context?: Record<string, unknown> | null
   } | null
 
   // 401, or the airline's IP restriction (403 ip_not_allowed): the session is over
@@ -110,7 +121,13 @@ async function request<T>(
       : response.status === 403
         ? 'You do not have permission for this.'
         : response.statusText)
-  throw new ApiError(message, response.status, body?.code, body?.errors)
+  throw new ApiError(
+    message,
+    response.status,
+    body?.code,
+    body?.errors,
+    body?.context ?? undefined
+  )
 }
 
 export const client = {
@@ -123,6 +140,9 @@ export const client = {
     request<T>('PATCH', path, { body: body ?? {} }),
   delete: <T>(path: string, body?: unknown) =>
     request<T>('DELETE', path, { body }),
+  /** multipart POST (file uploads) */
+  upload: <T>(path: string, form: FormData) =>
+    request<T>('POST', path, { body: form }),
   blob: (path: string, query?: Query) =>
     request<Blob>('GET', path, { query, blob: true }),
 }

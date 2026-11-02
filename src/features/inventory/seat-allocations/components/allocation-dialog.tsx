@@ -74,6 +74,9 @@ export function AllocationDialog({
     current?.deadline ?? dayBefore(departure)
   )
   const [waitlist, setWaitlist] = useState(current?.is_waitlist ?? false)
+  const [published, setPublished] = useState(
+    current?.uses_published_fares ?? false
+  )
   // pool: the agencies sell the flight's free seats together, nothing is taken out
   const [mode, setMode] = useState<'fixed' | 'pool'>(current?.mode ?? 'fixed')
   const [poolCabins, setPoolCabins] = useState<Record<string, boolean>>(() =>
@@ -131,6 +134,7 @@ export function AllocationDialog({
           return_flight_id: returnId === ONE_WAY ? null : Number(returnId),
           deadline,
           is_waitlist: waitlist,
+          uses_published_fares: published,
           cabins: (pool
             ? Object.fromEntries(
                 Object.entries(poolCabins)
@@ -376,6 +380,28 @@ export function AllocationDialog({
             Allow waitlist
           </label>
         </div>
+
+        <label className='flex items-start gap-2 rounded-lg border px-3 py-2'>
+          <Checkbox
+            className='mt-0.5'
+            checked={published}
+            onCheckedChange={(v) => setPublished(v === true)}
+          />
+          <span className='grid gap-0.5'>
+            <span className='text-sm font-medium'>Published fares</span>
+            <span className='text-muted-foreground text-xs'>
+              Prices from the fare settings (fare family, advance booking, stay,
+              combination, taxes) instead of fare buckets.
+              {pool && ' Booking class limits apply to the pool.'}
+            </span>
+          </span>
+        </label>
+        {current?.released_seats ? (
+          <p className='text-xs text-amber-600 dark:text-amber-400'>
+            {current.released_seats} unsold seat(s) were given back to the
+            flight when the names deadline passed.
+          </p>
+        ) : null}
       </div>
     </BaseDialog>
   )

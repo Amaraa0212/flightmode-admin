@@ -23,6 +23,8 @@ export const inventoryService = {
     from?: string
     to?: string
     flight_number?: string
+    origin_airport_id?: number
+    destination_airport_id?: number
   }) =>
     ok(
       (

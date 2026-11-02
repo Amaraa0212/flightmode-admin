@@ -1,7 +1,11 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
-import { inventoryService, type FlightInventory } from '@/services'
+import {
+  airportOptions,
+  inventoryService,
+  type FlightInventory,
+} from '@/services'
 import {
   AlertTriangle,
   CopyPlus,
@@ -12,6 +16,7 @@ import {
   Search,
 } from 'lucide-react'
 import { useCan } from '@/stores/auth-store'
+import { useOptions } from '@/hooks/use-options'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -19,6 +24,7 @@ import { Label } from '@/components/ui/label'
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/page-header'
+import { SimpleSelect } from '@/components/simple-select'
 import { Panel } from '@/features/fare-settings/shared'
 import { AgencyPanel } from './components/agency-panel'
 import { CabinPanel } from './components/cabin-panel'
@@ -32,6 +38,8 @@ import { RbdPanel } from './components/rbd-panel'
 import { inventoryKey, useInventoryMutation } from './components/shared'
 
 const route = getRouteApi('/_authenticated/inventory/seat-allocations/')
+
+const ANY = 'any'
 
 const isoDate = (d: Date) => d.toISOString().slice(0, 10)
 const plusDays = (days: number) => {
@@ -54,17 +62,33 @@ export function SeatAllocations() {
     from,
     to,
     flight_number: search.flight_number ?? '',
+    origin: search.origin ? String(search.origin) : ANY,
+    destination: search.destination ? String(search.destination) : ANY,
   })
+  const airports = useOptions('airports', airportOptions)
+  const airportItems = [{ label: 'Any', value: ANY }, ...airports]
+  const code = (id?: number) =>
+    airports.find((a) => a.value === String(id))?.label.split(' — ')[0]
   const [dialog, setDialog] = useState<DialogState>(null)
 
   const flights = useQuery({
-    queryKey: ['inventory', 'flights', from, to, search.flight_number],
+    queryKey: [
+      'inventory',
+      'flights',
+      from,
+      to,
+      search.flight_number,
+      search.origin,
+      search.destination,
+    ],
     queryFn: async () =>
       (
         await inventoryService.flights({
           from,
           to,
           flight_number: search.flight_number,
+          origin_airport_id: search.origin,
+          destination_airport_id: search.destination,
         })
       ).body,
   })
@@ -82,6 +106,9 @@ export function SeatAllocations() {
         from: filters.from || undefined,
         to: filters.to || undefined,
         flight_number: filters.flight_number.trim().toUpperCase() || undefined,
+        origin: filters.origin === ANY ? undefined : Number(filters.origin),
+        destination:
+          filters.destination === ANY ? undefined : Number(filters.destination),
         flight: undefined,
       },
     })
@@ -136,6 +163,25 @@ export function SeatAllocations() {
             }
           />
         </div>
+        {/* route: with a template, "Apply template" then sets every listed flight of the route */}
+        <div className='grid gap-1.5'>
+          <Label>Origin</Label>
+          <SimpleSelect
+            value={filters.origin}
+            onValueChange={(v) => setFilters((f) => ({ ...f, origin: v }))}
+            items={airportItems}
+            className='w-44'
+          />
+        </div>
+        <div className='grid gap-1.5'>
+          <Label>Destination</Label>
+          <SimpleSelect
+            value={filters.destination}
+            onValueChange={(v) => setFilters((f) => ({ ...f, destination: v }))}
+            items={airportItems}
+            className='w-44'
+          />
+        </div>
         <Button type='submit' size='sm' className='h-8 gap-2'>
           <Search className='size-4' />
           Look up
@@ -145,7 +191,11 @@ export function SeatAllocations() {
       <div className='grid items-start gap-4 sm:gap-6 xl:grid-cols-[minmax(340px,400px)_1fr]'>
         <Panel
           title='Flights'
-          subtitle={`${listed.length} in the period`}
+          subtitle={
+            search.origin || search.destination
+              ? `${code(search.origin) ?? 'Any'} → ${code(search.destination) ?? 'Any'} · ${listed.length} in the period`
+              : `${listed.length} in the period`
+          }
           actions={
             canManage && (
               <Button

@@ -54,6 +54,10 @@ export interface InventoryAgency {
   return_flight_id: number | null
   deadline: string | null
   uses_fare_quotas: boolean
+  /** sells at the fare settings prices (published fares) */
+  uses_published_fares: boolean
+  /** unsold fixed seats given back at the names deadline (null = not released) */
+  released_seats: number | null
   /** pool: seats the agency can still sell in this cabin */
   pool_free: number | null
 }
@@ -68,6 +72,8 @@ export interface AllocationCabinPayload {
   return_flight_id: number | null
   deadline: string
   is_waitlist: boolean
+  /** prices from the fare settings instead of fare buckets */
+  uses_published_fares: boolean
   /** seats per cabin, e.g. { C: 2, Y: 18 }; pool: the cabins it may sell with their limit (0 = none) */
   cabins: Partial<Record<CabinCode, number>>
 }

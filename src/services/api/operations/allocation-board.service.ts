@@ -15,6 +15,10 @@ export type BoardAllocation = {
   remaining: number
   deadline: string
   is_waitlist: boolean
+  /** sells at the fare settings prices instead of fare buckets */
+  uses_published_fares: boolean
+  /** unsold fixed seats given back at the names deadline (null = not released) */
+  released_seats: number | null
   outbound_flight_id: number
   return_flight_id: number | null
 }
@@ -27,6 +31,7 @@ export type FlightQuota = {
     scheduled_departure_at: string
     status: string
     service_type: 'scheduled' | 'charter'
+    flight_series_id: number | null
   }
   capacity: number
   cabins: { cabin_class: string; seats: number; free: number }[]
@@ -45,6 +50,18 @@ export type DistributeRow = {
   seats: number
   cabins?: Record<string, number>
   deadline?: string
+  uses_published_fares?: boolean
+}
+
+export type SeriesDistributeResult = {
+  flights: number
+  saved: number
+  failed: {
+    flight_id: number
+    flight_number: string
+    date: string
+    message: string
+  }[]
 }
 
 /** Quota per flight: by-flight view, handing out to several agencies at once, moving seats */
@@ -82,6 +99,24 @@ export const allocationBoardService = {
           remove,
           deadline,
         }
+      ),
+      (r) => r
+    ),
+
+  /** The same rows on every flight of a series between two dates (existing agency allocations are updated) */
+  distributeSeries: (
+    seriesId: number,
+    body: {
+      date_from: string
+      date_to: string
+      deadline_days_before: number
+      rows: Omit<DistributeRow, 'allocation_id' | 'deadline'>[]
+    }
+  ) =>
+    action(
+      client.post<ApiData<SeriesDistributeResult>>(
+        `/admin/flight-series/${seriesId}/allocations/distribute`,
+        body
       ),
       (r) => r
     ),

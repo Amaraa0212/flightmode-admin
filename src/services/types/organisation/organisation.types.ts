@@ -47,7 +47,15 @@ export interface Agency extends Record<string, unknown> {
   /** its allocations are pushed to the Chinggis agent API */
   chinggis_sync: boolean
   is_active: boolean
-  airlines: { id: number; name: string; contract_active: boolean }[]
+  airlines: {
+    id: number
+    name: string
+    contract_active: boolean
+    /** Excel import of the quota's passengers */
+    can_import_passengers?: boolean
+    /** seat reservation for its passengers on charter flights */
+    can_assign_seats?: boolean
+  }[]
 }
 
 export interface AgencyListParams extends ListParams {
