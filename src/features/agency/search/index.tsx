@@ -17,6 +17,7 @@ import {
   formatDateTime,
   formatMoney,
 } from '@/features/agency/transactions/transactions-table'
+import { ScheduleChangeBadge } from '@/features/agency/schedule-change-badge'
 import { HoldDialog } from './hold-dialog'
 
 const route = getRouteApi('/_authenticated/agency/search/')
@@ -38,13 +39,18 @@ const toQuota = (f: AgencyFlight): AgencyQuota => ({
   return_flight: f.return_flight,
   seats: f.seats,
   used: f.used,
+  held: f.held,
   remaining: f.remaining,
   cabins: f.cabins.map((c) => `${c.cabin_class} ${c.seats}`).join(' · '),
+  cabin_usage: '',
+  // a waitlist quota books every cabin, full or not
   cabin_classes: f.cabins
-    .filter((c) => c.remaining > 0)
+    .filter((c) => c.remaining > 0 || f.is_waitlist)
     .map((c) => c.cabin_class),
   names_deadline_at: f.names_deadline_at,
   is_open_for_names: f.is_open_for_names,
+  is_waitlist: f.is_waitlist,
+  schedule_changes: f.schedule_changes,
 })
 
 /** Agency portal: pick a day, see the agency's flights with free seats, hold seats or enter names */
@@ -166,6 +172,9 @@ function FlightCard({
             {f.departure_local} → {f.arrival_local?.slice(11)}
             {f.return_flight && ` · буцах ${f.return_flight}`}
           </p>
+          <div className='mt-1'>
+            <ScheduleChangeBadge quotaId={f.id} changes={f.schedule_changes} />
+          </div>
         </div>
         <div className='text-end'>
           <p className='font-mono text-2xl font-semibold'>{f.remaining}</p>
@@ -222,7 +231,7 @@ function FlightCard({
               : 'text-muted-foreground text-xs'
           }
         >
-          Нэр оруулах: {formatDateTime(f.names_deadline_at)}
+          Төлбөр төлөх хугацаа: {formatDateTime(f.names_deadline_at)}
           {closed && ' (хаагдсан)'}
         </span>
         <div className='flex gap-2'>
@@ -230,7 +239,8 @@ function FlightCard({
             size='sm'
             variant='outline'
             className='h-8 gap-1.5'
-            disabled={closed || full}
+            disabled={closed || (full && !f.is_waitlist)}
+            title={full && f.is_waitlist ? 'Квот дүүрсэн — хүлээлгийн жагсаалтад (WL) нэмнэ' : undefined}
             onClick={onBook}
           >
             <UserPlus className='size-4' />

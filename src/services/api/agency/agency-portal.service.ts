@@ -1,5 +1,5 @@
 import type { ListParams } from '../../types/shared/common.types'
-import { action, client, ok, type ApiData } from '../shared/client'
+import { action, client, ok, saveBlob, type ApiData } from '../shared/client'
 
 /*
 | Agency portal (/agency/*): an agency user sees only their own agency's seat quotas and passengers.
@@ -22,7 +22,15 @@ type ApiQuota = {
   deadline: string
   is_waitlist: boolean
   cabins?: Record<string, number>
-  usage?: { used: number; remaining: number; is_open_for_names: boolean; names_deadline_at: string }
+  schedule_changes?: AgencyScheduleChanges
+  usage?: {
+    used: number
+    held?: number
+    remaining: number
+    is_open_for_names: boolean
+    names_deadline_at: string
+    cabins?: { cabin_class: string; seats: number; used: number; held: number; remaining: number }[]
+  }
 }
 
 export interface AgencyQuota extends Record<string, unknown> {
@@ -34,13 +42,35 @@ export interface AgencyQuota extends Record<string, unknown> {
   return_flight: string | null
   seats: number
   used: number
+  /** seats held without names (by the agency's users) */
+  held: number
   remaining: number
   cabins: string
+  /** sold / held / left per cabin, for the tooltip */
+  cabin_usage: string
   /** cabin classes of the quota (Y, C …) */
   cabin_classes: string[]
   names_deadline_at: string | null
   is_open_for_names: boolean
+  /** a full quota waitlists new passengers */
+  is_waitlist: boolean
+  schedule_changes: AgencyScheduleChanges
 }
+
+/** Departure / arrival / number / route changes of the quota's flights since it was given */
+export interface AgencyScheduleChanges {
+  unseen: number
+  changes: {
+    id: number
+    leg: 'outbound' | 'return'
+    flight_number: string | null
+    changed_at: string
+    seen: boolean
+    changes: { field: string; from: string | null; to: string | null }[]
+  }[]
+}
+
+const NO_CHANGES: AgencyScheduleChanges = { unseen: 0, changes: [] }
 
 export interface AgencyPassenger {
   id: number
@@ -70,15 +100,21 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
   return_flight: a.return_flight ? `${a.return_flight.flight_number} ${route(a.return_flight)}` : null,
   seats: a.seats,
   used: a.usage?.used ?? 0,
+  held: a.usage?.held ?? 0,
   remaining: a.usage?.remaining ?? a.seats,
   cabins: Object.entries(a.cabins ?? {})
     .map(([cabin, seats]) => `${cabin} ${seats}`)
     .join(' · '),
+  cabin_usage: (a.usage?.cabins ?? [])
+    .map((c) => `${c.cabin_class}: ${c.used} зарагдсан, ${c.held} hold, ${c.remaining} үлдсэн / ${c.seats}`)
+    .join('\n'),
   cabin_classes: Object.entries(a.cabins ?? {})
     .filter(([, seats]) => seats > 0)
     .map(([cabin]) => cabin),
   names_deadline_at: a.usage?.names_deadline_at ?? null,
   is_open_for_names: a.usage?.is_open_for_names ?? false,
+  is_waitlist: a.is_waitlist,
+  schedule_changes: a.schedule_changes ?? NO_CHANGES,
 })
 
 /** One passenger of a new agency booking (PassengerFields on the API) */
@@ -94,6 +130,21 @@ export interface AgencyBookingPassenger {
   email: string
   cabin_class: string
 }
+
+export interface AgencyPassengerDetail {
+  id: number
+  first_name: string
+  last_name: string
+  gender: 'M' | 'F' | null
+  date_of_birth: string | null
+  nationality: string | null
+  document_number: string | null
+  document_expires_at: string | null
+  phone: string | null
+  email: string | null
+}
+
+export type AgencyPassengerEdit = Omit<AgencyBookingPassenger, 'cabin_class'>
 
 const upper = (v: string) => v.trim().toUpperCase()
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
@@ -121,12 +172,15 @@ export const agencyPortalService = {
     contact: { phone: string; email: string },
     hold?: { id: number; allocation_fare_id: number | null },
     /** keep the seats without tickets until the fare's ticket time limit */
-    onHold = false
+    onHold = false,
+    /** false: refuse when the quota is full instead of waitlisting */
+    waitlist?: boolean
   ) => {
     const res = await client.post<{ message: string; data: { pnr: string } }>('/agency/bookings', {
       allocation_id: quotaId,
       hold_id: hold?.id,
       on_hold: onHold,
+      waitlist,
       contact_phone: orNull(contact.phone),
       contact_email: orNull(contact.email),
       passengers: passengers.map((p) => ({
@@ -145,6 +199,12 @@ export const agencyPortalService = {
       })),
     })
     return ok(res.data, `${res.message} PNR ${res.data.pnr}`)
+  },
+
+  /** The agency has seen the schedule changes of the quota's flights */
+  scheduleChangesSeen: async (quotaId: number) => {
+    const res = await client.post<{ message: string }>(`/agency/allocations/${quotaId}/schedule-changes/seen`)
+    return ok(null, res.message)
   },
 
   /** Issue the tickets of a booking on hold (before its time limit); the account is charged now */
@@ -169,6 +229,37 @@ export const agencyPortalService = {
       } | null>
     >('/agency/passenger-lookup', { document_number: documentNumber.trim().toUpperCase() })
     return res.data
+  },
+
+  /** One passenger with every field, to edit */
+  passenger: async (id: number) =>
+    (await client.get<ApiData<AgencyPassengerDetail>>(`/agency/passengers/${id}`)).data,
+
+  /** Name, passport, contact … of a booked passenger (not after check-in) */
+  updatePassenger: async (id: number, p: AgencyPassengerEdit) => {
+    const res = await client.put<{ message: string }>(`/agency/passengers/${id}`, {
+      last_name: upper(p.last_name),
+      first_name: upper(p.first_name),
+      gender: p.gender,
+      date_of_birth: orNull(p.date_of_birth),
+      nationality: upper(p.nationality) || null,
+      document_type: p.document_number.trim() ? 'passport' : null,
+      document_number: p.document_number.trim() ? upper(p.document_number) : null,
+      document_expires_at: orNull(p.document_expires_at),
+      phone: orNull(p.phone),
+      email: orNull(p.email),
+    })
+    return ok(null, res.message)
+  },
+
+  /** E-ticket / itinerary receipt PDF of a ticketed passenger */
+  eticketPdf: (id: number) => client.blob(`/agency/passengers/${id}/eticket`),
+  downloadEticket: async (id: number, filename: string) =>
+    saveBlob(await client.blob(`/agency/passengers/${id}/eticket`), filename),
+  /** to the passenger's e-mail, or to `email` */
+  emailEticket: async (id: number, email?: string) => {
+    const res = await client.post<{ message: string }>(`/agency/passengers/${id}/eticket/email`, { email: email || undefined })
+    return ok(null, res.message)
   },
 
   /** Passengers booked on a quota (infants travel with their adult) */
@@ -239,6 +330,7 @@ export interface AgencyFlight {
   held: number
   remaining: number
   uses_fare_quotas: boolean
+  is_waitlist: boolean
   cabins: {
     cabin_class: string
     seats: number
@@ -249,6 +341,7 @@ export interface AgencyFlight {
   fares: AgencyFare[]
   names_deadline_at: string | null
   is_open_for_names: boolean
+  schedule_changes: AgencyScheduleChanges
 }
 
 export interface AgencyHold {
@@ -351,10 +444,12 @@ export const agencyHoldService = {
         held: a.usage.held,
         remaining: a.usage.remaining,
         uses_fare_quotas: a.uses_fare_quotas,
+        is_waitlist: a.is_waitlist,
         cabins: a.usage.cabins,
         fares: a.usage.fares,
         names_deadline_at: a.usage.names_deadline_at,
         is_open_for_names: a.usage.is_open_for_names,
+        schedule_changes: a.schedule_changes ?? NO_CHANGES,
       }))
     )
   },

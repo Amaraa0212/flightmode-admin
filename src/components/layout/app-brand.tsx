@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { Link } from '@tanstack/react-router'
-import { APP } from '@/config/app'
+import { applyDocumentTitle, brandFor } from '@/config/app'
+import { useAuthStore } from '@/stores/auth-store'
 import {
   SidebarMenu,
   SidebarMenuButton,
@@ -8,6 +10,10 @@ import {
 import { LogoImage } from './logo-image'
 
 export function AppBrand() {
+  const user = useAuthStore((s) => s.auth.user)
+  const brand = brandFor(user)
+  useEffect(() => applyDocumentTitle(user), [user])
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -17,8 +23,8 @@ export function AppBrand() {
               <LogoImage />
             </div>
             <div className='grid flex-1 text-start text-sm leading-tight'>
-              <span className='truncate font-semibold'>{APP.name}</span>
-              <span className='truncate text-xs'>{APP.subtitle}</span>
+              <span className='truncate font-semibold'>{brand.name}</span>
+              <span className='truncate text-xs'>{brand.subtitle}</span>
             </div>
           </Link>
         </SidebarMenuButton>
