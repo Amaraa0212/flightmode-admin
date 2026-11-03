@@ -197,6 +197,19 @@ export function DeleteDialog({
 }
 
 /** Parents first, children indented under them (legacy sortRbdsByHierarchy) */
+const CABIN_ORDER = ['F', 'C', 'W', 'Y']
+
+/** Flat list: cabin (F → Y), then rank, then parent booking class, then code */
+export function byCabinRankParent(rbds: Rbd[]): Rbd[] {
+  return [...rbds].sort(
+    (a, b) =>
+      CABIN_ORDER.indexOf(a.cabin_class) - CABIN_ORDER.indexOf(b.cabin_class) ||
+      a.rank - b.rank ||
+      (a.parent_code ?? '').localeCompare(b.parent_code ?? '') ||
+      a.code.localeCompare(b.code)
+  )
+}
+
 export function byHierarchy(rbds: Rbd[]): Array<Rbd & { level: number }> {
   const out: Array<Rbd & { level: number }> = []
   const seen = new Set<number>()

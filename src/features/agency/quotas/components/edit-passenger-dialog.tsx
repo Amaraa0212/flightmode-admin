@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { agencyPortalService, type AgencyPassengerEdit } from '@/services'
 import { BaseDialog } from '@/components/ui/base-dialog'
 import { Input } from '@/components/ui/input'
-import { latinName } from './booking-dialog'
+import { infant, InfantSection, latinName } from './booking-dialog'
 import {
   Select,
   SelectContent,
@@ -26,7 +26,9 @@ const schema = z.object({
   document_expires_at: z.string(),
   phone: z.string(),
   email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
+  infant: infant.nullable(),
 })
+type EditForm = z.infer<typeof schema>
 
 function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
@@ -53,7 +55,7 @@ export function EditPassengerDialog({
     queryKey: ['agency-passenger', passengerId],
     queryFn: () => agencyPortalService.passenger(passengerId),
   })
-  const form = useForm<AgencyPassengerEdit>({
+  const form = useForm<EditForm>({
     resolver: zodResolver(schema),
     values: data && {
       last_name: data.last_name,
@@ -65,6 +67,16 @@ export function EditPassengerDialog({
       document_expires_at: data.document_expires_at ?? '',
       phone: data.phone ?? '',
       email: data.email ?? '',
+      infant: data.infant
+        ? {
+            last_name: data.infant.last_name,
+            first_name: data.infant.first_name,
+            gender: data.infant.gender ?? 'M',
+            date_of_birth: data.infant.date_of_birth ?? '',
+            document_number: data.infant.document_number ?? '',
+            document_expires_at: data.infant.document_expires_at ?? '',
+          }
+        : null,
     },
   })
   const save = useMutation({
@@ -84,7 +96,7 @@ export function EditPassengerDialog({
       open
       onOpenChange={(open) => !open && onClose()}
       title='Зорчигч засах'
-      description='Нэр, паспорт, холбоо барих мэдээлэл. Check-in хийсэн зорчигчийг засах боломжгүй.'
+      description='Нэр, паспорт, холбоо барих мэдээлэл, нярай нэмэх / хасах. Check-in хийсэн зорчигчийг засах боломжгүй.'
       maxWidth='2xl'
       submitButton={{
         text: 'Хадгалах',
@@ -142,6 +154,7 @@ export function EditPassengerDialog({
               <Input className='h-10' type='email' {...form.register('email')} />
             </Field>
           </div>
+          <InfantSection form={form} base='' />
         </div>
       )}
     </BaseDialog>
