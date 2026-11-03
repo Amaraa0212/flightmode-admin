@@ -7,6 +7,7 @@ import { z } from 'zod'
 import { agencyPortalService, type AgencyPassengerEdit } from '@/services'
 import { BaseDialog } from '@/components/ui/base-dialog'
 import { Input } from '@/components/ui/input'
+import { latinName } from './booking-dialog'
 import {
   Select,
   SelectContent,
@@ -16,12 +17,12 @@ import {
 } from '@/components/ui/select'
 
 const schema = z.object({
-  last_name: z.string().trim().min(1, 'Овог оруулна уу'),
-  first_name: z.string().trim().min(1, 'Нэр оруулна уу'),
+  last_name: latinName('Овог оруулна уу'),
+  first_name: latinName('Нэр оруулна уу'),
   gender: z.enum(['M', 'F']),
   date_of_birth: z.string(),
-  nationality: z.string().trim().max(3),
-  document_number: z.string(),
+  nationality: z.string().trim().max(3).regex(/^[A-Za-z]*$/, 'Латин үсгээр (MN)'),
+  document_number: z.string().trim().regex(/^[A-Za-z0-9]*$/, 'Зөвхөн латин үсэг, тоо'),
   document_expires_at: z.string(),
   phone: z.string(),
   email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
@@ -126,7 +127,7 @@ export function EditPassengerDialog({
             </Field>
           </div>
           <div className='grid gap-4 sm:grid-cols-2'>
-            <Field label='Паспортын дугаар'>
+            <Field label='Паспортын дугаар' error={errors.document_number?.message}>
               <Input className='h-10 font-mono uppercase' {...form.register('document_number')} />
             </Field>
             <Field label='Паспорт дуусах'>

@@ -125,8 +125,8 @@ export function RbdFareClass() {
         description='Booking classes per cabin, their fare bases and the age discounts of each fare base'
       />
 
-      {/* wide screens: booking class list | its fare bases, each scrolling on its own */}
-      <div className='grid gap-4 xl:h-[calc(100svh-11rem)] xl:min-h-[28rem] xl:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]'>
+      {/* wide screens: booking class list above its fare bases (both tables are wide), each scrolling on its own */}
+      <div className='grid gap-4 xl:h-[calc(100svh-11rem)] xl:min-h-[40rem] xl:grid-rows-[minmax(0,1fr)_minmax(0,1fr)]'>
         <Panel
           {...SCROLL_PANEL}
           title='Booking Class'

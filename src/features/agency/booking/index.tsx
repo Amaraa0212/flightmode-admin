@@ -870,14 +870,22 @@ function ReviewStep({
             <p className='mb-2 font-semibold'>Зорчигчид ({pax})</p>
             <ul className='grid gap-1'>
               {values.passengers.map((x, i) => (
-                <li key={i} className='flex justify-between gap-2'>
+                <li key={i} className='flex flex-wrap justify-between gap-x-2'>
                   <span className='font-medium uppercase'>
                     {x.last_name}/{x.first_name}
                   </span>
                   <span className='text-muted-foreground font-mono text-xs'>{x.document_number.toUpperCase()}</span>
+                  {x.infant && (
+                    <span className='text-muted-foreground basis-full text-xs uppercase'>
+                      + INF {x.infant.last_name}/{x.infant.first_name}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>
+            {values.passengers.some((x) => x.infant) && (
+              <p className='text-muted-foreground mt-2 text-xs'>Нярайн тийзийн үнэ (хөнгөлөлттэй) PNR үүсэхэд тооцогдоно.</p>
+            )}
             <p className='text-muted-foreground mt-2 text-xs'>
               {values.contact_phone} {values.contact_email && `· ${values.contact_email}`}
             </p>

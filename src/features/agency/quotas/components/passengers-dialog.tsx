@@ -92,7 +92,7 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
     const q = query.trim().toLowerCase()
     if (!q) return data
     return data.filter((p) =>
-      [p.name, p.pnr, p.document_number, p.ticket_number, p.phone].some((v) => (v ?? '').toLowerCase().includes(q))
+      [p.name, p.infant, p.pnr, p.document_number, p.ticket_number, p.phone].some((v) => (v ?? '').toLowerCase().includes(q))
     )
   }, [data, query])
 
@@ -152,7 +152,12 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
                       <td className='text-brand py-1.5 pe-3 font-mono font-semibold'>
                         {code === 'HK' ? <span className='text-muted-foreground font-normal'>—</span> : p.pnr}
                       </td>
-                      <td className='pe-3 font-medium'>{p.name}</td>
+                      <td className='pe-3 font-medium'>
+                        {p.name}
+                        {p.infant && (
+                          <span className='text-muted-foreground block text-[11px] font-normal'>+ INF {p.infant}</span>
+                        )}
+                      </td>
                       <td className='pe-3'>{p.type}</td>
                       <td className='pe-3 font-mono'>{p.document_number ?? '-'}</td>
                       <td className='pe-3 font-mono'>{p.ticket_number ?? '-'}</td>
