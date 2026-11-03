@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useFieldArray, useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Loader2, Plus, Search, Trash2, UserPlus } from 'lucide-react'
+import { Baby, Loader2, Plus, Search, Trash2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { agencyPortalService, type AgencyHold, type AgencyQuota } from '@/services'
@@ -25,17 +25,45 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const passenger = z.object({
-  last_name: z.string().trim().min(1, 'Овог оруулна уу'),
-  first_name: z.string().trim().min(1, 'Нэр оруулна уу'),
+/** Names as in the passport: Latin letters only (tickets, APIS and the DCS cannot take Cyrillic) */
+export const latinName = (required: string) =>
+  z
+    .string()
+    .trim()
+    .min(1, required)
+    .regex(/^[A-Za-z][A-Za-z '-]*$/, 'Латин үсгээр бичнэ үү (кирилл үсэг, тэмдэгт болохгүй)')
+export const passportNumber = z
+  .string()
+  .trim()
+  .min(3, 'Паспортын дугаар оруулна уу')
+  .regex(/^[A-Za-z0-9]+$/, 'Зөвхөн латин үсэг, тоо')
+
+const infant = z.object({
+  last_name: latinName('Овог оруулна уу'),
+  first_name: latinName('Нэр оруулна уу'),
   gender: z.enum(['M', 'F']),
   date_of_birth: z.string().min(1, 'Төрсөн огноо оруулна уу'),
-  nationality: z.string().trim().min(2, 'Иргэншил (MN)').max(3),
-  document_number: z.string().trim().min(3, 'Паспортын дугаар оруулна уу'),
+  document_number: passportNumber,
+  document_expires_at: z.string().min(1, 'Дуусах огноо оруулна уу'),
+})
+
+const passenger = z.object({
+  last_name: latinName('Овог оруулна уу'),
+  first_name: latinName('Нэр оруулна уу'),
+  gender: z.enum(['M', 'F']),
+  date_of_birth: z.string().min(1, 'Төрсөн огноо оруулна уу'),
+  nationality: z
+    .string()
+    .trim()
+    .min(2, 'Иргэншил (MN)')
+    .max(3)
+    .regex(/^[A-Za-z]+$/, 'Латин үсгээр (MN)'),
+  document_number: passportNumber,
   document_expires_at: z.string().min(1, 'Дуусах огноо оруулна уу'),
   phone: z.string(),
   email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
   cabin_class: z.string().min(1),
+  infant: infant.nullable(),
 })
 
 export const schema = z.object({
@@ -57,6 +85,16 @@ export const blank = (cabin: string): PassengerForm => ({
   phone: '',
   email: '',
   cabin_class: cabin,
+  infant: null,
+})
+
+const blankInfant = (): NonNullable<PassengerForm['infant']> => ({
+  last_name: '',
+  first_name: '',
+  gender: 'M',
+  date_of_birth: '',
+  document_number: '',
+  document_expires_at: '',
 })
 
 /** Labelled field with its error underneath */
@@ -232,7 +270,9 @@ export function PassengerCard({
 }) {
   const [searching, setSearching] = useState(false)
   const name = <K extends keyof PassengerForm>(k: K) => `passengers.${index}.${k}` as const
-  const error = (k: keyof PassengerForm) => form.formState.errors.passengers?.[index]?.[k]?.message
+  const error = (k: Exclude<keyof PassengerForm, 'infant'>) => form.formState.errors.passengers?.[index]?.[k]?.message
+  const infantError = (k: keyof NonNullable<PassengerForm['infant']>) =>
+    form.formState.errors.passengers?.[index]?.infant?.[k]?.message
 
   /** Fill the card from this agency's earlier booking of the same passport */
   const lookup = async () => {
@@ -350,6 +390,70 @@ export function PassengerCard({
           </Select>
         </Field>
       </div>
+
+      {/* infant on the lap: its own ticket, no seat — the adult must be 12+, the infant under 2 on the flight date */}
+      {form.watch(name('infant')) ? (
+        <div className='mt-4 rounded-lg border border-dashed p-3'>
+          <div className='mb-3 flex items-center justify-between'>
+            <p className='flex items-center gap-1.5 text-sm font-semibold'>
+              <Baby className='size-4' />
+              Нярай (INF, 2 хүртэлх насны)
+            </p>
+            <Button
+              type='button'
+              variant='ghost'
+              size='sm'
+              className='h-7 gap-1 text-xs'
+              onClick={() => form.setValue(name('infant'), null)}
+            >
+              <X className='size-3.5' />
+              Хасах
+            </Button>
+          </div>
+          <div className='grid gap-4 sm:grid-cols-3'>
+            <Field label='Овог *' error={infantError('last_name')}>
+              <Input className='h-10 uppercase' {...form.register(`passengers.${index}.infant.last_name`)} />
+            </Field>
+            <Field label='Нэр *' error={infantError('first_name')}>
+              <Input className='h-10 uppercase' {...form.register(`passengers.${index}.infant.first_name`)} />
+            </Field>
+            <Field label='Хүйс'>
+              <Select
+                value={form.watch(`passengers.${index}.infant.gender`)}
+                onValueChange={(v) => form.setValue(`passengers.${index}.infant.gender`, v as 'M' | 'F')}
+              >
+                <SelectTrigger className='h-10 w-full'>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value='M'>Эрэгтэй (M)</SelectItem>
+                  <SelectItem value='F'>Эмэгтэй (F)</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field label='Төрсөн огноо *' error={infantError('date_of_birth')}>
+              <Input className='h-10' type='date' {...form.register(`passengers.${index}.infant.date_of_birth`)} />
+            </Field>
+            <Field label='Паспортын дугаар *' error={infantError('document_number')}>
+              <Input className='h-10 font-mono uppercase' {...form.register(`passengers.${index}.infant.document_number`)} />
+            </Field>
+            <Field label='Паспорт дуусах *' error={infantError('document_expires_at')}>
+              <Input className='h-10' type='date' {...form.register(`passengers.${index}.infant.document_expires_at`)} />
+            </Field>
+          </div>
+        </div>
+      ) : (
+        <Button
+          type='button'
+          variant='ghost'
+          size='sm'
+          className='mt-3 h-8 gap-1.5 text-xs'
+          onClick={() => form.setValue(name('infant'), blankInfant())}
+        >
+          <Baby className='size-4' />
+          Нярай нэмэх
+        </Button>
+      )}
     </section>
   )
 }

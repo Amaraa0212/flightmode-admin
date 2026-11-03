@@ -159,6 +159,7 @@ export {
   type AgencyQuota,
   type AgencyPassenger,
   type AgencyBookingPassenger,
+  type AgencyBookingInfant,
   type AgencyPassengerDetail,
   type AgencyPassengerEdit,
   type AgencyScheduleChanges,

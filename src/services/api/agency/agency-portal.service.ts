@@ -115,6 +115,8 @@ export interface AgencyPassenger {
   /** on_hold: tickets to be issued before ticketing_deadline_at */
   booking_status: string
   ticketing_deadline_at: string | null
+  /** infant on the lap: LAST/FIRST */
+  infant: string | null
 }
 
 const route = (f: ApiFlight | null) =>
@@ -227,6 +229,17 @@ export interface AgencyBookingPassenger {
   phone: string
   email: string
   cabin_class: string
+  /** infant (under 2) travelling on this adult's lap: no seat, its own ticket */
+  infant?: AgencyBookingInfant | null
+}
+
+export interface AgencyBookingInfant {
+  last_name: string
+  first_name: string
+  gender: 'M' | 'F'
+  date_of_birth: string
+  document_number: string
+  document_expires_at: string
 }
 
 export interface AgencyPassengerDetail {
@@ -242,7 +255,7 @@ export interface AgencyPassengerDetail {
   email: string | null
 }
 
-export type AgencyPassengerEdit = Omit<AgencyBookingPassenger, 'cabin_class'>
+export type AgencyPassengerEdit = Omit<AgencyBookingPassenger, 'cabin_class' | 'infant'>
 
 const upper = (v: string) => v.trim().toUpperCase()
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
@@ -362,6 +375,20 @@ export const agencyPortalService = {
         phone: orNull(p.phone),
         email: orNull(p.email),
         cabin_class: p.cabin_class,
+        infant: p.infant
+          ? {
+              last_name: upper(p.infant.last_name),
+              first_name: upper(p.infant.first_name),
+              gender: p.infant.gender,
+              date_of_birth: p.infant.date_of_birth,
+              nationality: upper(p.nationality) || null,
+              document_type: p.infant.document_number.trim() ? 'passport' : null,
+              document_number: p.infant.document_number.trim()
+                ? upper(p.infant.document_number)
+                : null,
+              document_expires_at: orNull(p.infant.document_expires_at),
+            }
+          : undefined,
         allocation_fare_id: hold?.allocation_fare_id ?? undefined,
         fare_id: hold?.fare_id ?? undefined,
       })),
@@ -468,6 +495,7 @@ export const agencyPortalService = {
             seat_number: string | null
             status: string
           }[]
+          infant?: { first_name: string; last_name: string } | null
         }[]
       >
     >(`/agency/allocations/${quotaId}/passengers`)
@@ -485,6 +513,7 @@ export const agencyPortalService = {
         booking_id: p.booking_id,
         booking_status: p.booking_status ?? '',
         ticketing_deadline_at: p.ticketing_deadline_at ?? null,
+        infant: p.infant ? `${p.infant.last_name}/${p.infant.first_name}` : null,
       }))
     )
   },
