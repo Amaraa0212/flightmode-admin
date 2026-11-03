@@ -47,11 +47,14 @@ export function FareClassDialog({
   fareClass,
   rbds,
   rbdId,
+  airlineId,
   onClose,
 }: {
   fareClass?: FareClass
   rbds: Rbd[]
   rbdId?: number
+  /** system administrators: the airline a new fare base is created for */
+  airlineId?: number
   onClose: () => void
 }) {
   const save = useFareMutation((v: Form) => {
@@ -64,6 +67,7 @@ export function FareClassDialog({
     } = v
     const payload = {
       ...rest,
+      airline_id: fareClass ? undefined : airlineId,
       rbd_id: Number(v.rbd_id),
       group_min: v.is_group ? v.group_min : null,
       group_max: v.is_group ? v.group_max : null,

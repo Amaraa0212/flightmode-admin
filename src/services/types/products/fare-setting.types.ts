@@ -29,6 +29,7 @@ export interface FareFamilyPayload {
 /** /admin/rbds — booking class letter inside a cabin */
 export interface Rbd extends Record<string, unknown> {
   id: number
+  airline_id: number
   code: string
   cabin_class: CabinCode
   rank: number
@@ -48,6 +49,8 @@ export interface Rbd extends Record<string, unknown> {
 }
 
 export interface RbdPayload {
+  /** system administrators: the airline it is created for */
+  airline_id?: number
   code: string
   cabin_class: CabinCode
   rank: number
@@ -104,6 +107,8 @@ export interface FareClass extends Record<string, unknown> {
 }
 
 export interface FareClassPayload {
+  /** system administrators: the airline it is created for */
+  airline_id?: number
   rbd_id: number
   booking_code: string
   description: string

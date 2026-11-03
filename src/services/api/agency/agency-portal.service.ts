@@ -253,12 +253,33 @@ export interface AgencyPassengerDetail {
   document_expires_at: string | null
   phone: string | null
   email: string | null
+  infant?: {
+    first_name: string
+    last_name: string
+    gender: 'M' | 'F' | null
+    date_of_birth: string | null
+    document_number: string | null
+    document_expires_at: string | null
+  } | null
 }
 
-export type AgencyPassengerEdit = Omit<AgencyBookingPassenger, 'cabin_class' | 'infant'>
+/** null infant: the passenger travels without one (an existing infant is removed) */
+export type AgencyPassengerEdit = Omit<AgencyBookingPassenger, 'cabin_class'>
 
 const upper = (v: string) => v.trim().toUpperCase()
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
+
+/** infant of an adult: same nationality as the adult */
+const infantPayload = (i: AgencyBookingInfant, nationality: string) => ({
+  last_name: upper(i.last_name),
+  first_name: upper(i.first_name),
+  gender: i.gender,
+  date_of_birth: i.date_of_birth,
+  nationality: upper(nationality) || null,
+  document_type: i.document_number.trim() ? 'passport' : null,
+  document_number: i.document_number.trim() ? upper(i.document_number) : null,
+  document_expires_at: orNull(i.document_expires_at),
+})
 
 export const agencyPortalService = {
   /** Excel / CSV passenger list of a quota (one PNR per row); replace = cancel the quota's passengers first */
@@ -375,20 +396,7 @@ export const agencyPortalService = {
         phone: orNull(p.phone),
         email: orNull(p.email),
         cabin_class: p.cabin_class,
-        infant: p.infant
-          ? {
-              last_name: upper(p.infant.last_name),
-              first_name: upper(p.infant.first_name),
-              gender: p.infant.gender,
-              date_of_birth: p.infant.date_of_birth,
-              nationality: upper(p.nationality) || null,
-              document_type: p.infant.document_number.trim() ? 'passport' : null,
-              document_number: p.infant.document_number.trim()
-                ? upper(p.infant.document_number)
-                : null,
-              document_expires_at: orNull(p.infant.document_expires_at),
-            }
-          : undefined,
+        infant: p.infant ? infantPayload(p.infant, p.nationality) : undefined,
         allocation_fare_id: hold?.allocation_fare_id ?? undefined,
         fare_id: hold?.fare_id ?? undefined,
       })),
@@ -457,6 +465,7 @@ export const agencyPortalService = {
         document_expires_at: orNull(p.document_expires_at),
         phone: orNull(p.phone),
         email: orNull(p.email),
+        infant: p.infant ? infantPayload(p.infant, p.nationality) : null,
       }
     )
     return ok(null, res.message)

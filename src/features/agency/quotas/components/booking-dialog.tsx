@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import { useFieldArray, useForm, type UseFormReturn } from 'react-hook-form'
+import {
+  get,
+  useFieldArray,
+  useForm,
+  type FieldValues,
+  type Path,
+  type PathValue,
+  type UseFormReturn,
+} from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Baby, Loader2, Plus, Search, Trash2, UserPlus, X } from 'lucide-react'
@@ -38,7 +46,7 @@ export const passportNumber = z
   .min(3, 'Паспортын дугаар оруулна уу')
   .regex(/^[A-Za-z0-9]+$/, 'Зөвхөн латин үсэг, тоо')
 
-const infant = z.object({
+export const infant = z.object({
   last_name: latinName('Овог оруулна уу'),
   first_name: latinName('Нэр оруулна уу'),
   gender: z.enum(['M', 'F']),
@@ -88,7 +96,9 @@ export const blank = (cabin: string): PassengerForm => ({
   infant: null,
 })
 
-const blankInfant = (): NonNullable<PassengerForm['infant']> => ({
+export type InfantForm = z.infer<typeof infant>
+
+const blankInfant = (): InfantForm => ({
   last_name: '',
   first_name: '',
   gender: 'M',
@@ -271,8 +281,6 @@ export function PassengerCard({
   const [searching, setSearching] = useState(false)
   const name = <K extends keyof PassengerForm>(k: K) => `passengers.${index}.${k}` as const
   const error = (k: Exclude<keyof PassengerForm, 'infant'>) => form.formState.errors.passengers?.[index]?.[k]?.message
-  const infantError = (k: keyof NonNullable<PassengerForm['infant']>) =>
-    form.formState.errors.passengers?.[index]?.infant?.[k]?.message
 
   /** Fill the card from this agency's earlier booking of the same passport */
   const lookup = async () => {
@@ -391,69 +399,84 @@ export function PassengerCard({
         </Field>
       </div>
 
-      {/* infant on the lap: its own ticket, no seat — the adult must be 12+, the infant under 2 on the flight date */}
-      {form.watch(name('infant')) ? (
-        <div className='mt-4 rounded-lg border border-dashed p-3'>
-          <div className='mb-3 flex items-center justify-between'>
-            <p className='flex items-center gap-1.5 text-sm font-semibold'>
-              <Baby className='size-4' />
-              Нярай (INF, 2 хүртэлх насны)
-            </p>
-            <Button
-              type='button'
-              variant='ghost'
-              size='sm'
-              className='h-7 gap-1 text-xs'
-              onClick={() => form.setValue(name('infant'), null)}
-            >
-              <X className='size-3.5' />
-              Хасах
-            </Button>
-          </div>
-          <div className='grid gap-4 sm:grid-cols-3'>
-            <Field label='Овог *' error={infantError('last_name')}>
-              <Input className='h-10 uppercase' {...form.register(`passengers.${index}.infant.last_name`)} />
-            </Field>
-            <Field label='Нэр *' error={infantError('first_name')}>
-              <Input className='h-10 uppercase' {...form.register(`passengers.${index}.infant.first_name`)} />
-            </Field>
-            <Field label='Хүйс'>
-              <Select
-                value={form.watch(`passengers.${index}.infant.gender`)}
-                onValueChange={(v) => form.setValue(`passengers.${index}.infant.gender`, v as 'M' | 'F')}
-              >
-                <SelectTrigger className='h-10 w-full'>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value='M'>Эрэгтэй (M)</SelectItem>
-                  <SelectItem value='F'>Эмэгтэй (F)</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label='Төрсөн огноо *' error={infantError('date_of_birth')}>
-              <Input className='h-10' type='date' {...form.register(`passengers.${index}.infant.date_of_birth`)} />
-            </Field>
-            <Field label='Паспортын дугаар *' error={infantError('document_number')}>
-              <Input className='h-10 font-mono uppercase' {...form.register(`passengers.${index}.infant.document_number`)} />
-            </Field>
-            <Field label='Паспорт дуусах *' error={infantError('document_expires_at')}>
-              <Input className='h-10' type='date' {...form.register(`passengers.${index}.infant.document_expires_at`)} />
-            </Field>
-          </div>
-        </div>
-      ) : (
+      <InfantSection form={form} base={`passengers.${index}.`} />
+    </section>
+  )
+}
+
+/**
+ * Infant on the adult's lap: its own ticket, no seat — the adult must be 12+, the infant under 2 on the flight date.
+ * `base` is the adult's path in the form ('' or 'passengers.0.'); its `infant` is null when there is none.
+ */
+export function InfantSection<T extends FieldValues>({ form, base }: { form: UseFormReturn<T>; base: string }) {
+  const path = (k: string) => `${base}infant${k ? `.${k}` : ''}` as Path<T>
+  const error = (k: keyof InfantForm) =>
+    (get(form.formState.errors, path(k)) as { message?: string } | undefined)?.message
+
+  if (!form.watch(path(''))) {
+    return (
+      <Button
+        type='button'
+        variant='ghost'
+        size='sm'
+        className='mt-3 h-8 gap-1.5 text-xs'
+        onClick={() => form.setValue(path(''), blankInfant() as PathValue<T, Path<T>>)}
+      >
+        <Baby className='size-4' />
+        Нярай нэмэх
+      </Button>
+    )
+  }
+
+  return (
+    <div className='mt-4 rounded-lg border border-dashed p-3'>
+      <div className='mb-3 flex items-center justify-between'>
+        <p className='flex items-center gap-1.5 text-sm font-semibold'>
+          <Baby className='size-4' />
+          Нярай (INF, 2 хүртэлх насны)
+        </p>
         <Button
           type='button'
           variant='ghost'
           size='sm'
-          className='mt-3 h-8 gap-1.5 text-xs'
-          onClick={() => form.setValue(name('infant'), blankInfant())}
+          className='h-7 gap-1 text-xs'
+          onClick={() => form.setValue(path(''), null as PathValue<T, Path<T>>)}
         >
-          <Baby className='size-4' />
-          Нярай нэмэх
+          <X className='size-3.5' />
+          Хасах
         </Button>
-      )}
-    </section>
+      </div>
+      <div className='grid gap-4 sm:grid-cols-3'>
+        <Field label='Овог *' error={error('last_name')}>
+          <Input className='h-10 uppercase' {...form.register(path('last_name'))} />
+        </Field>
+        <Field label='Нэр *' error={error('first_name')}>
+          <Input className='h-10 uppercase' {...form.register(path('first_name'))} />
+        </Field>
+        <Field label='Хүйс'>
+          <Select
+            value={form.watch(path('gender'))}
+            onValueChange={(v) => form.setValue(path('gender'), v as PathValue<T, Path<T>>)}
+          >
+            <SelectTrigger className='h-10 w-full'>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value='M'>Эрэгтэй (M)</SelectItem>
+              <SelectItem value='F'>Эмэгтэй (F)</SelectItem>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field label='Төрсөн огноо *' error={error('date_of_birth')}>
+          <Input className='h-10' type='date' {...form.register(path('date_of_birth'))} />
+        </Field>
+        <Field label='Паспортын дугаар *' error={error('document_number')}>
+          <Input className='h-10 font-mono uppercase' {...form.register(path('document_number'))} />
+        </Field>
+        <Field label='Паспорт дуусах *' error={error('document_expires_at')}>
+          <Input className='h-10' type='date' {...form.register(path('document_expires_at'))} />
+        </Field>
+      </div>
+    </div>
   )
 }

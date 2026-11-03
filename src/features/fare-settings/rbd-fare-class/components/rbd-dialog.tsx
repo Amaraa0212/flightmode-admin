@@ -29,15 +29,30 @@ type Form = z.infer<typeof schema>
 export function RbdDialog({
   rbd,
   rbds,
+  airlineId,
   onClose,
 }: {
   rbd?: Rbd
+  /** booking classes of the same airline */
   rbds: Rbd[]
+  /** system administrators: the airline a new booking class is created for */
+  airlineId?: number
   onClose: () => void
 }) {
+  // a letter is used once per airline: refuse it here instead of after saving
+  const taken = new Set(rbds.filter((r) => r.id !== rbd?.id).map((r) => r.code))
+  const formSchema = schema.refine(
+    (v) => !taken.has(v.code.trim().toUpperCase()),
+    {
+      message: 'Энэ booking class аль хэдийн бүртгэгдсэн байна',
+      path: ['code'],
+    }
+  )
+
   const save = useFareMutation((v: Form) => {
     const payload = {
       ...v,
+      airline_id: rbd ? undefined : airlineId,
       parent_id: v.parent_id === NONE ? null : Number(v.parent_id),
       fare_family_id:
         v.fare_family_id === NONE ? null : Number(v.fare_family_id),
@@ -152,7 +167,7 @@ export function RbdDialog({
     <ConfigFormDialog<Form>
       open
       onClose={onClose}
-      schema={schema}
+      schema={formSchema}
       fields={fields}
       data={rbd ? values : undefined}
       defaultValues={values}

@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import {
+  airlineOptions,
   fareClassService,
   rbdService,
   type FareClass,
@@ -9,8 +10,16 @@ import {
   type Rbd,
 } from '@/services'
 import { ChevronDown, ChevronRight, Percent, Plus } from 'lucide-react'
+import { useAuthStore } from '@/stores/auth-store'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   Table,
   TableBody,
@@ -23,7 +32,7 @@ import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/page-header'
 import { ActiveBadge } from '@/components/status-badge'
 import {
-  byHierarchy,
+  byCabinRankParent,
   DeleteDialog,
   EmptyRow,
   Panel,
@@ -59,9 +68,23 @@ export function RbdFareClass() {
   const [removal, setRemoval] = useState<Removal | null>(null)
   const [open, setOpen] = useState<Set<number>>(new Set())
 
+  // system administrators see one airline at a time (each airline has its own booking class letters)
+  const isSystemAdmin = useAuthStore((s) => !!s.auth.user?.is_system_admin)
+  const { data: airlines = [] } = useQuery({
+    queryKey: ['airline-options'],
+    queryFn: airlineOptions,
+    enabled: isSystemAdmin,
+  })
+  const airlineId = isSystemAdmin
+    ? (search.airline ?? (airlines[0] ? Number(airlines[0].value) : undefined))
+    : undefined
+
   const { data: rbds = [], isLoading } = useQuery({
-    queryKey: ['fare-settings', 'rbds'],
-    queryFn: async () => (await rbdService.all()).body.items ?? [],
+    queryKey: ['fare-settings', 'rbds', airlineId],
+    queryFn: async () =>
+      (await rbdService.all(airlineId ? { airline_id: airlineId } : {})).body
+        .items ?? [],
+    enabled: !isSystemAdmin || !!airlineId,
   })
   const { data: classes = [] } = useQuery({
     queryKey: ['fare-settings', 'fare-classes', selectedId],
@@ -69,7 +92,7 @@ export function RbdFareClass() {
       (await fareClassService.all({ rbd_id: selectedId })).body.items ?? [],
     enabled: !!selectedId,
   })
-  const tree = useMemo(() => byHierarchy(rbds), [rbds])
+  const tree = useMemo(() => byCabinRankParent(rbds), [rbds])
   const selected = rbds.find((r) => r.id === selectedId)
 
   const remove = useFareMutation(
@@ -81,7 +104,7 @@ export function RbdFareClass() {
           : fareClassService.removeDiscount(r.fareClass.id, r.row.id),
     () => {
       if (removal?.kind === 'rbd' && removal.row.id === selectedId)
-        navigate({ search: {} })
+        navigate({ search: { airline: search.airline } })
       setRemoval(null)
     }
   )
@@ -123,6 +146,27 @@ export function RbdFareClass() {
       <PageHeader
         title='Booking Class - Fare Base'
         description='Booking classes per cabin, their fare bases and the age discounts of each fare base'
+        actions={
+          isSystemAdmin && (
+            <Select
+              value={airlineId ? String(airlineId) : ''}
+              onValueChange={(v) =>
+                navigate({ search: { airline: Number(v) } })
+              }
+            >
+              <SelectTrigger className='h-9 w-64'>
+                <SelectValue placeholder='Airline' />
+              </SelectTrigger>
+              <SelectContent>
+                {airlines.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )
+        }
       />
 
       {/* wide screens: booking class list above its fare bases (both tables are wide), each scrolling on its own */}
@@ -163,19 +207,16 @@ export function RbdFareClass() {
               {tree.map((r) => (
                 <TableRow
                   key={r.id}
-                  onClick={() => navigate({ search: { rbd: r.id } })}
+                  onClick={() =>
+                    navigate({ search: { airline: search.airline, rbd: r.id } })
+                  }
                   className={cn(
                     'cursor-pointer',
                     r.id === selectedId && 'bg-cyan-400/10 hover:bg-cyan-400/15'
                   )}
                 >
                   <TableCell className='font-mono font-semibold'>
-                    <span style={{ paddingInlineStart: r.level * 16 }}>
-                      {r.level > 0 && (
-                        <span className='text-muted-foreground me-1'>└</span>
-                      )}
-                      {r.code}
-                    </span>
+                    {r.code}
                   </TableCell>
                   <TableCell className='text-muted-foreground max-w-0 truncate'>
                     {r.description || '-'}
@@ -221,7 +262,11 @@ export function RbdFareClass() {
                         variant={r.id === selectedId ? 'default' : 'outline'}
                         size='sm'
                         className='h-7 text-xs'
-                        onClick={() => navigate({ search: { rbd: r.id } })}
+                        onClick={() =>
+                          navigate({
+                            search: { airline: search.airline, rbd: r.id },
+                          })
+                        }
                       >
                         Select
                       </Button>
@@ -394,6 +439,7 @@ export function RbdFareClass() {
         <RbdDialog
           rbd={rbdDialog.rbd}
           rbds={rbds}
+          airlineId={airlineId}
           onClose={() => setRbdDialog(null)}
         />
       )}
@@ -402,6 +448,7 @@ export function RbdFareClass() {
           fareClass={classDialog.fareClass}
           rbds={rbds}
           rbdId={selectedId}
+          airlineId={airlineId}
           onClose={() => setClassDialog(null)}
         />
       )}
