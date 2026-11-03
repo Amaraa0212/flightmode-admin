@@ -1,4 +1,6 @@
+import type { SeatMapLayout } from '../../types/fleet/aircraft.types'
 import type { ListParams } from '../../types/shared/common.types'
+import { toLayout } from '../fleet/seat-map.service'
 import { action, client, ok, saveBlob, type ApiData } from '../shared/client'
 
 /*
@@ -6,6 +8,9 @@ import { action, client, ok, saveBlob, type ApiData } from '../shared/client'
 */
 
 type ApiFlight = {
+  id?: number
+  service_type?: 'scheduled' | 'charter'
+  status?: string
   flight_number: string
   scheduled_departure_at: string
   origin?: { iata_code: string }
@@ -23,13 +28,20 @@ type ApiQuota = {
   is_waitlist: boolean
   cabins?: Record<string, number>
   schedule_changes?: AgencyScheduleChanges
+  rights?: AgencyRights
   usage?: {
     used: number
     held?: number
     remaining: number
     is_open_for_names: boolean
     names_deadline_at: string
-    cabins?: { cabin_class: string; seats: number; used: number; held: number; remaining: number }[]
+    cabins?: {
+      cabin_class: string
+      seats: number
+      used: number
+      held: number
+      remaining: number
+    }[]
   }
 }
 
@@ -55,6 +67,23 @@ export interface AgencyQuota extends Record<string, unknown> {
   /** a full quota waitlists new passengers */
   is_waitlist: boolean
   schedule_changes: AgencyScheduleChanges
+  /** what the airline lets the agency do on this quota (Agents permission) */
+  rights?: AgencyRights
+  /** charter: seats can be reserved (with the right) while the flight is not open for check-in */
+  is_charter?: boolean
+  seats_open?: boolean
+  /** outbound (+ return) flight of the quota */
+  flights?: { id: number; label: string }[]
+}
+
+export interface AgencyRights {
+  import_passengers: boolean
+  assign_seats: boolean
+}
+
+const NO_RIGHTS: AgencyRights = {
+  import_passengers: false,
+  assign_seats: false,
 }
 
 /** Departure / arrival / number / route changes of the quota's flights since it was given */
@@ -97,7 +126,9 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
   flight_number: a.outbound_flight.flight_number,
   route: route(a.outbound_flight),
   departure_at: a.outbound_flight.scheduled_departure_at,
-  return_flight: a.return_flight ? `${a.return_flight.flight_number} ${route(a.return_flight)}` : null,
+  return_flight: a.return_flight
+    ? `${a.return_flight.flight_number} ${route(a.return_flight)}`
+    : null,
   seats: a.seats,
   used: a.usage?.used ?? 0,
   held: a.usage?.held ?? 0,
@@ -106,7 +137,10 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
     .map(([cabin, seats]) => `${cabin} ${seats}`)
     .join(' · '),
   cabin_usage: (a.usage?.cabins ?? [])
-    .map((c) => `${c.cabin_class}: ${c.used} зарагдсан, ${c.held} hold, ${c.remaining} үлдсэн / ${c.seats}`)
+    .map(
+      (c) =>
+        `${c.cabin_class}: ${c.used} зарагдсан, ${c.held} hold, ${c.remaining} үлдсэн / ${c.seats}`
+    )
     .join('\n'),
   cabin_classes: Object.entries(a.cabins ?? {})
     .filter(([, seats]) => seats > 0)
@@ -115,6 +149,70 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
   is_open_for_names: a.usage?.is_open_for_names ?? false,
   is_waitlist: a.is_waitlist,
   schedule_changes: a.schedule_changes ?? NO_CHANGES,
+  rights: a.rights ?? NO_RIGHTS,
+  is_charter: a.outbound_flight.service_type === 'charter',
+  seats_open: a.outbound_flight.status === 'scheduled',
+  flights: [
+    {
+      id: a.outbound_flight.id ?? 0,
+      label: `${a.outbound_flight.flight_number} ${route(a.outbound_flight)}`,
+    },
+    ...(a.return_flight?.id
+      ? [
+          {
+            id: a.return_flight.id,
+            label: `${a.return_flight.flight_number} ${route(a.return_flight)}`,
+          },
+        ]
+      : []),
+  ],
+})
+
+/** A passenger of the agency on a charter flight, for seat reservation */
+export interface AgencySeatPassenger {
+  segment_id: number
+  passenger_id: number
+  name: string
+  pnr: string | null
+  person_code: string | null
+  cabin_class: string
+  seat_number: string | null
+  status: string
+}
+
+export interface AgencySeatMap {
+  layout: SeatMapLayout
+  passengers: AgencySeatPassenger[]
+  /** seat number → segment id of the agency's own passengers */
+  own: Record<string, number>
+}
+
+type ApiSeatMap = {
+  seats: (Parameters<typeof toLayout>[0][number] & {
+    own?: boolean
+    occupant?: { segment_id: number; name: string | null } | null
+  })[]
+  passengers: AgencySeatPassenger[]
+}
+
+/** Restricted (exit, closed zone) and held seats cannot be reserved: shown as blocked; only own occupants are named */
+const toSeatMap = (d: ApiSeatMap): AgencySeatMap => ({
+  layout: toLayout(
+    d.seats.map((s) => ({
+      ...s,
+      state:
+        s.state === 'available' || s.state === 'occupied' ? s.state : 'blocked',
+      occupant: s.own ? s.occupant : null,
+    })),
+    null,
+    0
+  ),
+  passengers: d.passengers,
+  own: Object.fromEntries(
+    d.seats
+      .filter((s) => s.own && s.occupant)
+      .map((s) => [s.seat_number, s.occupant!.segment_id])
+  ),
 })
 
 /** One passenger of a new agency booking (PassengerFields on the API) */
@@ -150,19 +248,78 @@ const upper = (v: string) => v.trim().toUpperCase()
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
 
 export const agencyPortalService = {
+  /** Excel / CSV passenger list of a quota (one PNR per row); replace = cancel the quota's passengers first */
+  importPassengers: (quotaId: number, file: File, replace: boolean) => {
+    const form = new FormData()
+    form.append('file', file)
+    form.append('replace_existing', replace ? '1' : '0')
+    return action(
+      client.upload<ApiData<{ created: number; bookings: string[] }>>(
+        `/agency/allocations/${quotaId}/import`,
+        form
+      ),
+      (r) => r
+    )
+  },
+
+  /** Charter seat reservation (no check-in) */
+  seatMap: async (quotaId: number, flightId?: number) =>
+    ok(
+      toSeatMap(
+        (
+          await client.get<ApiData<ApiSeatMap>>(
+            `/agency/allocations/${quotaId}/seat-map`,
+            { flight_id: flightId }
+          )
+        ).data
+      )
+    ),
+  saveSeats: (
+    quotaId: number,
+    flightId: number | undefined,
+    seats: { segment_id: number; seat_number: string | null }[]
+  ) =>
+    action(
+      client.put<ApiData<ApiSeatMap>>(`/agency/allocations/${quotaId}/seats`, {
+        flight_id: flightId,
+        seats,
+      }),
+      toSeatMap
+    ),
+  autoSeats: (quotaId: number, flightId?: number) =>
+    action(
+      client.post<ApiData<ApiSeatMap>>(
+        `/agency/allocations/${quotaId}/seats/auto`,
+        { flight_id: flightId }
+      ),
+      toSeatMap
+    ),
+
   /** status: '' (upcoming) | 'past' (last 3 months) */
   quotas: async (params: ListParams & { status?: string | string[] } = {}) => {
-    const status = Array.isArray(params.status) ? params.status[0] : params.status
-    const res = await client.get<{ data: ApiQuota[]; meta?: { total: number } }>('/agency/allocations', {
+    const status = Array.isArray(params.status)
+      ? params.status[0]
+      : params.status
+    const res = await client.get<{
+      data: ApiQuota[]
+      meta?: { total: number }
+    }>('/agency/allocations', {
       status: status || undefined,
       page: params.current ?? 1,
       per_page: params.pageSize ?? 20,
     })
-    const q = String(params.query ?? '').trim().toLowerCase()
+    const q = String(params.query ?? '')
+      .trim()
+      .toLowerCase()
     const items = res.data
       .map(toQuota)
-      .filter((r) => !q || `${r.flight_number} ${r.route}`.toLowerCase().includes(q))
-    return ok({ total: q ? items.length : (res.meta?.total ?? items.length), items })
+      .filter(
+        (r) => !q || `${r.flight_number} ${r.route}`.toLowerCase().includes(q)
+      )
+    return ok({
+      total: q ? items.length : (res.meta?.total ?? items.length),
+      items,
+    })
   },
 
   /** POST /agency/bookings — one PNR for the passengers, on the quota's flight (or on seats of a hold) */
@@ -170,14 +327,21 @@ export const agencyPortalService = {
     quotaId: number,
     passengers: AgencyBookingPassenger[],
     contact: { phone: string; email: string },
-    /** seats of a hold (its id), or just the fare bucket picked for every passenger */
-    hold?: { id?: number; allocation_fare_id: number | null },
+    /** seats of a hold (its id), or just the fare bucket (or published fare) picked for every passenger */
+    hold?: {
+      id?: number
+      allocation_fare_id: number | null
+      fare_id?: number | null
+    },
     /** keep the seats without tickets until the fare's ticket time limit */
     onHold = false,
     /** false: refuse when the quota is full instead of waitlisting */
     waitlist?: boolean
   ) => {
-    const res = await client.post<{ message: string; data: { id: number; pnr: string; status: string } }>('/agency/bookings', {
+    const res = await client.post<{
+      message: string
+      data: { id: number; pnr: string; status: string }
+    }>('/agency/bookings', {
       allocation_id: quotaId,
       hold_id: hold?.id,
       on_hold: onHold,
@@ -191,12 +355,15 @@ export const agencyPortalService = {
         date_of_birth: orNull(p.date_of_birth),
         nationality: upper(p.nationality) || null,
         document_type: p.document_number.trim() ? 'passport' : null,
-        document_number: p.document_number.trim() ? upper(p.document_number) : null,
+        document_number: p.document_number.trim()
+          ? upper(p.document_number)
+          : null,
         document_expires_at: orNull(p.document_expires_at),
         phone: orNull(p.phone),
         email: orNull(p.email),
         cabin_class: p.cabin_class,
         allocation_fare_id: hold?.allocation_fare_id ?? undefined,
+        fare_id: hold?.fare_id ?? undefined,
       })),
     })
     return ok(res.data, `${res.message} PNR ${res.data.pnr}`)
@@ -204,13 +371,17 @@ export const agencyPortalService = {
 
   /** The agency has seen the schedule changes of the quota's flights */
   scheduleChangesSeen: async (quotaId: number) => {
-    const res = await client.post<{ message: string }>(`/agency/allocations/${quotaId}/schedule-changes/seen`)
+    const res = await client.post<{ message: string }>(
+      `/agency/allocations/${quotaId}/schedule-changes/seen`
+    )
     return ok(null, res.message)
   },
 
   /** Issue the tickets of a booking on hold (before its time limit); the account is charged now */
   issue: async (bookingId: number) => {
-    const res = await client.post<{ message: string }>(`/agency/bookings/${bookingId}/issue`)
+    const res = await client.post<{ message: string }>(
+      `/agency/bookings/${bookingId}/issue`
+    )
     return ok(null, res.message)
   },
 
@@ -228,28 +399,39 @@ export const agencyPortalService = {
         phone: string | null
         email: string | null
       } | null>
-    >('/agency/passenger-lookup', { document_number: documentNumber.trim().toUpperCase() })
+    >('/agency/passenger-lookup', {
+      document_number: documentNumber.trim().toUpperCase(),
+    })
     return res.data
   },
 
   /** One passenger with every field, to edit */
   passenger: async (id: number) =>
-    (await client.get<ApiData<AgencyPassengerDetail>>(`/agency/passengers/${id}`)).data,
+    (
+      await client.get<ApiData<AgencyPassengerDetail>>(
+        `/agency/passengers/${id}`
+      )
+    ).data,
 
   /** Name, passport, contact … of a booked passenger (not after check-in) */
   updatePassenger: async (id: number, p: AgencyPassengerEdit) => {
-    const res = await client.put<{ message: string }>(`/agency/passengers/${id}`, {
-      last_name: upper(p.last_name),
-      first_name: upper(p.first_name),
-      gender: p.gender,
-      date_of_birth: orNull(p.date_of_birth),
-      nationality: upper(p.nationality) || null,
-      document_type: p.document_number.trim() ? 'passport' : null,
-      document_number: p.document_number.trim() ? upper(p.document_number) : null,
-      document_expires_at: orNull(p.document_expires_at),
-      phone: orNull(p.phone),
-      email: orNull(p.email),
-    })
+    const res = await client.put<{ message: string }>(
+      `/agency/passengers/${id}`,
+      {
+        last_name: upper(p.last_name),
+        first_name: upper(p.first_name),
+        gender: p.gender,
+        date_of_birth: orNull(p.date_of_birth),
+        nationality: upper(p.nationality) || null,
+        document_type: p.document_number.trim() ? 'passport' : null,
+        document_number: p.document_number.trim()
+          ? upper(p.document_number)
+          : null,
+        document_expires_at: orNull(p.document_expires_at),
+        phone: orNull(p.phone),
+        email: orNull(p.email),
+      }
+    )
     return ok(null, res.message)
   },
 
@@ -259,7 +441,10 @@ export const agencyPortalService = {
     saveBlob(await client.blob(`/agency/passengers/${id}/eticket`), filename),
   /** to the passenger's e-mail, or to `email` */
   emailEticket: async (id: number, email?: string) => {
-    const res = await client.post<{ message: string }>(`/agency/passengers/${id}/eticket/email`, { email: email || undefined })
+    const res = await client.post<{ message: string }>(
+      `/agency/passengers/${id}/eticket/email`,
+      { email: email || undefined }
+    )
     return ok(null, res.message)
   },
 
@@ -278,27 +463,29 @@ export const agencyPortalService = {
           last_name: string
           document_number: string | null
           phone: string | null
-          segments?: { ticket_number: string | null; seat_number: string | null; status: string }[]
+          segments?: {
+            ticket_number: string | null
+            seat_number: string | null
+            status: string
+          }[]
         }[]
       >
     >(`/agency/allocations/${quotaId}/passengers`)
     return ok(
-      res.data.map(
-        (p): AgencyPassenger => ({
-          id: p.id,
-          pnr: p.pnr ?? '',
-          name: `${p.last_name}/${p.first_name}`,
-          type: p.type,
-          document_number: p.document_number,
-          phone: p.phone,
-          ticket_number: p.segments?.[0]?.ticket_number ?? null,
-          seat_number: p.segments?.[0]?.seat_number ?? null,
-          status: p.segments?.[0]?.status ?? '',
-          booking_id: p.booking_id,
-          booking_status: p.booking_status ?? '',
-          ticketing_deadline_at: p.ticketing_deadline_at ?? null,
-        })
-      )
+      res.data.map((p): AgencyPassenger => ({
+        id: p.id,
+        pnr: p.pnr ?? '',
+        name: `${p.last_name}/${p.first_name}`,
+        type: p.type,
+        document_number: p.document_number,
+        phone: p.phone,
+        ticket_number: p.segments?.[0]?.ticket_number ?? null,
+        seat_number: p.segments?.[0]?.seat_number ?? null,
+        status: p.segments?.[0]?.status ?? '',
+        booking_id: p.booking_id,
+        booking_status: p.booking_status ?? '',
+        ticketing_deadline_at: p.ticketing_deadline_at ?? null,
+      }))
     )
   },
 }
@@ -315,6 +502,19 @@ export interface AgencyFare {
   /** null = no limit on the fare */
   remaining: number | null
   price: { fare: string | number; tax: string | number } | null
+  /** published fare (fare settings): `id` is the fare id, sent as fare_id */
+  published?: boolean
+  fare_family?: { code: string; name: string; rank: number } | null
+  rbd_code?: string
+  /** booking class sold out: books as waitlist (HL) */
+  waitlist?: boolean
+  rules?: {
+    advance_booking_days: number | null
+    min_stay_days: number | null
+    max_stay_days: number | null
+    ticket_time_limit_hours: number | null
+    rule: string | null
+  }
 }
 
 /** One allocation of the agency on the searched day */
@@ -331,6 +531,8 @@ export interface AgencyFlight {
   held: number
   remaining: number
   uses_fare_quotas: boolean
+  /** sells at the fare settings prices: its fares are published fare bases */
+  uses_published_fares: boolean
   is_waitlist: boolean
   cabins: {
     cabin_class: string
@@ -403,6 +605,7 @@ type ApiDayAllocation = Omit<
   outbound_flight: ApiLocalFlight
   return_flight: ApiLocalFlight | null
   uses_fare_quotas: boolean
+  uses_published_fares?: boolean
   usage: {
     used: number
     held: number
@@ -445,6 +648,7 @@ export const agencyHoldService = {
         held: a.usage.held,
         remaining: a.usage.remaining,
         uses_fare_quotas: a.uses_fare_quotas,
+        uses_published_fares: a.uses_published_fares ?? false,
         is_waitlist: a.is_waitlist,
         cabins: a.usage.cabins,
         fares: a.usage.fares,
@@ -478,6 +682,8 @@ export const agencyHoldService = {
     cabin_class: string
     seats: number
     allocation_fare_id: number | null
+    /** allocation selling at published fares */
+    fare_id?: number | null
   }) =>
     action(client.post<ApiData<ApiHold>>('/agency/holds', payload), (h) => h),
 
@@ -622,21 +828,33 @@ export const agencyBookingService = {
   },
 
   show: async (id: number) =>
-    ok(toBooking((await client.get<ApiData<ApiBooking>>(`/agency/bookings/${id}`)).data)),
+    ok(
+      toBooking(
+        (await client.get<ApiData<ApiBooking>>(`/agency/bookings/${id}`)).data
+      )
+    ),
 
   /** Download the passenger's e-ticket PDF */
   downloadEticket: async (passengerId: number, filename: string) =>
-    saveBlob(await client.blob(`/agency/passengers/${passengerId}/eticket`), filename),
+    saveBlob(
+      await client.blob(`/agency/passengers/${passengerId}/eticket`),
+      filename
+    ),
 
   emailEticket: async (passengerId: number, email?: string) => {
-    const res = await client.post<{ message: string }>(`/agency/passengers/${passengerId}/eticket/email`, {
-      email: email || undefined,
-    })
+    const res = await client.post<{ message: string }>(
+      `/agency/passengers/${passengerId}/eticket/email`,
+      {
+        email: email || undefined,
+      }
+    )
     return ok(null, res.message)
   },
 
   cancelPassenger: async (passengerId: number) => {
-    const res = await client.delete<{ message: string } | null>(`/agency/passengers/${passengerId}`)
+    const res = await client.delete<{ message: string } | null>(
+      `/agency/passengers/${passengerId}`
+    )
     return ok(null, res?.message ?? 'Passenger cancelled.')
   },
 }

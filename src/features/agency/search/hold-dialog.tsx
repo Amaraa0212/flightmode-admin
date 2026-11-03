@@ -10,6 +10,7 @@ import {
   formatDateTime,
   formatMoney,
 } from '@/features/agency/transactions/transactions-table'
+import { fareSeatsLabel } from '../shared/fare-seats'
 
 const CABIN: Record<string, string> = {
   F: 'First',
@@ -43,7 +44,10 @@ export function HoldDialog({
     flight.cabins.find((c) => c.cabin_class === cabin)?.remaining ?? 0,
     fare?.remaining ?? Number.MAX_SAFE_INTEGER
   )
-  const needsFare = flight.uses_fare_quotas || flight.fares.length > 0
+  const needsFare =
+    flight.uses_fare_quotas ||
+    flight.uses_published_fares ||
+    flight.fares.length > 0
 
   const save = useMutation({
     mutationFn: () =>
@@ -51,7 +55,10 @@ export function HoldDialog({
         allocation_id: flight.id,
         cabin_class: cabin,
         seats,
-        allocation_fare_id: fareId,
+        // a published fare is a fare id, not a bucket of the allocation
+        ...(fare?.published
+          ? { allocation_fare_id: null, fare_id: fareId }
+          : { allocation_fare_id: fareId }),
       }),
     onSuccess: (res) => {
       toast.success(res.message)
@@ -120,11 +127,14 @@ export function HoldDialog({
                   className='hover:bg-muted/50 aria-pressed:border-primary aria-pressed:bg-primary/5 flex items-center justify-between rounded-lg border px-3 py-2 text-start text-sm'
                 >
                   <span>
+                    {f.fare_family && (
+                      <span className='me-1.5 rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-violet-700 dark:text-violet-300'>
+                        {f.fare_family.code}
+                      </span>
+                    )}
                     <b className='font-mono'>{f.fare_class ?? '—'}</b>{' '}
                     <span className='text-muted-foreground text-xs'>
-                      {f.remaining === null
-                        ? 'хязгааргүй'
-                        : `${f.remaining} үлдсэн`}
+                      {fareSeatsLabel(flight, f)}
                     </span>
                   </span>
                   <span className='font-mono'>

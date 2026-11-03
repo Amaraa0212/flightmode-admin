@@ -264,7 +264,7 @@ export function FareFareTax() {
         title='Fare Tax'
         subtitle={
           fromSet
-            ? `${label(search.from)} · charged on every fare departing ${label(search.from)}`
+            ? `${label(search.from)} · OW: fares departing ${label(search.from)} · RT: both ends added, 70 % charged`
             : 'Select From airport and press Search'
         }
         actions={

@@ -13,11 +13,12 @@ import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/page-header'
 import { BalanceStrip } from '@/features/agency/account/balance-strip'
 import { BookingDialog } from '@/features/agency/quotas/components/booking-dialog'
+import { ScheduleChangeBadge } from '@/features/agency/schedule-change-badge'
 import {
   formatDateTime,
   formatMoney,
 } from '@/features/agency/transactions/transactions-table'
-import { ScheduleChangeBadge } from '@/features/agency/schedule-change-badge'
+import { fareSeatsLabel } from '../shared/fare-seats'
 import { HoldDialog } from './hold-dialog'
 
 const route = getRouteApi('/_authenticated/agency/search/')
@@ -203,12 +204,14 @@ function FlightCard({
               className='flex items-center justify-between px-3 py-1.5'
             >
               <span>
+                {fare.fare_family && (
+                  <span className='me-1.5 rounded bg-violet-500/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-violet-700 dark:text-violet-300'>
+                    {fare.fare_family.code}
+                  </span>
+                )}
                 <b className='font-mono'>{fare.fare_class ?? '—'}</b>{' '}
                 <span className='text-muted-foreground text-xs'>
-                  {fare.cabin_class} ·{' '}
-                  {fare.remaining === null
-                    ? 'хязгааргүй'
-                    : `${fare.remaining} үлдсэн`}
+                  {fare.cabin_class} · {fareSeatsLabel(f, fare)}
                 </span>
               </span>
               <span className='font-mono'>
@@ -240,7 +243,11 @@ function FlightCard({
             variant='outline'
             className='h-8 gap-1.5'
             disabled={closed || (full && !f.is_waitlist)}
-            title={full && f.is_waitlist ? 'Квот дүүрсэн — хүлээлгийн жагсаалтад (WL) нэмнэ' : undefined}
+            title={
+              full && f.is_waitlist
+                ? 'Квот дүүрсэн — хүлээлгийн жагсаалтад (WL) нэмнэ'
+                : undefined
+            }
             onClick={onBook}
           >
             <UserPlus className='size-4' />

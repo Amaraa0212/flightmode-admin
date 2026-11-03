@@ -4,6 +4,7 @@ import { getRouteApi } from '@tanstack/react-router'
 import { agencyContractService, type Agency } from '@/services'
 import { toast } from 'sonner'
 import type { NavigateFn } from '@/hooks/use-table-url-state'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Switch } from '@/components/ui/switch'
 import { col } from '@/components/resource/columns'
 import { ResourcePage } from '@/components/resource/resource-page'
@@ -38,6 +39,23 @@ export function AgencyAccess() {
     },
   })
 
+  const { mutate: setRight } = useMutation({
+    mutationFn: (vars: {
+      agencyId: number
+      airlineId: number
+      right: 'can_import_passengers' | 'can_assign_seats'
+      on: boolean
+    }) =>
+      agencyContractService.setRights(vars.agencyId, vars.airlineId, {
+        [vars.right]: vars.on,
+      }),
+    onSuccess: (res) => {
+      toast.success(res.message)
+      queryClient.invalidateQueries({ queryKey: [pageConfig.queryKey] })
+    },
+    onError: (error: Error) => toast.error(error.message),
+  })
+
   const columns = useMemo(
     () => [
       ...pageConfig.columns,
@@ -56,21 +74,52 @@ export function AgencyAccess() {
               )
             }
             return (
-              <div className='flex items-center gap-2'>
-                <Switch
-                  checked={!!contract?.contract_active}
-                  onCheckedChange={(active) =>
-                    toggle({ agencyId: r.id, airlineId: airline.id, active })
-                  }
-                  aria-label={`${r.name} sells ${airline.name}`}
-                />
-                <span className='text-muted-foreground text-xs'>
-                  {contract
-                    ? contract.contract_active
-                      ? 'Active'
-                      : 'Suspended'
-                    : 'No contract'}
-                </span>
+              <div className='grid gap-1.5'>
+                <div className='flex items-center gap-2'>
+                  <Switch
+                    checked={!!contract?.contract_active}
+                    onCheckedChange={(active) =>
+                      toggle({ agencyId: r.id, airlineId: airline.id, active })
+                    }
+                    aria-label={`${r.name} sells ${airline.name}`}
+                  />
+                  <span className='text-muted-foreground text-xs'>
+                    {contract
+                      ? contract.contract_active
+                        ? 'Active'
+                        : 'Suspended'
+                      : 'No contract'}
+                  </span>
+                </div>
+                {/* rights besides selling: Excel import, seat reservation on charter flights (legacy OT) */}
+                {contract?.contract_active && (
+                  <div className='flex flex-wrap gap-x-3 gap-y-1'>
+                    {(
+                      [
+                        ['can_import_passengers', 'Excel import'],
+                        ['can_assign_seats', 'Seats (charter)'],
+                      ] as const
+                    ).map(([right, label]) => (
+                      <label
+                        key={right}
+                        className='text-muted-foreground flex items-center gap-1.5 text-xs'
+                      >
+                        <Checkbox
+                          checked={!!contract[right]}
+                          onCheckedChange={(on) =>
+                            setRight({
+                              agencyId: r.id,
+                              airlineId: airline.id,
+                              right,
+                              on: on === true,
+                            })
+                          }
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                )}
               </div>
             )
           },
@@ -82,7 +131,7 @@ export function AgencyAccess() {
         )
       ),
     ],
-    [airlines, toggle]
+    [airlines, toggle, setRight]
   )
 
   return (

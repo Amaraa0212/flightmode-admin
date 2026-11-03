@@ -48,6 +48,7 @@ import {
   formatDateTime,
   formatMoney,
 } from '@/features/agency/transactions/transactions-table'
+import { fareSeatsLabel } from '../shared/fare-seats'
 import { FlowSteps, StatusPill, StepCard } from '../shared/flow'
 
 const route = getRouteApi('/_authenticated/agency/booking/')
@@ -190,7 +191,8 @@ export function AgencyBooking() {
         flight!.id,
         v.passengers.map((p) => ({ ...p, cabin_class: cabin })),
         { phone: v.contact_phone, email: v.contact_email },
-        { allocation_fare_id: fareId },
+        // a published fare is a fare id, not a bucket of the allocation
+        fare?.published ? { allocation_fare_id: null, fare_id: fareId } : { allocation_fare_id: fareId },
         onHold
       )
     },
@@ -344,8 +346,26 @@ const seatsLeft = (flight: AgencyFlight, cabin: string, fare: AgencyFare | null)
   Math.min(
     flight.remaining,
     flight.cabins.find((c) => c.cabin_class === cabin)?.remaining ?? 0,
-    fare?.remaining ?? Number.MAX_SAFE_INTEGER
+    // a sold-out booking class with waitlist books as HL
+    fare?.waitlist ? Number.MAX_SAFE_INTEGER : (fare?.remaining ?? Number.MAX_SAFE_INTEGER)
   )
+
+/** Published fare rules shown on the fare: advance purchase, stay, ticket time limit */
+function FareRules({ rules }: { rules: NonNullable<AgencyFare['rules']> }) {
+  const parts = [
+    rules.advance_booking_days ? `${rules.advance_booking_days}+ хоногийн өмнө` : null,
+    rules.min_stay_days || rules.max_stay_days
+      ? `байх ${rules.min_stay_days ?? 0}–${rules.max_stay_days ?? '∞'} хоног`
+      : null,
+    rules.ticket_time_limit_hours ? `TL ${rules.ticket_time_limit_hours}ц` : null,
+  ].filter(Boolean)
+  if (!parts.length && !rules.rule) return null
+  return (
+    <span className='text-[10px] opacity-75' title={rules.rule ?? undefined}>
+      {parts.join(' · ') || 'дүрэм'}
+    </span>
+  )
+}
 
 function NavRow({ onBack, children }: { onBack?: () => void; children: React.ReactNode }) {
   return (
@@ -661,9 +681,12 @@ function ItineraryStep({
   onBack: () => void
   onNext: () => void
 }) {
-  const fares = flight.fares.filter((f) => f.cabin_class === cabin)
+  // published fares: grouped by fare family (its rank), cheapest first inside a family
+  const fares = flight.fares
+    .filter((f) => f.cabin_class === cabin)
+    .sort((a, b) => (a.fare_family?.rank ?? 0) - (b.fare_family?.rank ?? 0))
   const fare = fares.find((f) => f.id === fareId) ?? null
-  const needsFare = flight.uses_fare_quotas || flight.fares.length > 0
+  const needsFare = flight.uses_fare_quotas || flight.uses_published_fares || flight.fares.length > 0
   const enough = seatsLeft(flight, cabin, fare) >= pax
   const p = farePrice(fare)
 
@@ -711,7 +734,7 @@ function ItineraryStep({
             <div className='flex flex-wrap gap-2'>
               {fares.map((f) => {
                 const fp = farePrice(f)
-                const out = f.remaining !== null && f.remaining < pax
+                const out = !f.waitlist && f.remaining !== null && f.remaining < pax
                 return (
                   <button
                     key={f.id}
@@ -721,9 +744,15 @@ function ItineraryStep({
                     onClick={() => onFare(f.id)}
                     className='aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground hover:bg-muted/50 flex min-w-24 flex-col items-center rounded-xl border px-4 py-2 disabled:opacity-40'
                   >
+                    {f.fare_family && (
+                      <span className='text-[10px] font-semibold tracking-wide uppercase opacity-80'>{f.fare_family.name}</span>
+                    )}
                     <span className='font-mono text-lg font-bold'>{f.fare_class ?? '—'}</span>
                     <span className='font-mono text-xs'>{fp ? formatMoney(fp.fare + fp.tax) : '—'}</span>
-                    <span className='text-[10px] opacity-75'>{f.remaining === null ? 'хязгааргүй' : `${f.remaining} үлдсэн`}</span>
+                    <span className='text-[10px] opacity-75'>
+                      {fareSeatsLabel(flight, f)}
+                    </span>
+                    {f.rules && <FareRules rules={f.rules} />}
                   </button>
                 )
               })}

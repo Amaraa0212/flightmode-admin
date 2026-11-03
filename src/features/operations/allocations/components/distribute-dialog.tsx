@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { useOptions } from '@/hooks/use-options'
 import { BaseDialog } from '@/components/ui/base-dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { SimpleSelect } from '@/components/simple-select'
@@ -28,6 +29,10 @@ type Row = {
   cabins: Record<string, number | ''>
   /** pool: limit, '' = none */
   limit: number | ''
+  /** prices from the fare settings (published fares) instead of fare buckets */
+  published: boolean
+  /** unsold fixed seats already given back at the names deadline */
+  released: number | null
 }
 
 const MODES = [
@@ -35,11 +40,12 @@ const MODES = [
   { label: 'Pool', value: 'pool' },
 ]
 
-const dayBefore = (iso: string) => {
+const addDays = (iso: string, days: number) => {
   const d = new Date(iso)
-  d.setUTCDate(d.getUTCDate() - 1)
+  d.setUTCDate(d.getUTCDate() + days)
   return d.toISOString().slice(0, 10)
 }
+const dayBefore = (iso: string) => addDays(iso, -1)
 
 const rowsOf = (q: FlightQuota): Row[] =>
   q.allocations.map((a) => ({
@@ -51,6 +57,8 @@ const rowsOf = (q: FlightQuota): Row[] =>
       q.cabins.map((c) => [c.cabin_class, a.cabins[c.cabin_class] ?? ''])
     ),
     limit: a.mode === 'pool' && a.seats ? a.seats : '',
+    published: a.uses_published_fares,
+    released: a.released_seats,
   }))
 
 const fixedSeats = (r: Row) =>
@@ -98,6 +106,20 @@ export function DistributeDialog({
     setRows(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)))
 
   const [deadline, setDeadline] = useState('')
+  // the same rows on every flight of the flight's series between two dates
+  const [series, setSeries] = useState<{
+    on: boolean
+    from: string
+    to: string
+    daysBefore: number | ''
+  }>({ on: false, from: '', to: '', daysBefore: 1 })
+  const seriesId = quota?.flight.flight_series_id ?? null
+  const seriesFrom =
+    series.from ||
+    (quota ? quota.flight.scheduled_departure_at.slice(0, 10) : '')
+  const seriesTo =
+    series.to || (quota ? addDays(quota.flight.scheduled_departure_at, 30) : '')
+  const toSeries = series.on && !!seriesId
   const defaultDeadline = quota
     ? dayBefore(quota.flight.scheduled_departure_at)
     : ''
@@ -133,29 +155,54 @@ export function DistributeDialog({
     (r) => !r.agency_id || (r.mode === 'fixed' && fixedSeats(r) < 1)
   )
 
+  const payloadRows = () =>
+    rows.map((r): DistributeRow => ({
+      allocation_id: r.allocation_id,
+      agency_id: Number(r.agency_id),
+      mode: r.mode,
+      seats: r.mode === 'pool' ? Number(r.limit || 0) : fixedSeats(r),
+      cabins:
+        r.mode === 'pool'
+          ? undefined
+          : Object.fromEntries(
+              Object.entries(r.cabins)
+                .map(([c, n]) => [c, Number(n || 0)])
+                .filter(([, n]) => Number(n) > 0)
+            ),
+      uses_published_fares: r.published,
+    }))
+
   const save = useMutation({
-    mutationFn: () =>
-      allocationBoardService.distribute(
-        flightId!,
-        rows.map((r): DistributeRow => ({
-          allocation_id: r.allocation_id,
-          agency_id: Number(r.agency_id),
-          mode: r.mode,
-          seats: r.mode === 'pool' ? Number(r.limit || 0) : fixedSeats(r),
-          cabins:
-            r.mode === 'pool'
-              ? undefined
-              : Object.fromEntries(
-                  Object.entries(r.cabins)
-                    .map(([c, n]) => [c, Number(n || 0)])
-                    .filter(([, n]) => Number(n) > 0)
-                ),
-        })),
-        remove,
-        deadline || defaultDeadline
-      ),
+    mutationFn: async () => {
+      if (!toSeries) {
+        const res = await allocationBoardService.distribute(
+          flightId!,
+          payloadRows(),
+          remove,
+          deadline || defaultDeadline
+        )
+        return { message: res.message, failed: [] as string[] }
+      }
+      const res = await allocationBoardService.distributeSeries(seriesId!, {
+        date_from: seriesFrom,
+        date_to: seriesTo,
+        deadline_days_before: Number(series.daysBefore || 0),
+        rows: payloadRows().map(({ allocation_id: _id, ...row }) => row),
+      })
+      return {
+        message: res.message,
+        failed: res.body.failed.map(
+          (f) => `${f.flight_number} ${f.date}: ${f.message}`
+        ),
+      }
+    },
     onSuccess: (res) => {
       toast.success(res.message)
+      if (res.failed.length)
+        toast.warning(`Skipped: ${res.failed.slice(0, 3).join(' · ')}`, {
+          description:
+            res.failed.length > 3 ? `and ${res.failed.length - 3} more` : '',
+        })
       queryClient.invalidateQueries({ queryKey: [BOARD_QUERY_KEY] })
       queryClient.invalidateQueries({ queryKey: ['admin-allocations'] })
       queryClient.invalidateQueries({ queryKey: ['allocation-overview'] })
@@ -253,16 +300,19 @@ export function DistributeDialog({
             </div>
 
             <div className='divide-y rounded-lg border'>
-              <div className='text-muted-foreground grid grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)_2rem] gap-2 px-3 py-2 text-xs font-medium'>
+              <div className='text-muted-foreground grid grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)_6.5rem_2rem] gap-2 px-3 py-2 text-xs font-medium'>
                 <span>Agency</span>
                 <span>Type</span>
                 <span>Seats</span>
+                <span title='Prices from the fare settings, with their rules'>
+                  Price
+                </span>
                 <span />
               </div>
               {rows.map((r) => (
                 <div
                   key={r.key}
-                  className='grid grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)_2rem] items-center gap-2 px-3 py-2'
+                  className='grid grid-cols-[minmax(0,1fr)_7rem_minmax(0,1fr)_6.5rem_2rem] items-center gap-2 px-3 py-2'
                 >
                   <SimpleSelect
                     value={r.agency_id || undefined}
@@ -325,6 +375,27 @@ export function DistributeDialog({
                       ))}
                     </div>
                   )}
+                  <label
+                    className='flex items-center gap-1.5 text-xs'
+                    title={
+                      r.released
+                        ? `${r.released} unsold seat(s) given back at the names deadline`
+                        : undefined
+                    }
+                  >
+                    <Checkbox
+                      checked={r.published}
+                      onCheckedChange={(v) =>
+                        update(r.key, { published: v === true })
+                      }
+                    />
+                    Published
+                    {r.released ? (
+                      <span className='font-mono text-amber-600 dark:text-amber-400'>
+                        −{r.released}
+                      </span>
+                    ) : null}
+                  </label>
                   <Button
                     variant='ghost'
                     size='icon'
@@ -357,6 +428,8 @@ export function DistributeDialog({
                           quota.cabins.map((c) => [c.cabin_class, ''])
                         ),
                         limit: '',
+                        published: false,
+                        released: null,
                       },
                     ])
                   }
@@ -367,17 +440,90 @@ export function DistributeDialog({
               </div>
             </div>
 
-            <div className='grid max-w-60 gap-1.5'>
-              <Label htmlFor='distribute-deadline'>
-                Names deadline (new agencies)
-              </Label>
-              <Input
-                id='distribute-deadline'
-                type='date'
-                value={deadline || defaultDeadline}
-                onChange={(e) => setDeadline(e.target.value)}
-              />
-            </div>
+            {!toSeries && (
+              <div className='grid max-w-60 gap-1.5'>
+                <Label htmlFor='distribute-deadline'>
+                  Names deadline (new agencies)
+                </Label>
+                <Input
+                  id='distribute-deadline'
+                  type='date'
+                  value={deadline || defaultDeadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                />
+              </div>
+            )}
+            <p className='text-muted-foreground text-xs'>
+              Unsold fixed seats go back to the pool and direct sale when the
+              names deadline passes.
+            </p>
+
+            {seriesId && (
+              <div className='grid gap-3 rounded-lg border p-3'>
+                <label className='flex items-center gap-2 text-sm font-medium'>
+                  <Checkbox
+                    checked={series.on}
+                    onCheckedChange={(v) =>
+                      setSeries({ ...series, on: v === true })
+                    }
+                  />
+                  Apply to every flight of this series
+                </label>
+                {series.on && (
+                  <>
+                    <div className='grid gap-3 sm:grid-cols-3'>
+                      <div className='grid gap-1.5'>
+                        <Label htmlFor='series-from'>From</Label>
+                        <Input
+                          id='series-from'
+                          type='date'
+                          value={seriesFrom}
+                          onChange={(e) =>
+                            setSeries({ ...series, from: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className='grid gap-1.5'>
+                        <Label htmlFor='series-to'>To</Label>
+                        <Input
+                          id='series-to'
+                          type='date'
+                          value={seriesTo}
+                          onChange={(e) =>
+                            setSeries({ ...series, to: e.target.value })
+                          }
+                        />
+                      </div>
+                      <div className='grid gap-1.5'>
+                        <Label htmlFor='series-deadline'>
+                          Names deadline, days before
+                        </Label>
+                        <Input
+                          id='series-deadline'
+                          type='number'
+                          min={0}
+                          value={series.daysBefore}
+                          onChange={(e) =>
+                            setSeries({
+                              ...series,
+                              daysBefore:
+                                e.target.value === ''
+                                  ? ''
+                                  : Math.max(0, Number(e.target.value)),
+                            })
+                          }
+                        />
+                      </div>
+                    </div>
+                    <p className='text-muted-foreground text-xs'>
+                      Each agency's allocation is updated or created on every
+                      flight; other agencies and removed rows are left as they
+                      are. Flights that cannot take it are skipped and listed.
+                    </p>
+                  </>
+                )}
+              </div>
+            )}
             {over.length > 0 && (
               <p className='text-xs text-rose-600 dark:text-rose-400'>
                 {over
