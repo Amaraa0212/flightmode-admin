@@ -127,6 +127,8 @@ export {
   dashboardService,
   issueReportService,
   requiredNotificationService,
+  announcementFeedService,
+  type FeedAnnouncement,
   policyDocumentService,
   carriageService,
 } from './api/system/system.service'

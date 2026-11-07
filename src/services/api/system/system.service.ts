@@ -1,5 +1,6 @@
-import { policyDocuments, requiredNotifications } from '../../mock/db'
+import { policyDocuments } from '../../mock/db'
 import { createMockResource, fail, nextId, nowIso, ok } from '../../mock/utils'
+import type { ListParams } from '../../types/shared/common.types'
 import type {
   ActivityLog,
   ActivityLogListParams,
@@ -133,13 +134,21 @@ export const issueReportService = {
     const statuses = ([] as string[]).concat(status ?? [])
     return getPage<IssueReport, IssueReport>(
       '/admin/issue-reports',
-      { ...pageQuery(rest), status: statuses.length === 1 ? statuses[0] : undefined, from, to },
+      {
+        ...pageQuery(rest),
+        status: statuses.length === 1 ? statuses[0] : undefined,
+        from,
+        to,
+      },
       (r) => r
     )
   },
 
   /** PATCH /admin/issue-reports/{id} — closing (resolved / rejected) stamps who and when */
-  update: (id: number, payload: { status: IssueReportStatus; resolution_note: string }) =>
+  update: (
+    id: number,
+    payload: { status: IssueReportStatus; resolution_note: string }
+  ) =>
     action(
       client.patch<ApiData<IssueReport>>(`/admin/issue-reports/${id}`, {
         status: payload.status,
@@ -150,23 +159,109 @@ export const issueReportService = {
 }
 
 // ─── Notifications / terms / carriage ───
-// TODO(api): notifications table is not in flightmode-api yet (legacy notification_required)
-export const requiredNotificationService = createMockResource<
-  RequiredNotification,
-  RequiredNotificationPayload
->(requiredNotifications, {
-  searchKeys: ['title', 'body', 'agency'],
-  filters: { is_required: (row) => String(row.is_required) },
-  build: (payload, existing) => ({
-    airline: 'MIAT Mongolian Airlines',
-    created_by: 'System Admin',
-    created_at: nowIso(),
-    ...existing,
-    ...payload,
-    agency: payload.agency || null,
-    id: existing?.id ?? nextId(),
-  }),
+type ApiNotice = {
+  id: number
+  airline?: { id: number; name: string } | null
+  agency?: { id: number; name: string } | null
+  airline_id: number
+  agency_id: number | null
+  title: string
+  body: string
+  requires_acknowledgement: boolean
+  created_by?: string | null
+  created_at: string
+}
+
+const toNotification = (a: ApiNotice): RequiredNotification => ({
+  id: a.id,
+  title: a.title,
+  body: a.body,
+  airline: a.airline?.name ?? '',
+  agency: a.agency?.name ?? null,
+  agency_id: a.agency_id,
+  is_required: a.requires_acknowledgement,
+  created_by: a.created_by ?? '',
+  created_at: a.created_at,
 })
+
+const notificationBody = (p: RequiredNotificationPayload) => ({
+  title: p.title,
+  body: p.body,
+  agency_id: p.agency_id ? Number(p.agency_id) : null,
+  requires_acknowledgement: p.is_required,
+  ...(p.airline_id ? { airline_id: Number(p.airline_id) } : {}),
+})
+
+/** Notifications page: what the airline sends to its staff and agencies */
+export const requiredNotificationService = {
+  list: (params: ListParams = {}) => {
+    const { is_required, ...rest } = params
+    return getPage<ApiNotice, RequiredNotification>(
+      '/admin/announcements',
+      pageQuery(rest, {
+        requires_acknowledgement: Array.isArray(is_required)
+          ? is_required.length === 1
+            ? is_required[0]
+            : undefined
+          : (is_required as string | undefined),
+      }),
+      toNotification
+    )
+  },
+  create: (payload: RequiredNotificationPayload) =>
+    action(
+      client.post<ApiData<ApiNotice>>(
+        '/admin/announcements',
+        notificationBody(payload)
+      ),
+      toNotification
+    ),
+  update: (id: number, payload: RequiredNotificationPayload) =>
+    action(
+      client.put<ApiData<ApiNotice>>(
+        `/admin/announcements/${id}`,
+        notificationBody(payload)
+      ),
+      toNotification
+    ),
+  remove: (id: number) =>
+    action(
+      client.delete<ApiData<null>>(`/admin/announcements/${id}`),
+      () => null
+    ),
+}
+
+export interface FeedAnnouncement {
+  id: number
+  airline: string | null
+  title: string
+  body: string
+  requires_acknowledgement: boolean
+  created_at: string
+}
+
+/** The navbar bell: announcements addressed to the signed-in user */
+export const announcementFeedService = {
+  list: async () =>
+    ok(
+      (await client.get<ApiData<ApiNotice[]>>('/announcements')).data.map(
+        (a): FeedAnnouncement => ({
+          id: a.id,
+          airline: a.airline?.name ?? null,
+          title: a.title,
+          body: a.body,
+          requires_acknowledgement: a.requires_acknowledgement,
+          created_at: a.created_at,
+        })
+      )
+    ),
+  dismiss: async (id: number) => {
+    const res = await client.post<{ message: string }>(
+      `/announcements/${id}/dismiss`
+    )
+    return ok(null, res.message)
+  },
+}
 
 // TODO(api): /admin/baggage-policies
 export const policyDocumentService = createMockResource<

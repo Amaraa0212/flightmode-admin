@@ -8,7 +8,7 @@ import {
   flightService,
   type Flight,
 } from '@/services'
-import { Sparkles } from 'lucide-react'
+import { Sparkles, TriangleAlert } from 'lucide-react'
 import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/auth-store'
 import {
@@ -21,12 +21,21 @@ import {
   utcLabel,
 } from '@/lib/airport-time'
 import { useOptions } from '@/hooks/use-options'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { BaseDialog } from '@/components/ui/base-dialog'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ANNOUNCEMENTS_KEY } from '@/components/announcements'
 import { SimpleSelect } from '@/components/simple-select'
 
 const TYPES = [
@@ -227,10 +236,25 @@ export function NewFlightsDialog({
     excess_baggage_max_kg: Number(form.excess_max) || null,
   }
 
-  const save = useMutation<{ message: string }, Error>({
-    mutationFn: () =>
+  // editing: a new time or aircraft type asks whether to notify before saving
+  const [asking, setAsking] = useState(false)
+  const aircraftType = (id: string) =>
+    aircraft.find((a) => a.value === id)?.label.split(' · ')[1]
+  const typeChanged =
+    !!flight &&
+    aircraftType(String(flight.aircraft?.id ?? '')) !==
+      aircraftType(form.aircraft_id)
+  const timeChanged =
+    !!flight &&
+    (form.departure_time !== flight.scheduled_departure_local?.slice(11, 16) ||
+      form.arrival_time !== flight.scheduled_arrival_local?.slice(11, 16) ||
+      firstDate !== flight.scheduled_departure_local?.slice(0, 10))
+
+  const save = useMutation<{ message: string }, Error, boolean>({
+    mutationFn: (notify) =>
       flight
         ? flightService.update(flight.id, {
+            notify_change: notify,
             flight_number: form.flight_number,
             service_type: form.service_type,
             ...baggage,
@@ -262,6 +286,7 @@ export function NewFlightsDialog({
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: ['admin-flights'] })
       queryClient.invalidateQueries({ queryKey: ['options'] })
+      queryClient.invalidateQueries({ queryKey: ANNOUNCEMENTS_KEY })
       if (another && !flight) {
         // the next flight: often the return leg — swap the route, keep the days
         setForm((f) => ({
@@ -301,7 +326,8 @@ export function NewFlightsDialog({
           : dates.length > 1
             ? `Create ${dates.length} flights`
             : 'Create flight',
-        onClick: () => save.mutate(),
+        onClick: () =>
+          timeChanged || typeChanged ? setAsking(true) : save.mutate(false),
         loading: save.isPending,
         disabled: !ready,
       }}
@@ -549,6 +575,51 @@ export function NewFlightsDialog({
           </p>
         </div>
       </div>
+      <AlertDialog open={asking} onOpenChange={setAsking}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Notification автоматаар үүсгэх үү?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {[timeChanged && 'Цаг', typeChanged && 'Онгоцны type']
+                .filter(Boolean)
+                .join(', ')}{' '}
+              өөрчлөгдсөн. Мэдэгдэл airline-ийн бүх хэрэглэгч, агентуудын
+              хонхонд харагдана.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {typeChanged && (
+            <p className='flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-300'>
+              <TriangleAlert className='mt-0.5 size-3.5 shrink-0' />
+              Онгоцны type сольсон тул зорчигч болон агентуудад мэдэгдэх
+              шаардлагатай.
+            </p>
+          )}
+          <AlertDialogFooter>
+            <Button variant='ghost' onClick={() => setAsking(false)}>
+              Болих
+            </Button>
+            <Button
+              variant='outline'
+              onClick={() => {
+                setAsking(false)
+                save.mutate(false)
+              }}
+            >
+              Үгүй, зөвхөн хадгалах
+            </Button>
+            <Button
+              onClick={() => {
+                setAsking(false)
+                save.mutate(true)
+              }}
+            >
+              Тийм, үүсгэх
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </BaseDialog>
   )
 }

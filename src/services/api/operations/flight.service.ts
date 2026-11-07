@@ -52,6 +52,7 @@ type FlightBody = FlightPayload & { airline_id?: string }
 const flightBody = (p: FlightBody) => ({
   flight_number: p.flight_number.toUpperCase(),
   service_type: p.service_type,
+  notify_change: !!p.notify_change,
   no_baggage_rule: p.service_type === 'charter' && !!p.no_baggage_rule,
   excess_baggage_max_kg: p.excess_baggage_max_kg || null,
   excess_baggage_price_per_kg: p.excess_baggage_price_per_kg || null,

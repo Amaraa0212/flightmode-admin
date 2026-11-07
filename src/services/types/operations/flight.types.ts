@@ -61,6 +61,8 @@ export interface FlightListParams extends ListParams {
 }
 
 export interface FlightPayload {
+  /** a new time or aircraft type: tell the airline's staff and agencies */
+  notify_change?: boolean
   flight_number: string
   service_type: 'scheduled' | 'charter'
   no_baggage_rule?: boolean

@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import {
+  agencyOptions,
+  airlineOptions,
   requiredNotificationService,
   type RequiredNotification,
 } from '@/services'
@@ -10,7 +12,8 @@ import { StatusChip } from '@/components/status-chip'
 const schema = z.object({
   title: z.string().trim().min(3),
   body: z.string().trim().min(3),
-  agency: z.string(),
+  airline_id: z.string(),
+  agency_id: z.string(),
   is_required: z.boolean(),
 })
 type Form = z.infer<typeof schema>
@@ -26,10 +29,10 @@ export const pageConfig: Omit<
 > = {
   title: 'Notifications',
   description:
-    'Messages shown to agencies on login (required ones must be acknowledged)',
+    "Messages in the bell of the airline's staff and agencies (required ones cannot be dismissed)",
   queryKey: 'admin-notifications',
   list: requiredNotificationService.list,
-  searchPlaceholder: 'Title, text or agency',
+  searchPlaceholder: 'Title or text',
   filters: [
     {
       columnId: 'is_required',
@@ -49,7 +52,7 @@ export const pageConfig: Omit<
     )),
     col<RequiredNotification>('airline', 'Airline', (r) => muted(r.airline)),
     col<RequiredNotification>('agency', 'Agent', (r) =>
-      muted(r.agency ?? 'All agencies')
+      muted(r.agency ?? 'Everyone')
     ),
     col<RequiredNotification>(
       'is_required',
@@ -67,11 +70,18 @@ export const pageConfig: Omit<
   form: {
     entity: 'notification',
     schema,
-    empty: { title: '', body: '', agency: '', is_required: false },
+    empty: {
+      title: '',
+      body: '',
+      airline_id: '',
+      agency_id: '',
+      is_required: false,
+    },
     fromRow: (r) => ({
       title: r.title,
       body: r.body,
-      agency: r.agency ?? '',
+      airline_id: '',
+      agency_id: r.agency_id ? String(r.agency_id) : '',
       is_required: r.is_required,
     }),
     fields: [
@@ -91,9 +101,19 @@ export const pageConfig: Omit<
         gridCols: 2,
       },
       {
-        name: 'agency',
-        label: 'Agency (empty = all)',
-        type: 'text',
+        name: 'airline_id',
+        label: 'Airline (system administrator)',
+        type: 'select',
+        options: [{ label: 'My airline', value: '' }],
+        loadOptions: airlineOptions,
+        gridCols: 1,
+      },
+      {
+        name: 'agency_id',
+        label: 'Only this agency',
+        type: 'select',
+        options: [{ label: 'Everyone of the airline', value: '' }],
+        loadOptions: agencyOptions,
         gridCols: 1,
       },
       {

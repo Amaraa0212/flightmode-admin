@@ -39,7 +39,6 @@ import type {
   Announcement,
   CarriageDocument,
   PolicyDocument,
-  RequiredNotification,
 } from '../types/system/system.types'
 
 /**
@@ -893,39 +892,6 @@ export const baggageOverrides: BaggageOverride[] = bookings
   }))
 
 // ─── Notifications / terms / carriage ───
-export const requiredNotifications: RequiredNotification[] = [
-  {
-    id: 1,
-    title: 'Names deadline: 3 days before departure',
-    body: 'Allocations close names 72 hours before departure. Late names are not accepted.',
-    airline: airlines[0].name,
-    agency: null,
-    is_required: true,
-    created_by: 'System Admin',
-    created_at: isoDaysFromNow(-4),
-  },
-  {
-    id: 2,
-    title: 'Winter schedule changes',
-    body: 'OM301 / OM302 move to 08:00 from 1 November.',
-    airline: airlines[0].name,
-    agency: null,
-    is_required: false,
-    created_by: 'System Admin',
-    created_at: isoDaysFromNow(-9),
-  },
-  {
-    id: 3,
-    title: 'Passport validity reminder',
-    body: 'International passengers need 6 months passport validity.',
-    airline: airlines[1].name,
-    agency: agencies[2].name,
-    is_required: true,
-    created_by: users[1].name,
-    created_at: isoDaysFromNow(-15),
-  },
-]
-
 export const policyDocuments: PolicyDocument[] = [
   {
     id: 1,
