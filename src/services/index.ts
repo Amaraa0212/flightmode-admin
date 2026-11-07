@@ -94,6 +94,8 @@ export {
 export {
   reportService,
   type TrafficRow,
+  type TrafficTotals,
+  type SalesSummaryRow,
   type StationRow,
   type SalesRow,
 } from './api/reports/report.service'

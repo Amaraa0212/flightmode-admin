@@ -1,4 +1,7 @@
-import type { Booking, FlightPassengerRow } from '../../types/sales/booking.types'
+import type {
+  Booking,
+  FlightPassengerRow,
+} from '../../types/sales/booking.types'
 import type { ListParams } from '../../types/shared/common.types'
 import { bookingService } from '../sales/booking.service'
 import { client, ok, period, type ApiData } from '../shared/client'
@@ -19,8 +22,29 @@ export interface TrafficRow extends Record<string, unknown> {
   no_show: number
   bags: number
   bag_kg: number
+  service_type: 'scheduled' | 'charter'
+  /** flown includes these: checked in, not scanned at the gate */
+  not_scanned: number
   flown: number
   capacity: number
+}
+
+export interface TrafficTotals {
+  flights: number
+  pax: number
+  bag_kg: number
+  bags: number
+  oci_percent: number
+}
+
+export interface SalesSummaryRow extends Record<string, unknown> {
+  id: string
+  key: string
+  currency: string
+  tickets: number
+  fare_total: number
+  tax_total: number
+  total: number
 }
 
 export interface StationRow extends Record<string, unknown> {
@@ -60,6 +84,8 @@ type ApiTraffic = {
   capacity: number
   booked: number
   flown: number
+  not_scanned: number
+  service_type: 'scheduled' | 'charter'
   no_show: number | null
   go_show: number
   online_checkin: number
@@ -77,43 +103,115 @@ type ApiFlightOps = {
 }
 
 /** search + page a full list on the client */
-function pageRows<T extends Record<string, unknown>>(rows: T[], params: ListParams, keys: (keyof T)[]) {
-  const q = String(params.query ?? '').trim().toLowerCase()
-  const found = q ? rows.filter((r) => keys.some((k) => String(r[k] ?? '').toLowerCase().includes(q))) : rows
+function pageRows<T extends Record<string, unknown>>(
+  rows: T[],
+  params: ListParams,
+  keys: (keyof T)[]
+) {
+  const q = String(params.query ?? '')
+    .trim()
+    .toLowerCase()
+  const found = q
+    ? rows.filter((r) =>
+        keys.some((k) =>
+          String(r[k] ?? '')
+            .toLowerCase()
+            .includes(q)
+        )
+      )
+    : rows
   const size = params.pageSize ?? 20
   const page = params.current ?? 1
-  return ok({ total: found.length, items: found.slice((page - 1) * size, page * size) })
+  return ok({
+    total: found.length,
+    items: found.slice((page - 1) * size, page * size),
+  })
+}
+
+/** service_type (one of the faceted filter), origin, destination, trip: OW | RT */
+function routeFilters(params: ListParams) {
+  const type = ([] as string[]).concat(
+    (params.service_type as string | string[] | undefined) ?? []
+  )
+  return {
+    service_type: type.length === 1 ? type[0] : undefined,
+    origin: (params.origin as string | undefined) || undefined,
+    destination: (params.destination as string | undefined) || undefined,
+    round_trip: params.trip === 'RT' ? 1 : undefined,
+  }
 }
 
 async function traffic(params: ListParams, departedOnly = false) {
   return (
     await client.get<ApiData<ApiTraffic[]>>('/admin/reports/traffic', {
       ...period(params),
+      ...routeFilters(params),
       departed_only: departedOnly ? 1 : undefined,
     })
   ).data
 }
 
+const operated = (f: ApiTraffic) =>
+  f.status === 'departed' || f.status === 'gate_closed'
+
 export const reportService = {
   traffic: async (params: ListParams = {}) => {
     const flights = await flightsById(params)
     const rows: TrafficRow[] = (await traffic(params))
-      .filter((f) => f.status === 'departed' || f.status === 'gate_closed')
+      .filter(operated)
       .map((f) => ({
         id: f.flight_id,
         flight_number: f.flight_number,
         date: f.departure_at,
         route: f.route,
-        tail: flights.get(f.flight_id)?.aircraft?.registration ?? f.aircraft_type ?? '-',
+        tail:
+          flights.get(f.flight_id)?.aircraft?.registration ??
+          f.aircraft_type ??
+          '-',
         oci: f.online_checkin,
         go_show: f.go_show,
         no_show: f.no_show ?? 0,
         bags: f.baggage_pieces,
         bag_kg: f.baggage_weight_kg,
+        service_type: f.service_type,
+        not_scanned: f.not_scanned,
         flown: f.flown,
         capacity: f.capacity,
       }))
     return pageRows(rows, params, ['flight_number', 'route', 'tail'])
+  },
+
+  /** Under the table: every flight of the filters, not only this page */
+  trafficTotals: async (params: ListParams = {}): Promise<TrafficTotals> => {
+    const rows = (await traffic(params)).filter(operated)
+    const sum = (pick: (f: ApiTraffic) => number) =>
+      rows.reduce((total, f) => total + pick(f), 0)
+    const pax = sum((f) => f.flown)
+    return {
+      flights: rows.length,
+      pax,
+      bag_kg: sum((f) => f.baggage_weight_kg),
+      bags: sum((f) => f.baggage_pieces),
+      oci_percent: pax
+        ? Math.round((sum((f) => f.online_checkin) * 1000) / pax) / 10
+        : 0,
+    }
+  },
+
+  /** Issued tickets of scheduled flights by agent, month or route */
+  salesSummary: async (params: ListParams & { group?: string } = {}) => {
+    const rows = (
+      await client.get<ApiData<Omit<SalesSummaryRow, 'id'>[]>>(
+        '/admin/reports/sales-summary',
+        {
+          ...period(params),
+          group: params.group ?? 'agency',
+        }
+      )
+    ).data.map(
+      (r) => ({ ...r, id: `${r.key}-${r.currency}` }) as SalesSummaryRow
+    )
+    return pageRows(rows, params, ['key'])
   },
 
   station: async (params: ListParams = {}) => {
@@ -146,7 +244,11 @@ export const reportService = {
     const rows: SalesRow[] = bookings
       .filter((b: Booking) => {
         const day = b.created_at.slice(0, 10)
-        return b.status === 'confirmed' && (!from || day >= from) && (!to || day <= to)
+        return (
+          b.status === 'confirmed' &&
+          (!from || day >= from) &&
+          (!to || day <= to)
+        )
       })
       .flatMap((b) =>
         b.passengers
@@ -171,28 +273,41 @@ export const reportService = {
   paxSearch: async (params: ListParams = {}) => {
     const q = String(params.query ?? '').trim()
     if (q.length < 2) return ok({ total: 0, items: [] as FlightPassengerRow[] })
-    const res = await client.get<{ data: ApiSegmentRow[]; meta?: { total: number } }>(
-      '/admin/reports/passenger-search',
-      { query: q, page: params.current ?? 1, per_page: params.pageSize ?? 50 }
-    )
-    return ok({ total: res.meta?.total ?? res.data.length, items: res.data.map(toPassengerRow) })
+    const res = await client.get<{
+      data: ApiSegmentRow[]
+      meta?: { total: number }
+    }>('/admin/reports/passenger-search', {
+      query: q,
+      page: params.current ?? 1,
+      per_page: params.pageSize ?? 50,
+    })
+    return ok({
+      total: res.meta?.total ?? res.data.length,
+      items: res.data.map(toPassengerRow),
+    })
   },
 
   /** Online check-in share per month (legacy load_factor) */
   onlineCheckin: async (year = new Date().getFullYear()) => {
-    const res = await client.get<ApiData<{ month: number; flown: number; online_checkin: number }[]>>(
-      '/admin/reports/online-checkin',
-      { year }
-    )
+    const res = await client.get<
+      ApiData<{ month: number; flown: number; online_checkin: number }[]>
+    >('/admin/reports/online-checkin', { year })
     return res.data
       .filter((m) => m.flown > 0)
-      .map((m) => ({ month: `${year}-${String(m.month).padStart(2, '0')}`, pax: m.flown, oci: m.online_checkin }))
+      .map((m) => ({
+        month: `${year}-${String(m.month).padStart(2, '0')}`,
+        pax: m.flown,
+        oci: m.online_checkin,
+      }))
   },
 }
 
 /** Flights of the period by id (registration, block times, delay reason) */
 async function flightsById(params: ListParams) {
-  const res = await client.get<{ data: ApiFlightOps[] }>('/admin/flights', { ...period(params), per_page: 1000 })
+  const res = await client.get<{ data: ApiFlightOps[] }>('/admin/flights', {
+    ...period(params),
+    per_page: 1000,
+  })
   return new Map(res.data.map((f) => [f.id, f]))
 }
 
@@ -242,7 +357,9 @@ const toPassengerRow = (s: ApiSegmentRow): FlightPassengerRow => ({
   phone: s.passenger?.phone ?? null,
   flight_id: s.flight_id,
   flight_number: s.flight?.flight_number ?? '',
-  route: s.flight ? `${s.flight.origin?.iata_code ?? ''}-${s.flight.destination?.iata_code ?? ''}` : '',
+  route: s.flight
+    ? `${s.flight.origin?.iata_code ?? ''}-${s.flight.destination?.iata_code ?? ''}`
+    : '',
   departure_at: s.flight?.scheduled_departure_at ?? '',
   bags: (s.baggage ?? []).reduce((n, b) => n + b.pieces, 0),
   bag_weight_kg: (s.baggage ?? []).reduce((n, b) => n + Number(b.weight_kg), 0),
