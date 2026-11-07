@@ -16,7 +16,7 @@ export const pageConfig: Omit<
 > = {
   title: 'Flight Manager',
   description:
-    'Operate flights — check-in, gate, departure times (OBT / TT / ET), delays and gate agents. Closing is for OCC, cancel / reopen for the airline administrator',
+    'Operate flights — check-in, gate, departure times (OBT / TT / ET), delays and gate agents. Closing is for OCC; cancelling and reopening each have their own permission',
   queryKey: 'admin-flight-manager',
   list: flightOpsService.list,
   searchPlaceholder: 'Flight number, route or gate',

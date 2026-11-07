@@ -66,15 +66,19 @@ export interface RequiredNotification extends Record<string, unknown> {
   body: string
   airline: string
   agency: string | null
+  agency_id: number | null
   is_required: boolean
   created_by: string
   created_at: string
 }
 
 export interface RequiredNotificationPayload {
+  /** system administrators: the airline it is sent for */
+  airline_id?: string
   title: string
   body: string
-  agency: string
+  /** empty = everyone of the airline */
+  agency_id: string
   is_required: boolean
 }
 

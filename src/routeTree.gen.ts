@@ -58,6 +58,7 @@ import { Route as AuthenticatedOperationsFlightsIndexRouteImport } from './route
 import { Route as AuthenticatedReportsFareInfoIndexRouteImport } from './routes/_authenticated/reports/fare-info/index'
 import { Route as AuthenticatedReportsPaxSearchIndexRouteImport } from './routes/_authenticated/reports/pax-search/index'
 import { Route as AuthenticatedReportsPnlIndexRouteImport } from './routes/_authenticated/reports/pnl/index'
+import { Route as AuthenticatedReportsSalesSummaryIndexRouteImport } from './routes/_authenticated/reports/sales-summary/index'
 import { Route as AuthenticatedReportsSalesIndexRouteImport } from './routes/_authenticated/reports/sales/index'
 import { Route as AuthenticatedReportsStationIndexRouteImport } from './routes/_authenticated/reports/station/index'
 import { Route as AuthenticatedReportsTrafficIndexRouteImport } from './routes/_authenticated/reports/traffic/index'
@@ -358,6 +359,12 @@ const AuthenticatedReportsPnlIndexRoute =
     path: '/reports/pnl/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReportsSalesSummaryIndexRoute =
+  AuthenticatedReportsSalesSummaryIndexRouteImport.update({
+    id: '/reports/sales-summary/',
+    path: '/reports/sales-summary/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedReportsSalesIndexRoute =
   AuthenticatedReportsSalesIndexRouteImport.update({
     id: '/reports/sales/',
@@ -492,6 +499,7 @@ export interface FileRoutesByFullPath {
   '/reports/fare-info/': typeof AuthenticatedReportsFareInfoIndexRoute
   '/reports/pax-search/': typeof AuthenticatedReportsPaxSearchIndexRoute
   '/reports/pnl/': typeof AuthenticatedReportsPnlIndexRoute
+  '/reports/sales-summary/': typeof AuthenticatedReportsSalesSummaryIndexRoute
   '/reports/sales/': typeof AuthenticatedReportsSalesIndexRoute
   '/reports/station/': typeof AuthenticatedReportsStationIndexRoute
   '/reports/traffic/': typeof AuthenticatedReportsTrafficIndexRoute
@@ -556,6 +564,7 @@ export interface FileRoutesByTo {
   '/reports/fare-info': typeof AuthenticatedReportsFareInfoIndexRoute
   '/reports/pax-search': typeof AuthenticatedReportsPaxSearchIndexRoute
   '/reports/pnl': typeof AuthenticatedReportsPnlIndexRoute
+  '/reports/sales-summary': typeof AuthenticatedReportsSalesSummaryIndexRoute
   '/reports/sales': typeof AuthenticatedReportsSalesIndexRoute
   '/reports/station': typeof AuthenticatedReportsStationIndexRoute
   '/reports/traffic': typeof AuthenticatedReportsTrafficIndexRoute
@@ -622,6 +631,7 @@ export interface FileRoutesById {
   '/_authenticated/reports/fare-info/': typeof AuthenticatedReportsFareInfoIndexRoute
   '/_authenticated/reports/pax-search/': typeof AuthenticatedReportsPaxSearchIndexRoute
   '/_authenticated/reports/pnl/': typeof AuthenticatedReportsPnlIndexRoute
+  '/_authenticated/reports/sales-summary/': typeof AuthenticatedReportsSalesSummaryIndexRoute
   '/_authenticated/reports/sales/': typeof AuthenticatedReportsSalesIndexRoute
   '/_authenticated/reports/station/': typeof AuthenticatedReportsStationIndexRoute
   '/_authenticated/reports/traffic/': typeof AuthenticatedReportsTrafficIndexRoute
@@ -688,6 +698,7 @@ export interface FileRouteTypes {
     | '/reports/fare-info/'
     | '/reports/pax-search/'
     | '/reports/pnl/'
+    | '/reports/sales-summary/'
     | '/reports/sales/'
     | '/reports/station/'
     | '/reports/traffic/'
@@ -752,6 +763,7 @@ export interface FileRouteTypes {
     | '/reports/fare-info'
     | '/reports/pax-search'
     | '/reports/pnl'
+    | '/reports/sales-summary'
     | '/reports/sales'
     | '/reports/station'
     | '/reports/traffic'
@@ -817,6 +829,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reports/fare-info/'
     | '/_authenticated/reports/pax-search/'
     | '/_authenticated/reports/pnl/'
+    | '/_authenticated/reports/sales-summary/'
     | '/_authenticated/reports/sales/'
     | '/_authenticated/reports/station/'
     | '/_authenticated/reports/traffic/'
@@ -1188,6 +1201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedReportsPnlIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reports/sales-summary/': {
+      id: '/_authenticated/reports/sales-summary/'
+      path: '/reports/sales-summary'
+      fullPath: '/reports/sales-summary/'
+      preLoaderRoute: typeof AuthenticatedReportsSalesSummaryIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/reports/sales/': {
       id: '/_authenticated/reports/sales/'
       path: '/reports/sales'
@@ -1332,6 +1352,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReportsFareInfoIndexRoute: typeof AuthenticatedReportsFareInfoIndexRoute
   AuthenticatedReportsPaxSearchIndexRoute: typeof AuthenticatedReportsPaxSearchIndexRoute
   AuthenticatedReportsPnlIndexRoute: typeof AuthenticatedReportsPnlIndexRoute
+  AuthenticatedReportsSalesSummaryIndexRoute: typeof AuthenticatedReportsSalesSummaryIndexRoute
   AuthenticatedReportsSalesIndexRoute: typeof AuthenticatedReportsSalesIndexRoute
   AuthenticatedReportsStationIndexRoute: typeof AuthenticatedReportsStationIndexRoute
   AuthenticatedReportsTrafficIndexRoute: typeof AuthenticatedReportsTrafficIndexRoute
@@ -1415,6 +1436,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReportsPaxSearchIndexRoute:
     AuthenticatedReportsPaxSearchIndexRoute,
   AuthenticatedReportsPnlIndexRoute: AuthenticatedReportsPnlIndexRoute,
+  AuthenticatedReportsSalesSummaryIndexRoute:
+    AuthenticatedReportsSalesSummaryIndexRoute,
   AuthenticatedReportsSalesIndexRoute: AuthenticatedReportsSalesIndexRoute,
   AuthenticatedReportsStationIndexRoute: AuthenticatedReportsStationIndexRoute,
   AuthenticatedReportsTrafficIndexRoute: AuthenticatedReportsTrafficIndexRoute,

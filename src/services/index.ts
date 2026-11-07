@@ -50,6 +50,7 @@ export {
   flightSeriesService,
   allocationService,
   flightOptions,
+  charterFlightOptions,
   type FlightSeriesPayload,
   type AllocationPayload,
 } from './api/operations/flight.service'
@@ -82,7 +83,8 @@ export {
   airlineSsrService,
   serviceTemplateService,
   flightProductService,
-  bagTagLayoutService,
+  bagTagService,
+  type BagTagAirline,
   baggageOverrideService,
   baggageRuleOptions,
   seatPriceOptions,
@@ -92,6 +94,8 @@ export {
 export {
   reportService,
   type TrafficRow,
+  type TrafficTotals,
+  type SalesSummaryRow,
   type StationRow,
   type SalesRow,
 } from './api/reports/report.service'
@@ -125,6 +129,8 @@ export {
   dashboardService,
   issueReportService,
   requiredNotificationService,
+  announcementFeedService,
+  type FeedAnnouncement,
   policyDocumentService,
   carriageService,
 } from './api/system/system.service'

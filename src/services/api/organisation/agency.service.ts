@@ -18,6 +18,13 @@ const toAgency = (a: Agency): Agency => ({ ...a, airlines: a.airlines ?? [] })
 export const agencyService = {
   list: (params: AgencyListParams = {}) =>
     getPage<Agency, Agency>('/admin/agencies', pageQuery(params), toAgency),
+  /** Agents permission: also the agencies the airline has no contract with yet */
+  contractable: (params: AgencyListParams = {}) =>
+    getPage<Agency, Agency>(
+      '/admin/agencies',
+      { ...pageQuery(params), for_contract: 1 },
+      toAgency
+    ),
   getById: async (id: number) =>
     ok(
       toAgency(

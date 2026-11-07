@@ -10,7 +10,7 @@ export const pageConfig: Omit<
   description:
     'Which agencies may sell each airline (contract active / suspended)',
   queryKey: 'admin-agency-access',
-  list: agencyService.list,
+  list: agencyService.contractable,
   searchPlaceholder: 'Agency name or code',
   columns: [
     col<Agency>('code', 'Code', (r) => brand(r.code)),

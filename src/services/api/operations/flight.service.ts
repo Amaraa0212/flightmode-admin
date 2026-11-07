@@ -9,7 +9,15 @@ import type {
   FlightStatus,
 } from '../../types/operations/flight.types'
 import type { ListParams } from '../../types/shared/common.types'
-import { action, client, getPage, ok, pageQuery, period, type ApiData } from '../shared/client'
+import {
+  action,
+  client,
+  getPage,
+  ok,
+  pageQuery,
+  period,
+  type ApiData,
+} from '../shared/client'
 
 /*
 | /admin/flights, /admin/flight-series, /admin/allocations — every list is limited by the API
@@ -22,11 +30,19 @@ const toFlight = (f: ApiFlight): Flight => ({
   ...f,
   service_type: f.service_type ?? 'scheduled',
   segments_count: f.segments_count ?? 0,
-  online_checkin: f.online_checkin ?? { enabled: false, opens_minutes: 0, closes_minutes: 0 },
+  online_checkin: f.online_checkin ?? {
+    enabled: false,
+    opens_minutes: 0,
+    closes_minutes: 0,
+  },
 })
 
-const route = (f: { origin?: { iata_code: string }; destination?: { iata_code: string } } | null) =>
-  f ? `${f.origin?.iata_code ?? ''}-${f.destination?.iata_code ?? ''}` : ''
+const route = (
+  f: {
+    origin?: { iata_code: string }
+    destination?: { iata_code: string }
+  } | null
+) => (f ? `${f.origin?.iata_code ?? ''}-${f.destination?.iata_code ?? ''}` : '')
 
 /** datetime-local value (airport local time as typed) → ISO for Laravel */
 const iso = (value: string) => (value ? new Date(value).toISOString() : value)
@@ -36,6 +52,10 @@ type FlightBody = FlightPayload & { airline_id?: string }
 const flightBody = (p: FlightBody) => ({
   flight_number: p.flight_number.toUpperCase(),
   service_type: p.service_type,
+  notify_change: !!p.notify_change,
+  no_baggage_rule: p.service_type === 'charter' && !!p.no_baggage_rule,
+  excess_baggage_max_kg: p.excess_baggage_max_kg || null,
+  excess_baggage_price_per_kg: p.excess_baggage_price_per_kg || null,
   origin_airport_id: Number(p.origin_airport_id),
   destination_airport_id: Number(p.destination_airport_id),
   aircraft_id: Number(p.aircraft_id),
@@ -71,9 +91,13 @@ export interface FlightsBulkPayload {
   origin_airport_id: number
   destination_airport_id: number
   service_type: 'scheduled' | 'charter'
+  no_baggage_rule?: boolean
+  excess_baggage_max_kg?: number | null
+  excess_baggage_price_per_kg?: number | null
   /** HH:MM, local time of the origin */
   departure_time: string
-  block_minutes: number
+  /** HH:MM, local time of the destination */
+  arrival_time: string
   terminal?: string
   gate?: string
   /** YYYY-MM-DD, local days of the origin */
@@ -86,7 +110,9 @@ export interface FlightTemplate {
   origin_airport_id: number
   destination_airport_id: number
   service_type: 'scheduled' | 'charter'
+  no_baggage_rule?: boolean
   departure_time: string
+  arrival_time: string
   block_minutes: number
   terminal: string | null
   last_date: string
@@ -95,13 +121,20 @@ export interface FlightTemplate {
 export const flightService = {
   createMany: (payload: FlightsBulkPayload) =>
     action(
-      client.post<ApiData<{ created: number[]; skipped: string[] }>>('/admin/flights/bulk', payload),
+      client.post<ApiData<{ created: number[]; skipped: string[] }>>(
+        '/admin/flights/bulk',
+        payload
+      ),
       (r) => r
     ),
   latest: async (flightNumber: string) =>
     ok(
-      (await client.get<ApiData<FlightTemplate | null>>('/admin/flights/latest', { flight_number: flightNumber }))
-        .data
+      (
+        await client.get<ApiData<FlightTemplate | null>>(
+          '/admin/flights/latest',
+          { flight_number: flightNumber }
+        )
+      ).data
     ),
   list: (params: FlightListParams = {}) => {
     const {
@@ -138,15 +171,34 @@ export const flightService = {
       toFlight
     )
   },
-  getById: async (id: number) => ok(toFlight((await client.get<ApiData<ApiFlight>>(`/admin/flights/${id}`)).data)),
+  getById: async (id: number) =>
+    ok(
+      toFlight(
+        (await client.get<ApiData<ApiFlight>>(`/admin/flights/${id}`)).data
+      )
+    ),
   create: (payload: FlightBody) =>
-    action(client.post<ApiData<ApiFlight>>('/admin/flights', flightBody(payload)), toFlight),
+    action(
+      client.post<ApiData<ApiFlight>>('/admin/flights', flightBody(payload)),
+      toFlight
+    ),
   update: (id: number, payload: FlightBody) =>
-    action(client.put<ApiData<ApiFlight>>(`/admin/flights/${id}`, flightBody(payload)), toFlight),
-  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/flights/${id}`), () => null),
+    action(
+      client.put<ApiData<ApiFlight>>(
+        `/admin/flights/${id}`,
+        flightBody(payload)
+      ),
+      toFlight
+    ),
+  remove: (id: number) =>
+    action(client.delete<ApiData<null>>(`/admin/flights/${id}`), () => null),
 
   statistics: async (id: number) => {
-    const s = (await client.get<ApiData<ApiStatistics>>(`/admin/flights/${id}/statistics`)).data
+    const s = (
+      await client.get<ApiData<ApiStatistics>>(
+        `/admin/flights/${id}/statistics`
+      )
+    ).data
     const stats: FlightStatistics = {
       capacity: s.capacity.total,
       booked: s.booked.total,
@@ -177,6 +229,10 @@ export const flightService = {
 // ─── Frequency-based flights ───
 export interface FlightSeriesPayload {
   service_type?: 'scheduled' | 'charter'
+  no_baggage_rule?: boolean
+  /** 1: arrives the day after departure, in the destination's local time */
+  arrival_day_offset?: number
+  duration_minutes?: number
   flight_number: string
   /** airport ids */
   origin: string
@@ -197,6 +253,7 @@ type ApiSeries = {
   id: number
   flight_number: string
   service_type?: 'scheduled' | 'charter'
+  no_baggage_rule?: boolean
   origin: string
   destination: string
   origin_airport_id: number
@@ -215,13 +272,16 @@ const toSeries = (s: ApiSeries): FlightSeries => ({
   id: s.id,
   flight_number: s.flight_number,
   service_type: s.service_type ?? 'scheduled',
+  no_baggage_rule: !!s.no_baggage_rule,
   origin: s.origin,
   destination: s.destination,
   origin_airport_id: s.origin_airport_id,
   destination_airport_id: s.destination_airport_id,
   aircraft_id: s.aircraft_id,
   aircraft: s.aircraft_id ? String(s.aircraft_id) : '',
-  inventory_template: s.inventory_template_id ? String(s.inventory_template_id) : 'none',
+  inventory_template: s.inventory_template_id
+    ? String(s.inventory_template_id)
+    : 'none',
   departure_time: s.departure_time,
   arrival_time: s.arrival_time,
   days_of_week: s.days_of_week,
@@ -232,13 +292,19 @@ const toSeries = (s: ApiSeries): FlightSeries => ({
 
 export const flightSeriesService = {
   list: (params: ListParams = {}) =>
-    getPage<ApiSeries, FlightSeries>('/admin/flight-series', pageQuery(params), toSeries),
+    getPage<ApiSeries, FlightSeries>(
+      '/admin/flight-series',
+      pageQuery(params),
+      toSeries
+    ),
 
   /** POST /admin/flight-series — generates the dated flights (FlightSeriesService) */
   save: (payload: FlightSeriesPayload, id?: number) => {
     const body = {
       flight_number: payload.flight_number.toUpperCase(),
       service_type: payload.service_type ?? 'scheduled',
+      no_baggage_rule:
+        payload.service_type === 'charter' && !!payload.no_baggage_rule,
       origin_airport_id: Number(payload.origin),
       destination_airport_id: Number(payload.destination),
       aircraft_id: payload.aircraft ? Number(payload.aircraft) : null,
@@ -248,6 +314,8 @@ export const flightSeriesService = {
           : null,
       departure_time: payload.departure_time,
       arrival_time: payload.arrival_time,
+      arrival_day_offset: payload.arrival_day_offset ?? 0,
+      duration_minutes: payload.duration_minutes,
       days_of_week: payload.days_of_week.map(Number).sort(),
       period_start: payload.valid_from,
       period_end: payload.valid_to,
@@ -261,7 +329,11 @@ export const flightSeriesService = {
     )
   },
 
-  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/flight-series/${id}`), () => null),
+  remove: (id: number) =>
+    action(
+      client.delete<ApiData<null>>(`/admin/flight-series/${id}`),
+      () => null
+    ),
 }
 
 // ─── Agency quotas ───
@@ -328,7 +400,9 @@ export const allocationService = {
       mode: payload.mode,
       agency_id: Number(payload.agency_id),
       outbound_flight_id: Number(payload.outbound_flight_id),
-      return_flight_id: payload.return_flight_id ? Number(payload.return_flight_id) : null,
+      return_flight_id: payload.return_flight_id
+        ? Number(payload.return_flight_id)
+        : null,
       seats: Number(payload.seats),
       deadline: payload.deadline,
       is_waitlist: payload.is_waitlist,
@@ -338,7 +412,10 @@ export const allocationService = {
         ? {}
         : {
             C: Number(payload.business_seats) || 0,
-            Y: Math.max(0, Number(payload.seats) - (Number(payload.business_seats) || 0)),
+            Y: Math.max(
+              0,
+              Number(payload.seats) - (Number(payload.business_seats) || 0)
+            ),
           },
     }
     return action(
@@ -349,26 +426,51 @@ export const allocationService = {
     )
   },
 
-  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/allocations/${id}`), () => null),
+  remove: (id: number) =>
+    action(
+      client.delete<ApiData<null>>(`/admin/allocations/${id}`),
+      () => null
+    ),
 
   /** Send the allocation to the Chinggis agent API now */
   pushToChinggis: (id: number) =>
-    action(client.post<ApiData<ApiAllocation>>(`/admin/allocations/${id}/chinggis-push`), toAllocation),
+    action(
+      client.post<ApiData<ApiAllocation>>(
+        `/admin/allocations/${id}/chinggis-push`
+      ),
+      toAllocation
+    ),
 
   list: (params: ListParams = {}) =>
-    getPage<ApiAllocation, Allocation>('/admin/allocations', pageQuery(params), toAllocation),
+    getPage<ApiAllocation, Allocation>(
+      '/admin/allocations',
+      pageQuery(params),
+      toAllocation
+    ),
 }
 
 /** Flights for select fields (upcoming by default), value = flight id */
-export const flightOptions = async (upcomingOnly = true) => {
+/** Quota is given on charter flights only */
+export const charterFlightOptions = () => flightOptions(true, true)
+
+export const flightOptions = async (
+  upcomingOnly = true,
+  charterOnly = false
+) => {
   const today = new Date().toISOString().slice(0, 10)
   const res = await client.get<{ data: ApiFlight[] }>('/admin/flights', {
-    from: upcomingOnly ? today : undefined,
+    // otherwise the API starts at the 1st of this month and last month's flown flights cannot be picked
+    from: upcomingOnly
+      ? today
+      : new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10),
     to: new Date(Date.now() + 120 * 86_400_000).toISOString().slice(0, 10),
     per_page: 500,
   })
   return res.data
-    .filter((f) => !upcomingOnly || new Date(f.scheduled_departure_at) > new Date())
+    .filter(
+      (f) => !upcomingOnly || new Date(f.scheduled_departure_at) > new Date()
+    )
+    .filter((f) => !charterOnly || f.service_type === 'charter')
     .map((f) => ({
       label: `${f.flight_number} ${route(f)} · ${f.scheduled_departure_at.slice(0, 16).replace('T', ' ')}`,
       value: String(f.id),

@@ -17,7 +17,6 @@ import type {
 } from '../types/organisation/organisation.types'
 import type {
   AirlineSsr,
-  BagTagLayout,
   BaggageOverride,
 } from '../types/products/product.types'
 import type {
@@ -40,7 +39,6 @@ import type {
   Announcement,
   CarriageDocument,
   PolicyDocument,
-  RequiredNotification,
 } from '../types/system/system.types'
 
 /**
@@ -878,40 +876,6 @@ export const BAG_TAG_FIELDS = [
   'origin',
 ] as const
 
-export const bagTagLayouts: BagTagLayout[] = [
-  {
-    id: 1,
-    airline: airlines[0].name,
-    name: 'MIAT 2-part tag',
-    positions: [
-      'airline_logo',
-      'destination_code',
-      'flight_number',
-      'date',
-      'barcode',
-      'tag_number',
-      'passenger_name',
-      'piece',
-    ],
-    created_at: isoDaysFromNow(-60),
-  },
-  {
-    id: 2,
-    airline: airlines[1].name,
-    name: 'Hunnu short tag',
-    positions: [
-      'destination_code',
-      'destination_city',
-      'flight_number',
-      'barcode',
-      'tag_number',
-      'passenger_name',
-      'weight_kg',
-    ],
-    created_at: isoDaysFromNow(-20),
-  },
-]
-
 export const baggageOverrides: BaggageOverride[] = bookings
   .flatMap((b) => b.passengers.map((p) => ({ b, p })))
   .filter((_, i) => i % 9 === 0)
@@ -928,39 +892,6 @@ export const baggageOverrides: BaggageOverride[] = bookings
   }))
 
 // ─── Notifications / terms / carriage ───
-export const requiredNotifications: RequiredNotification[] = [
-  {
-    id: 1,
-    title: 'Names deadline: 3 days before departure',
-    body: 'Allocations close names 72 hours before departure. Late names are not accepted.',
-    airline: airlines[0].name,
-    agency: null,
-    is_required: true,
-    created_by: 'System Admin',
-    created_at: isoDaysFromNow(-4),
-  },
-  {
-    id: 2,
-    title: 'Winter schedule changes',
-    body: 'OM301 / OM302 move to 08:00 from 1 November.',
-    airline: airlines[0].name,
-    agency: null,
-    is_required: false,
-    created_by: 'System Admin',
-    created_at: isoDaysFromNow(-9),
-  },
-  {
-    id: 3,
-    title: 'Passport validity reminder',
-    body: 'International passengers need 6 months passport validity.',
-    airline: airlines[1].name,
-    agency: agencies[2].name,
-    is_required: true,
-    created_by: users[1].name,
-    created_at: isoDaysFromNow(-15),
-  },
-]
-
 export const policyDocuments: PolicyDocument[] = [
   {
     id: 1,

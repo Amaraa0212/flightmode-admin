@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   agencyOptions,
-  flightOptions,
+  charterFlightOptions,
   inventoryAllocationService,
   type CabinCode,
   type FlightInventory,
@@ -62,7 +62,7 @@ export function AllocationDialog({
   const departure = (data.flight.scheduled_departure_local ?? '').slice(0, 10)
 
   const agencies = useOptions('agencies', agencyOptions)
-  const flights = useOptions('flights-upcoming', () => flightOptions())
+  const flights = useOptions('flights-charter', charterFlightOptions)
 
   const [agencyId, setAgencyId] = useState(
     current ? String(current.agency_id) : ''

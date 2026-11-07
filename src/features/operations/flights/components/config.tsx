@@ -1,11 +1,5 @@
-import { z } from 'zod'
-import {
-  aircraftOptions,
-  airlineOptions,
-  airportOptions,
-  flightService,
-  type Flight,
-} from '@/services'
+import { flightService, type Flight } from '@/services'
+import { dayDifference, dayMark } from '@/lib/airport-time'
 import {
   FLIGHT_STATUS,
   FLIGHT_STATUS_OPTIONS,
@@ -22,33 +16,8 @@ import {
 } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
-const schema = z
-  .object({
-    flight_number: z.string().trim().min(3),
-    service_type: z.enum(['scheduled', 'charter']),
-    airline_id: z.string(),
-    origin_airport_id: z.string().min(1, 'From is required'),
-    destination_airport_id: z.string().min(1, 'To is required'),
-    aircraft_id: z.string().min(1, 'Aircraft is required'),
-    scheduled_departure_at: z.number({ error: 'Departure is required' }),
-    scheduled_arrival_at: z.number({ error: 'Arrival is required' }),
-    terminal: z.string(),
-    gate: z.string(),
-  })
-  .refine((v) => v.scheduled_arrival_at > v.scheduled_departure_at, {
-    message: 'Arrival must be after departure',
-    path: ['scheduled_arrival_at'],
-  })
-type Form = z.infer<typeof schema>
-
-const toPayload = (v: Form) => ({
-  ...v,
-  scheduled_departure_at: new Date(v.scheduled_departure_at).toISOString(),
-  scheduled_arrival_at: new Date(v.scheduled_arrival_at).toISOString(),
-})
-
 export const pageConfig: Omit<
-  ResourcePageProps<Flight, Form>,
+  ResourcePageProps<Flight>,
   'search' | 'navigate'
 > = {
   title: 'All flights',
@@ -97,11 +66,36 @@ export const pageConfig: Omit<
       (r) => `${r.origin.iata_code} → ${r.destination.iata_code}`,
       { accessor: (r) => `${r.origin.iata_code}-${r.destination.iata_code}` }
     ),
-    col<Flight>('scheduled_departure_at', 'Departure (UTC)', (r) =>
-      dateTime(r.scheduled_departure_at)
+    col<Flight>(
+      'scheduled_departure_at',
+      'Departure (local)',
+      (r) => r.scheduled_departure_local ?? dateTime(r.scheduled_departure_at),
+      { accessor: (r) => r.scheduled_departure_local }
     ),
-    col<Flight>('scheduled_arrival_at', 'Arrival (UTC)', (r) =>
-      dateTime(r.scheduled_arrival_at, 'HH:mm')
+    col<Flight>(
+      'scheduled_arrival_at',
+      'Arrival (local)',
+      (r) => {
+        const days =
+          r.scheduled_departure_local && r.scheduled_arrival_local
+            ? dayDifference(
+                r.scheduled_departure_local.slice(0, 10),
+                r.scheduled_arrival_local.slice(0, 10)
+              )
+            : 0
+        return (
+          <>
+            {r.scheduled_arrival_local?.slice(11, 16) ??
+              dateTime(r.scheduled_arrival_at, 'HH:mm')}
+            {days !== 0 && (
+              <span className='ms-1 rounded bg-amber-500/15 px-1 font-mono text-xs font-bold text-amber-600 dark:text-amber-300'>
+                {dayMark(days)}
+              </span>
+            )}
+          </>
+        )
+      },
+      { accessor: (r) => r.scheduled_arrival_local }
     ),
     col<Flight>(
       'load',
@@ -112,105 +106,7 @@ export const pageConfig: Omit<
     col<Flight>('gate', 'Gate', (r) => muted(r.gate ?? '-')),
     col<Flight>('status', 'Status', (r) => chip(r.status, FLIGHT_STATUS)),
   ],
-  form: {
-    entity: 'flight',
-    schema: schema as unknown as z.ZodSchema<Form>,
-    maxWidth: 'xl',
-    empty: {
-      flight_number: '',
-      service_type: 'scheduled',
-      airline_id: '',
-      origin_airport_id: '',
-      destination_airport_id: '',
-      aircraft_id: '',
-      scheduled_departure_at: undefined as unknown as number,
-      scheduled_arrival_at: undefined as unknown as number,
-      terminal: 'T1',
-      gate: '',
-    },
-    fromRow: (r) => ({
-      flight_number: r.flight_number,
-      service_type: r.service_type ?? 'scheduled',
-      airline_id: r.airline ? String(r.airline.id) : '',
-      origin_airport_id: String(r.origin.id),
-      destination_airport_id: String(r.destination.id),
-      aircraft_id: String(r.aircraft?.id ?? ''),
-      scheduled_departure_at: new Date(r.scheduled_departure_at).getTime(),
-      scheduled_arrival_at: new Date(r.scheduled_arrival_at).getTime(),
-      terminal: r.terminal ?? '',
-      gate: r.gate ?? '',
-    }),
-    fields: [
-      {
-        name: 'flight_number',
-        label: 'Flight number',
-        type: 'text',
-        required: true,
-        gridCols: 1,
-      },
-      {
-        name: 'service_type',
-        label: 'Type',
-        type: 'select',
-        options: [
-          { label: 'Scheduled (хуваарьт) — sold by fare', value: 'scheduled' },
-          { label: 'Charter (захиалгат) — free baggage', value: 'charter' },
-        ],
-        required: true,
-        gridCols: 1,
-      },
-      {
-        name: 'airline_id',
-        label: 'Airline',
-        type: 'select',
-        placeholder: 'Your airline',
-        loadOptions: airlineOptions,
-        gridCols: 1,
-      },
-      {
-        name: 'aircraft_id',
-        label: 'Aircraft',
-        type: 'select',
-        loadOptions: aircraftOptions,
-        required: true,
-        gridCols: 1,
-      },
-      {
-        name: 'origin_airport_id',
-        label: 'From',
-        type: 'select',
-        loadOptions: airportOptions,
-        required: true,
-        gridCols: 1,
-      },
-      {
-        name: 'destination_airport_id',
-        label: 'To',
-        type: 'select',
-        loadOptions: airportOptions,
-        required: true,
-        gridCols: 1,
-      },
-      {
-        name: 'scheduled_departure_at',
-        label: 'Departure',
-        type: 'datetime',
-        required: true,
-        gridCols: 1,
-      },
-      {
-        name: 'scheduled_arrival_at',
-        label: 'Arrival',
-        type: 'datetime',
-        required: true,
-        gridCols: 1,
-      },
-      { name: 'terminal', label: 'Terminal', type: 'text', gridCols: 1 },
-      { name: 'gate', label: 'Gate', type: 'text', gridCols: 1 },
-    ],
-    // new flights: NewFlightsDialog (several days at once)
-    update: (row, v) => flightService.update(row.id, toPayload(v)),
-  },
+  // new and edit: NewFlightsDialog
   remove: {
     run: (r) => flightService.remove(r.id),
     label: (r) => `${r.flight_number} ${r.scheduled_departure_at.slice(0, 10)}`,

@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   agencyOptions,
   allocationBoardService,
-  flightOptions,
+  charterFlightOptions,
   type AllocationMode,
   type DistributeRow,
   type FlightQuota,
@@ -78,7 +78,7 @@ export function DistributeDialog({
 }) {
   const queryClient = useQueryClient()
   const [flightId, setFlightId] = useState(initialFlightId)
-  const flights = useOptions('flights-upcoming', () => flightOptions())
+  const flights = useOptions('flights-charter', charterFlightOptions)
   const agencies = useOptions('agencies', agencyOptions)
 
   const { data: quota, isLoading } = useQuery({

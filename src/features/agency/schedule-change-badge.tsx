@@ -12,6 +12,7 @@ const FIELD: Record<string, string> = {
   flight_number: 'Нислэгийн дугаар',
   origin_airport_id: 'Хаанаас',
   destination_airport_id: 'Хаашаа',
+  aircraft_id: 'Онгоц',
 }
 
 const show = (field: string, value: string | null) =>

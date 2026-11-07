@@ -61,6 +61,9 @@ export type ResourcePageProps<
   customActions?: (row: TRow) => ReactNode
   toolbarExtra?: ReactNode
   beforeTable?: ReactNode
+  /** Under the table, e.g. totals of every row */
+  afterTable?: ReactNode
+  rowClassName?: (row: TRow) => string | undefined
   exportFileName?: string
   /** Extra params merged into the list request (e.g. selected aircraft) */
   params?: Record<string, unknown>
@@ -93,6 +96,8 @@ export function ResourcePage<
   customActions,
   toolbarExtra,
   beforeTable,
+  afterTable,
+  rowClassName,
   exportFileName,
   params: extraParams,
   defaultPageSize = 20,
@@ -201,6 +206,8 @@ export function ResourcePage<
         )
       }
       renderBeforeTable={beforeTable}
+      renderAfterTable={afterTable ? () => afterTable : undefined}
+      rowClassName={rowClassName}
       toolbar={{
         searchPlaceholder,
         searchKey: 'query',

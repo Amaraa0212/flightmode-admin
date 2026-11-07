@@ -354,6 +354,16 @@ export const flightPassengerService = {
         .data
     ),
 
+  /** Passenger register for the border control, named like the legacy file: OMFL-UBNICN-25DEC26.xlsx */
+  downloadApis: async (flight: Pick<FlightBoardRow, 'id' | 'flight_number' | 'origin' | 'destination' | 'scheduled_departure_at'>) => {
+    const d = new Date(flight.scheduled_departure_at)
+    const date = `${String(d.getDate()).padStart(2, '0')}${d.toLocaleString('en-GB', { month: 'short' })}${String(d.getFullYear()).slice(2)}`.toUpperCase()
+    saveBlob(
+      await client.blob(`/admin/flights/${flight.id}/documents/apis`),
+      `${flight.flight_number.slice(0, 2)}FL-${flight.origin.iata_code}${flight.destination.iata_code}-${date}.xlsx`
+    )
+  },
+
   downloadReconciliation: async (flightId: number, filename: string) =>
     saveBlob(
       await client.blob(`/admin/flights/${flightId}/documents/reconciliation`, { format: 'xlsx' }),

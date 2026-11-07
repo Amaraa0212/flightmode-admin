@@ -150,14 +150,6 @@ export interface ServiceTemplatePayload {
 }
 
 /** Legacy pag_tag_position: bag tag print layout */
-export interface BagTagLayout extends Record<string, unknown> {
-  id: number
-  airline: string
-  name: string
-  positions: string[]
-  created_at: string
-}
-
 /** Legacy shop: products per flight */
 export interface FlightProducts extends Record<string, unknown> {
   flight_id: number

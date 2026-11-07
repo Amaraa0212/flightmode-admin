@@ -11,9 +11,11 @@ import {
 } from '@/services'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { arrivalFromTime, dayMark, minutesToHhmm } from '@/lib/airport-time'
 import { cn } from '@/lib/utils'
 import { useOptions } from '@/hooks/use-options'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -37,6 +39,7 @@ import { WEEKDAYS, pageConfig } from './config'
 const schema = z.object({
   flight_number: z.string().trim().min(3),
   service_type: z.enum(['scheduled', 'charter']),
+  no_baggage_rule: z.boolean(),
   origin: z.string().min(1, 'From is required'),
   destination: z.string().min(1, 'To is required'),
   aircraft: z.string().min(1),
@@ -62,6 +65,7 @@ export function SeriesDialog({
     defaultValues: series
       ? {
           ...series,
+          no_baggage_rule: !!series.no_baggage_rule,
           // selects hold ids; the list shows IATA codes
           origin: String(series.origin_airport_id ?? ''),
           destination: String(series.destination_airport_id ?? ''),
@@ -70,6 +74,7 @@ export function SeriesDialog({
       : {
           flight_number: '',
           service_type: 'scheduled',
+          no_baggage_rule: false,
           origin: '',
           destination: '',
           aircraft: '',
@@ -82,7 +87,17 @@ export function SeriesDialog({
         },
   })
   const save = useMutation({
-    mutationFn: (v: Form) => flightSeriesService.save(v, series?.id),
+    mutationFn: (v: Form) => {
+      const arrival = arrivalOf(v)
+      return flightSeriesService.save(
+        {
+          ...v,
+          arrival_day_offset: arrival?.dayOffset ?? 0,
+          duration_minutes: arrival?.minutes,
+        },
+        series?.id
+      )
+    },
     onSuccess: (res) => {
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: [pageConfig.queryKey] })
@@ -93,6 +108,29 @@ export function SeriesDialog({
   const registrations = useOptions('aircraft', aircraftOptions)
   const airports = useOptions('airports', airportOptions)
   const templates = useOptions('inventory-templates', inventoryTemplateOptions)
+  const timezoneOf = (id: string) =>
+    airports.find((a) => a.value === id)?.timezone
+  /** Duration and day mark from the airports' UTC offsets, on the series' first day */
+  const arrivalOf = (v: Form) => {
+    const originTimezone = timezoneOf(v.origin)
+    const destinationTimezone = timezoneOf(v.destination)
+    return originTimezone &&
+      destinationTimezone &&
+      v.departure_time &&
+      v.arrival_time &&
+      v.valid_from
+      ? arrivalFromTime(
+          {
+            date: v.valid_from,
+            departureTime: v.departure_time,
+            originTimezone,
+            destinationTimezone,
+          },
+          v.arrival_time
+        )
+      : null
+  }
+  const arrival = arrivalOf(form.watch())
 
   const text = (
     name: keyof Form,
@@ -157,16 +195,47 @@ export function SeriesDialog({
             {select('aircraft', 'Aircraft', registrations)}
             {select('service_type', 'Type', [
               { label: 'Scheduled (хуваарьт)', value: 'scheduled' },
-              { label: 'Charter (захиалгат) — free baggage', value: 'charter' },
+              { label: 'Charter (захиалгат)', value: 'charter' },
             ])}
             {select('inventory_template', 'Seat template (new flights)', [
               { label: '— none —', value: 'none' },
               ...templates,
             ])}
+            {form.watch('service_type') === 'charter' && (
+              <FormField
+                control={form.control}
+                name='no_baggage_rule'
+                render={({ field }) => (
+                  <FormItem className='col-span-2 flex items-center gap-2'>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                      />
+                    </FormControl>
+                    <FormLabel>No baggage rule (free, no kg limit)</FormLabel>
+                  </FormItem>
+                )}
+              />
+            )}
             {select('origin', 'From', airports)}
             {select('destination', 'To', airports)}
-            {text('departure_time', 'Departure (HH:mm)', { type: 'time' })}
-            {text('arrival_time', 'Arrival (HH:mm)', { type: 'time' })}
+            {text('departure_time', 'Departure (HH:mm, local at origin)', {
+              type: 'time',
+            })}
+            {text('arrival_time', 'Arrival (HH:mm, local at destination)', {
+              type: 'time',
+            })}
+            {arrival && (
+              <p className='text-muted-foreground col-span-2 text-xs'>
+                Duration {minutesToHhmm(arrival.minutes)}
+                {arrival.dayOffset !== 0 && (
+                  <span className='ms-2 rounded bg-amber-500/15 px-1 font-mono font-bold text-amber-600 dark:text-amber-300'>
+                    {dayMark(arrival.dayOffset)}
+                  </span>
+                )}
+              </p>
+            )}
             <FormField
               control={form.control}
               name='days_of_week'
