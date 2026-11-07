@@ -28,9 +28,15 @@ export const isAgencyHost = () => hostname().startsWith('res.') || (!!PORTAL_HOS
 
 export const isAgencyUser = (user: AuthUser | null | undefined) => user?.role?.scope === 'agency'
 
-/** Name and subtitle for the sidebar, sign-in page and tab title */
-export const brandFor = (user?: AuthUser | null) =>
-  isAgencyHost() || isAgencyUser(user) ? AGENCY_PORTAL : APP
+/** Name and subtitle for the sidebar, sign-in page and tab title: the user's own airline / agency once signed in */
+export const brandFor = (user?: AuthUser | null) => {
+  if (isAgencyUser(user) && user?.agency) return { name: user.agency.name, subtitle: 'Agency Portal' }
+  if (user?.airline) return { name: user.airline.name, subtitle: 'Back Office' }
+  return isAgencyHost() || isAgencyUser(user) ? AGENCY_PORTAL : APP
+}
+
+/** The Skythium mark belongs to the product's own screens, not to an airline's or agency's brand */
+export const showsProductLogo = (user?: AuthUser | null) => !user?.agency && !user?.airline
 
 export function applyDocumentTitle(user?: AuthUser | null) {
   if (typeof document !== 'undefined') document.title = brandFor(user).name

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   flightOpsService,
+  flightPassengerService,
   type FlightAction,
   type FlightBoardRow,
 } from '@/services'
@@ -275,10 +276,12 @@ function ManageForm({
                 variant='secondary'
                 disabled={busy}
                 onClick={() =>
-                  toast.success('APIS sent to destination authorities (mock)')
+                  flightPassengerService
+                    .downloadApis(flight)
+                    .catch((error: Error) => toast.error(error.message))
                 }
               >
-                Send APIS
+                Download APIS
               </Button>
             </div>
             {closeHint && (

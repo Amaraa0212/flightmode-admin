@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router'
 import { reportService, type StationRow } from '@/services'
 import {
   brand,
@@ -24,7 +25,16 @@ export const pageConfig: Omit<
   defaultPageSize: 50,
   columns: [
     col<StationRow>('date', 'Date', (r) => dateTime(r.date, 'YYYY-MM-DD')),
-    col<StationRow>('flight_number', 'Flight', (r) => brand(r.flight_number)),
+    col<StationRow>('flight_number', 'Flight', (r) => (
+      <Link
+        to='/reports/pnl'
+        search={{ flight: r.id }}
+        className='hover:underline'
+        title='PNL report'
+      >
+        {brand(r.flight_number)}
+      </Link>
+    )),
     col<StationRow>('route', 'Route', (r) => r.route),
     col<StationRow>(
       'bags',

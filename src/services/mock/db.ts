@@ -17,7 +17,6 @@ import type {
 } from '../types/organisation/organisation.types'
 import type {
   AirlineSsr,
-  BagTagLayout,
   BaggageOverride,
 } from '../types/products/product.types'
 import type {
@@ -877,40 +876,6 @@ export const BAG_TAG_FIELDS = [
   'weight_kg',
   'origin',
 ] as const
-
-export const bagTagLayouts: BagTagLayout[] = [
-  {
-    id: 1,
-    airline: airlines[0].name,
-    name: 'MIAT 2-part tag',
-    positions: [
-      'airline_logo',
-      'destination_code',
-      'flight_number',
-      'date',
-      'barcode',
-      'tag_number',
-      'passenger_name',
-      'piece',
-    ],
-    created_at: isoDaysFromNow(-60),
-  },
-  {
-    id: 2,
-    airline: airlines[1].name,
-    name: 'Hunnu short tag',
-    positions: [
-      'destination_code',
-      'destination_city',
-      'flight_number',
-      'barcode',
-      'tag_number',
-      'passenger_name',
-      'weight_kg',
-    ],
-    created_at: isoDaysFromNow(-20),
-  },
-]
 
 export const baggageOverrides: BaggageOverride[] = bookings
   .flatMap((b) => b.passengers.map((p) => ({ b, p })))

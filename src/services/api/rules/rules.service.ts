@@ -1,15 +1,8 @@
-import {
-  airlines,
-  airlineSsrs,
-  bagTagLayouts,
-  baggageOverrides,
-  flights,
-} from '../../mock/db'
+import { airlineSsrs, baggageOverrides, flights } from '../../mock/db'
 import { createMockResource, nextId, nowIso } from '../../mock/utils'
 import type {
   AirlineSsr,
   AirlineSsrPayload,
-  BagTagLayout,
   BaggageOverride,
   BaggageOverridePayload,
   FlightProducts,
@@ -30,7 +23,7 @@ import {
   type ApiData,
 } from '../shared/client'
 
-// TODO(api): /admin/airline-ssrs, airline bag_tag_layout
+// TODO(api): /admin/airline-ssrs
 
 const first = (v: unknown) => (Array.isArray(v) ? v : v ? [v] : []) as string[]
 
@@ -38,11 +31,17 @@ const first = (v: unknown) => (Array.isArray(v) ? v : v ? [v] : []) as string[]
 const localPage = <T>(rows: T[], params: ListParams) => {
   const size = params.pageSize ?? 20
   const page = params.current ?? 1
-  return ok({ total: rows.length, items: rows.slice((page - 1) * size, page * size) })
+  return ok({
+    total: rows.length,
+    items: rows.slice((page - 1) * size, page * size),
+  })
 }
 
 /** Decimals arrive as strings ("45000.00") */
-const toSeatPrice = (p: SeatPrice): SeatPrice => ({ ...p, price: Number(p.price) })
+const toSeatPrice = (p: SeatPrice): SeatPrice => ({
+  ...p,
+  price: Number(p.price),
+})
 
 const seatPriceBody = (p: SeatPricePayload) => ({
   name: p.name.trim(),
@@ -55,12 +54,18 @@ const seatPriceBody = (p: SeatPricePayload) => ({
 })
 
 const loadSeatPrices = async () =>
-  (await client.get<ApiData<SeatPrice[]>>('/admin/seat-prices', { per_page: 500 })).data.map(toSeatPrice)
+  (
+    await client.get<ApiData<SeatPrice[]>>('/admin/seat-prices', {
+      per_page: 500,
+    })
+  ).data.map(toSeatPrice)
 
 /** /admin/seat-prices — legacy seat_rule; the lowest position matches first */
 export const seatPriceService = {
   list: async (params: ListParams = {}) => {
-    const q = String(params.query ?? '').trim().toLowerCase()
+    const q = String(params.query ?? '')
+      .trim()
+      .toLowerCase()
     const cabins = first(params.cabin_class)
     const active = first(params.is_active)
     const rows = (await loadSeatPrices())
@@ -74,10 +79,26 @@ export const seatPriceService = {
     return localPage(rows, params)
   },
   create: (payload: SeatPricePayload) =>
-    action(client.post<ApiData<SeatPrice>>('/admin/seat-prices', seatPriceBody(payload)), toSeatPrice),
+    action(
+      client.post<ApiData<SeatPrice>>(
+        '/admin/seat-prices',
+        seatPriceBody(payload)
+      ),
+      toSeatPrice
+    ),
   update: (id: number, payload: SeatPricePayload) =>
-    action(client.put<ApiData<SeatPrice>>(`/admin/seat-prices/${id}`, seatPriceBody(payload)), toSeatPrice),
-  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/seat-prices/${id}`), () => null),
+    action(
+      client.put<ApiData<SeatPrice>>(
+        `/admin/seat-prices/${id}`,
+        seatPriceBody(payload)
+      ),
+      toSeatPrice
+    ),
+  remove: (id: number) =>
+    action(
+      client.delete<ApiData<null>>(`/admin/seat-prices/${id}`),
+      () => null
+    ),
 }
 
 export const airlineSsrService = createMockResource<
@@ -100,7 +121,9 @@ const templateBody = (p: ServiceTemplatePayload) => ({
   name: p.name.trim(),
   aircraft_id: p.aircraft_id ? Number(p.aircraft_id) : null,
   seat_assignment_profile_id:
-    p.aircraft_id && p.seat_assignment_profile_id ? Number(p.seat_assignment_profile_id) : null,
+    p.aircraft_id && p.seat_assignment_profile_id
+      ? Number(p.seat_assignment_profile_id)
+      : null,
   checkin_opens_minutes: Number(p.checkin_opens_minutes),
   checkin_closes_minutes: Number(p.checkin_closes_minutes),
   baggage_rule_ids: p.baggage_rule_ids.map(Number),
@@ -108,27 +131,52 @@ const templateBody = (p: ServiceTemplatePayload) => ({
 })
 
 const loadTemplates = async () =>
-  (await client.get<ApiData<ServiceTemplate[]>>('/admin/service-templates', { per_page: 500 })).data
+  (
+    await client.get<ApiData<ServiceTemplate[]>>('/admin/service-templates', {
+      per_page: 500,
+    })
+  ).data
 
 /** /admin/service-templates — online check-in window, seat profile, baggage & seat rules applied to flights */
 export const serviceTemplateService = {
   list: async (params: ListParams = {}) => {
-    const q = String(params.query ?? '').trim().toLowerCase()
+    const q = String(params.query ?? '')
+      .trim()
+      .toLowerCase()
     const rows = (await loadTemplates()).filter(
       (t) => !q || `${t.name} ${t.aircraft ?? ''}`.toLowerCase().includes(q)
     )
     return localPage(rows, params)
   },
   create: (payload: ServiceTemplatePayload) =>
-    action(client.post<ApiData<ServiceTemplate>>('/admin/service-templates', templateBody(payload)), (t) => t),
+    action(
+      client.post<ApiData<ServiceTemplate>>(
+        '/admin/service-templates',
+        templateBody(payload)
+      ),
+      (t) => t
+    ),
   update: (id: number, payload: ServiceTemplatePayload) =>
-    action(client.put<ApiData<ServiceTemplate>>(`/admin/service-templates/${id}`, templateBody(payload)), (t) => t),
-  remove: (id: number) => action(client.delete<ApiData<null>>(`/admin/service-templates/${id}`), () => null),
+    action(
+      client.put<ApiData<ServiceTemplate>>(
+        `/admin/service-templates/${id}`,
+        templateBody(payload)
+      ),
+      (t) => t
+    ),
+  remove: (id: number) =>
+    action(
+      client.delete<ApiData<null>>(`/admin/service-templates/${id}`),
+      () => null
+    ),
   /** A template for one aircraft is refused for flights on another aircraft */
   apply: async (templateId: number, flightIds: number[]) => {
-    const res = await client.post<ApiAction<null>>(`/admin/service-templates/${templateId}/apply`, {
-      flight_ids: flightIds,
-    })
+    const res = await client.post<ApiAction<null>>(
+      `/admin/service-templates/${templateId}/apply`,
+      {
+        flight_ids: flightIds,
+      }
+    )
     return ok(null, res.message)
   },
   options: async () =>
@@ -232,20 +280,31 @@ export const flightProductService = {
     ),
 }
 
-export const bagTagLayoutService = createMockResource<
-  BagTagLayout,
-  { name: string; positions: string[] }
->(bagTagLayouts, {
-  searchKeys: ['name', 'airline'],
-  build: (payload, existing) => ({
-    airline: airlines[0].name,
-    created_at: nowIso(),
-    ...existing,
-    name: payload.name,
-    positions: payload.positions,
-    id: existing?.id ?? nextId(),
-  }),
-})
+/** Bag Tag Orientation: the direction each airline's bag tags print in */
+export interface BagTagAirline {
+  id: number
+  name: string
+  iata_code: string
+  bag_tag_rotation: 0 | 180
+}
+
+export const bagTagService = {
+  airlines: async () =>
+    ok(
+      (
+        await client.get<ApiData<BagTagAirline[]>>('/admin/airlines', {
+          per_page: 100,
+        })
+      ).data
+    ),
+  save: (airlineId: number, rotation: 0 | 180) =>
+    action(
+      client.put<ApiData<BagTagAirline>>(`/admin/airlines/${airlineId}`, {
+        bag_tag_rotation: rotation,
+      }),
+      (r) => r
+    ),
+}
 
 export const baggageOverrideService = createMockResource<
   BaggageOverride,
@@ -270,10 +329,9 @@ export const baggageOverrideService = createMockResource<
 
 /** Active baggage rules for select fields (/admin/baggage-rules) */
 export const baggageRuleOptions = async () => {
-  const res = await client.get<ApiData<{ id: number; name: string; is_active: boolean }[]>>(
-    '/admin/baggage-rules',
-    { per_page: 500 }
-  )
+  const res = await client.get<
+    ApiData<{ id: number; name: string; is_active: boolean }[]>
+  >('/admin/baggage-rules', { per_page: 500 })
   return res.data
     .filter((r) => r.is_active)
     .map((r) => ({ label: r.name, value: String(r.id) }))

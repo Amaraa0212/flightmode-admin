@@ -363,7 +363,10 @@ export const allocationService = {
 export const flightOptions = async (upcomingOnly = true) => {
   const today = new Date().toISOString().slice(0, 10)
   const res = await client.get<{ data: ApiFlight[] }>('/admin/flights', {
-    from: upcomingOnly ? today : undefined,
+    // otherwise the API starts at the 1st of this month and last month's flown flights cannot be picked
+    from: upcomingOnly
+      ? today
+      : new Date(Date.now() - 90 * 86_400_000).toISOString().slice(0, 10),
     to: new Date(Date.now() + 120 * 86_400_000).toISOString().slice(0, 10),
     per_page: 500,
   })
