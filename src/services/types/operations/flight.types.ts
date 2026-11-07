@@ -22,6 +22,9 @@ export interface Flight extends Record<string, unknown> {
     total_seats: number
   } | null
   flight_series_id: number | null
+  /** YYYY-MM-DD HH:mm, local to each airport */
+  scheduled_departure_local?: string | null
+  scheduled_arrival_local?: string | null
   /** scheduled (fares) | charter */
   service_type: 'scheduled' | 'charter'
   /** charter: bags are free with no kg limit (e.g. Oyu Tolgoi); otherwise the flight's baggage rules apply */

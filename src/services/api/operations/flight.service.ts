@@ -95,7 +95,8 @@ export interface FlightsBulkPayload {
   excess_baggage_price_per_kg?: number | null
   /** HH:MM, local time of the origin */
   departure_time: string
-  block_minutes: number
+  /** HH:MM, local time of the destination */
+  arrival_time: string
   terminal?: string
   gate?: string
   /** YYYY-MM-DD, local days of the origin */
@@ -110,6 +111,7 @@ export interface FlightTemplate {
   service_type: 'scheduled' | 'charter'
   no_baggage_rule?: boolean
   departure_time: string
+  arrival_time: string
   block_minutes: number
   terminal: string | null
   last_date: string
@@ -227,6 +229,9 @@ export const flightService = {
 export interface FlightSeriesPayload {
   service_type?: 'scheduled' | 'charter'
   no_baggage_rule?: boolean
+  /** 1: arrives the day after departure, in the destination's local time */
+  arrival_day_offset?: number
+  duration_minutes?: number
   flight_number: string
   /** airport ids */
   origin: string
@@ -308,6 +313,8 @@ export const flightSeriesService = {
           : null,
       departure_time: payload.departure_time,
       arrival_time: payload.arrival_time,
+      arrival_day_offset: payload.arrival_day_offset ?? 0,
+      duration_minutes: payload.duration_minutes,
       days_of_week: payload.days_of_week.map(Number).sort(),
       period_start: payload.valid_from,
       period_end: payload.valid_to,
