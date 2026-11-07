@@ -142,19 +142,22 @@ function ManageForm({
   onClose: () => void
 }) {
   const [gate, setGate] = useState(flight.gate ?? '')
-  // close check-in / gate / depart: OCC only; cancel / reopen: airline administrator only
+  // close check-in / gate / depart: OCC; cancel and reopen: their own permissions
   const can = useCan()
   const canClose = can('flight_manager.close')
   const canCancel = can('flight_manager.cancel')
+  const canReopen = can('flight_manager.reopen')
   const closeHint = canClose
     ? undefined
     : 'Only OCC can close check-in, the gate or the flight'
   const cancelHint = canCancel
     ? undefined
-    : 'Only the airline administrator can cancel or reopen a flight'
+    : 'You do not have permission to cancel a flight'
   const reopenable = ['checkin_closed', 'gate_closed', 'cancelled'].includes(
     flight.status
   )
+  // a closed flight only moves on (close gate, depart) or is reopened: everything else is read-only
+  const closed = reopenable || flight.status === 'departed'
   const [agents, setAgents] = useState(
     flight.ops.gate_agents.map((a) => String(a.id))
   )
@@ -187,57 +190,67 @@ function ManageForm({
 
         <div className='grid grid-cols-2 gap-3'>
           <Section title='Gate'>
-            <div className='grid gap-1.5'>
-              <Label>Gate number</Label>
-              <Input
-                value={gate}
-                onChange={(e) => setGate(e.target.value)}
-                placeholder='Enter gate number'
-              />
-            </div>
-            <Button
-              size='sm'
-              disabled={busy}
-              onClick={() => update.mutate({ gate })}
+            <fieldset
+              disabled={closed}
+              className='grid gap-3 disabled:opacity-60'
             >
-              Update
-            </Button>
+              <div className='grid gap-1.5'>
+                <Label>Gate number</Label>
+                <Input
+                  value={gate}
+                  onChange={(e) => setGate(e.target.value)}
+                  placeholder='Enter gate number'
+                />
+              </div>
+              <Button
+                size='sm'
+                disabled={busy}
+                onClick={() => update.mutate({ gate })}
+              >
+                Update
+              </Button>
+            </fieldset>
           </Section>
 
           <Section title='Gate users & online check-in'>
-            <CheckList
-              options={candidates.map((c) => ({
-                label: c.name,
-                value: String(c.id),
-              }))}
-              value={agents}
-              onChange={setAgents}
-              className='max-h-32 overflow-y-auto'
-            />
-            <div className='flex items-center justify-between'>
-              <Label>Online check-in (OCI)</Label>
-              <Switch
-                checked={flight.ops.online_checkin_enabled}
-                onCheckedChange={(on) =>
-                  update.mutate({ online_checkin_enabled: on })
-                }
-                disabled={busy}
-              />
-            </div>
-            <Button
-              size='sm'
-              variant='outline'
-              disabled={busy}
-              onClick={() =>
-                update.mutate({
-                  gate_agents: candidates.filter((c) =>
-                    agents.includes(String(c.id))
-                  ),
-                })
-              }
+            <fieldset
+              disabled={closed}
+              className='grid gap-3 disabled:opacity-60'
             >
-              Save gate users
-            </Button>
+              <CheckList
+                options={candidates.map((c) => ({
+                  label: c.name,
+                  value: String(c.id),
+                }))}
+                value={agents}
+                onChange={setAgents}
+                className='max-h-32 overflow-y-auto'
+              />
+              <div className='flex items-center justify-between'>
+                <Label>Online check-in (OCI)</Label>
+                <Switch
+                  checked={flight.ops.online_checkin_enabled}
+                  onCheckedChange={(on) =>
+                    update.mutate({ online_checkin_enabled: on })
+                  }
+                  disabled={busy || closed}
+                />
+              </div>
+              <Button
+                size='sm'
+                variant='outline'
+                disabled={busy}
+                onClick={() =>
+                  update.mutate({
+                    gate_agents: candidates.filter((c) =>
+                      agents.includes(String(c.id))
+                    ),
+                  })
+                }
+              >
+                Save gate users
+              </Button>
+            </fieldset>
           </Section>
 
           <Section title='Check-in & gate'>
@@ -289,89 +302,107 @@ function ManageForm({
             )}
           </Section>
 
-          <Section title='Cancel / reopen flight'>
-            <Textarea
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              placeholder='Reason (required)'
-              rows={2}
-            />
-            <Button
-              size='sm'
-              variant='destructive'
-              disabled={
-                busy ||
-                !canCancel ||
-                !cancelReason.trim() ||
-                ['departed', 'cancelled', 'gate_closed'].includes(flight.status)
-              }
-              title={cancelHint}
-              onClick={() =>
-                action.mutate({
-                  action: 'cancel',
-                  data: { reason: cancelReason },
-                })
-              }
-            >
-              Cancel flight
-            </Button>
-            <Button
-              size='sm'
-              variant='outline'
-              disabled={busy || !canCancel || !reopenable}
-              title={
-                cancelHint ??
-                (flight.status === 'cancelled'
-                  ? 'Back to scheduled'
-                  : 'Opens check-in again')
-              }
-              onClick={() => action.mutate({ action: 'reopen' })}
-            >
-              Reopen flight
-            </Button>
-            {cancelHint && (
-              <p className='text-muted-foreground text-xs'>{cancelHint}</p>
+          <Section title={closed ? 'Reopen flight' : 'Cancel flight'}>
+            {closed ? (
+              <>
+                {reopenable && canReopen && (
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    disabled={busy}
+                    title={
+                      flight.status === 'cancelled'
+                        ? 'Back to scheduled'
+                        : 'Opens check-in again'
+                    }
+                    onClick={() => action.mutate({ action: 'reopen' })}
+                  >
+                    Flight Reopen
+                  </Button>
+                )}
+                {reopenable && !canReopen && (
+                  <p className='text-muted-foreground text-xs'>
+                    You do not have permission to reopen a flight
+                  </p>
+                )}
+                {flight.status === 'departed' && (
+                  <p className='text-muted-foreground text-xs'>
+                    A departed flight cannot be reopened
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <Textarea
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  placeholder='Reason (required)'
+                  rows={2}
+                />
+                <Button
+                  size='sm'
+                  variant='destructive'
+                  disabled={busy || !canCancel || !cancelReason.trim()}
+                  title={cancelHint}
+                  onClick={() =>
+                    action.mutate({
+                      action: 'cancel',
+                      data: { reason: cancelReason },
+                    })
+                  }
+                >
+                  Cancel flight
+                </Button>
+                {cancelHint && (
+                  <p className='text-muted-foreground text-xs'>{cancelHint}</p>
+                )}
+              </>
             )}
           </Section>
 
           <div className='col-span-2'>
             <Section title='Close flight and time'>
-              <div className='grid grid-cols-3 gap-3'>
-                <div className='grid gap-1.5'>
-                  <Label>Off-block time (OBT)</Label>
-                  <Input
-                    type='datetime-local'
-                    value={obt}
-                    onChange={(e) => setObt(e.target.value)}
-                  />
+              <fieldset
+                disabled={flight.status !== 'gate_closed'}
+                className='grid gap-3 disabled:opacity-60'
+              >
+                <div className='grid grid-cols-3 gap-3'>
+                  <div className='grid gap-1.5'>
+                    <Label>Off-block time (OBT)</Label>
+                    <Input
+                      type='datetime-local'
+                      value={obt}
+                      onChange={(e) => setObt(e.target.value)}
+                    />
+                  </div>
+                  <div className='grid gap-1.5'>
+                    <Label>Takeoff time (TT)</Label>
+                    <Input
+                      type='datetime-local'
+                      value={tt}
+                      onChange={(e) => setTt(e.target.value)}
+                    />
+                  </div>
+                  <div className='grid gap-1.5'>
+                    <Label>Estimated arrival (ET)</Label>
+                    <Input
+                      type='datetime-local'
+                      value={et}
+                      onChange={(e) => setEt(e.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className='grid gap-1.5'>
-                  <Label>Takeoff time (TT)</Label>
-                  <Input
-                    type='datetime-local'
-                    value={tt}
-                    onChange={(e) => setTt(e.target.value)}
+                  <Label>Reason for delay</Label>
+                  <SimpleSelect
+                    value={delay || undefined}
+                    onValueChange={setDelay}
+                    items={DELAY_REASONS}
+                    placeholder='Please select reason'
+                    className='w-full'
                   />
                 </div>
-                <div className='grid gap-1.5'>
-                  <Label>Estimated arrival (ET)</Label>
-                  <Input
-                    type='datetime-local'
-                    value={et}
-                    onChange={(e) => setEt(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className='grid gap-1.5'>
-                <Label>Reason for delay</Label>
-                <SimpleSelect
-                  value={delay || undefined}
-                  onValueChange={setDelay}
-                  items={DELAY_REASONS}
-                  placeholder='Please select reason'
-                  className='w-full'
-                />
-              </div>
+              </fieldset>
               <Button
                 disabled={busy || !canClose || flight.status !== 'gate_closed'}
                 title={closeHint}
