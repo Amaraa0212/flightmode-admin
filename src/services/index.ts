@@ -50,6 +50,7 @@ export {
   flightSeriesService,
   allocationService,
   flightOptions,
+  charterFlightOptions,
   type FlightSeriesPayload,
   type AllocationPayload,
 } from './api/operations/flight.service'

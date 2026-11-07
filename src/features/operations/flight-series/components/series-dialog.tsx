@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 import { useOptions } from '@/hooks/use-options'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ import { WEEKDAYS, pageConfig } from './config'
 const schema = z.object({
   flight_number: z.string().trim().min(3),
   service_type: z.enum(['scheduled', 'charter']),
+  no_baggage_rule: z.boolean(),
   origin: z.string().min(1, 'From is required'),
   destination: z.string().min(1, 'To is required'),
   aircraft: z.string().min(1),
@@ -62,6 +64,7 @@ export function SeriesDialog({
     defaultValues: series
       ? {
           ...series,
+          no_baggage_rule: !!series.no_baggage_rule,
           // selects hold ids; the list shows IATA codes
           origin: String(series.origin_airport_id ?? ''),
           destination: String(series.destination_airport_id ?? ''),
@@ -70,6 +73,7 @@ export function SeriesDialog({
       : {
           flight_number: '',
           service_type: 'scheduled',
+          no_baggage_rule: false,
           origin: '',
           destination: '',
           aircraft: '',
@@ -157,12 +161,29 @@ export function SeriesDialog({
             {select('aircraft', 'Aircraft', registrations)}
             {select('service_type', 'Type', [
               { label: 'Scheduled (хуваарьт)', value: 'scheduled' },
-              { label: 'Charter (захиалгат) — free baggage', value: 'charter' },
+              { label: 'Charter (захиалгат)', value: 'charter' },
             ])}
             {select('inventory_template', 'Seat template (new flights)', [
               { label: '— none —', value: 'none' },
               ...templates,
             ])}
+            {form.watch('service_type') === 'charter' && (
+              <FormField
+                control={form.control}
+                name='no_baggage_rule'
+                render={({ field }) => (
+                  <FormItem className='col-span-2 flex items-center gap-2'>
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={(v) => field.onChange(v === true)}
+                      />
+                    </FormControl>
+                    <FormLabel>No baggage rule (free, no kg limit)</FormLabel>
+                  </FormItem>
+                )}
+              />
+            )}
             {select('origin', 'From', airports)}
             {select('destination', 'To', airports)}
             {text('departure_time', 'Departure (HH:mm)', { type: 'time' })}

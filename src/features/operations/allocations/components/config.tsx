@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   agencyOptions,
   allocationService,
-  flightOptions,
+  charterFlightOptions,
   type Allocation,
 } from '@/services'
 import { Send } from 'lucide-react'
@@ -212,7 +212,7 @@ export const pageConfig: Omit<
         name: 'outbound_flight_id',
         label: 'Outbound flight',
         type: 'select',
-        loadOptions: () => flightOptions(),
+        loadOptions: charterFlightOptions,
         required: true,
         gridCols: 2,
       },
@@ -221,7 +221,7 @@ export const pageConfig: Omit<
         label: 'Return flight (optional)',
         type: 'select',
         options: [{ label: 'One way', value: '' }],
-        loadOptions: () => flightOptions(),
+        loadOptions: charterFlightOptions,
         gridCols: 2,
       },
       {

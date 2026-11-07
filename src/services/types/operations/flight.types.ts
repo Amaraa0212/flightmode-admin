@@ -22,8 +22,12 @@ export interface Flight extends Record<string, unknown> {
     total_seats: number
   } | null
   flight_series_id: number | null
-  /** scheduled (fares) | charter (free baggage at the counter) */
+  /** scheduled (fares) | charter */
   service_type: 'scheduled' | 'charter'
+  /** charter: bags are free with no kg limit (e.g. Oyu Tolgoi); otherwise the flight's baggage rules apply */
+  no_baggage_rule?: boolean
+  excess_baggage_max_kg?: string | number | null
+  excess_baggage_price_per_kg?: string | number | null
   /** series flight changed by hand — saving the series again leaves it as it is */
   is_series_override?: boolean
   origin: FlightAirport
@@ -56,6 +60,9 @@ export interface FlightListParams extends ListParams {
 export interface FlightPayload {
   flight_number: string
   service_type: 'scheduled' | 'charter'
+  no_baggage_rule?: boolean
+  excess_baggage_max_kg?: number | null
+  excess_baggage_price_per_kg?: number | null
   origin_airport_id: string
   destination_airport_id: string
   aircraft_id: string
@@ -78,6 +85,7 @@ export interface FlightSeries extends Record<string, unknown> {
   id: number
   flight_number: string
   service_type: 'scheduled' | 'charter'
+  no_baggage_rule?: boolean
   /** IATA codes (display) */
   origin: string
   destination: string

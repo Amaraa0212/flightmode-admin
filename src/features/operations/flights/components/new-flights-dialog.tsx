@@ -28,6 +28,9 @@ type Form = {
   airline_id: string
   flight_number: string
   service_type: 'scheduled' | 'charter'
+  no_baggage_rule: boolean
+  excess_price: string
+  excess_max: string
   aircraft_id: string
   origin_airport_id: string
   destination_airport_id: string
@@ -42,6 +45,9 @@ const EMPTY: Form = {
   airline_id: '',
   flight_number: '',
   service_type: 'scheduled',
+  no_baggage_rule: false,
+  excess_price: '',
+  excess_max: '',
   aircraft_id: '',
   origin_airport_id: '',
   destination_airport_id: '',
@@ -88,6 +94,7 @@ export function NewFlightsDialog({ onClose }: { onClose: () => void }) {
       setForm((f) => ({
         ...f,
         service_type: latest.service_type,
+        no_baggage_rule: !!latest.no_baggage_rule,
         aircraft_id: String(latest.aircraft_id),
         origin_airport_id: String(latest.origin_airport_id),
         destination_airport_id: String(latest.destination_airport_id),
@@ -132,6 +139,10 @@ export function NewFlightsDialog({ onClose }: { onClose: () => void }) {
         origin_airport_id: Number(form.origin_airport_id),
         destination_airport_id: Number(form.destination_airport_id),
         service_type: form.service_type,
+        no_baggage_rule:
+          form.service_type === 'charter' && form.no_baggage_rule,
+        excess_baggage_price_per_kg: Number(form.excess_price) || null,
+        excess_baggage_max_kg: Number(form.excess_max) || null,
         departure_time: form.departure_time,
         block_minutes: toMinutes(form.block_time),
         terminal: form.terminal || undefined,
@@ -149,6 +160,9 @@ export function NewFlightsDialog({ onClose }: { onClose: () => void }) {
           airline_id: f.airline_id,
           aircraft_id: f.aircraft_id,
           service_type: f.service_type,
+          no_baggage_rule: f.no_baggage_rule,
+          excess_price: f.excess_price,
+          excess_max: f.excess_max,
           origin_airport_id: f.destination_airport_id,
           destination_airport_id: f.origin_airport_id,
           terminal: f.terminal,
@@ -202,6 +216,35 @@ export function NewFlightsDialog({ onClose }: { onClose: () => void }) {
               />
             </div>
           </div>
+          {form.service_type === 'charter' && (
+            <div className='grid grid-cols-3 items-end gap-3'>
+              <Label className='flex items-center gap-2'>
+                <Checkbox
+                  checked={form.no_baggage_rule}
+                  onCheckedChange={(v) => set({ no_baggage_rule: v === true })}
+                />
+                No baggage rule (free, no kg limit)
+              </Label>
+              <div className='grid gap-1.5'>
+                <Label>Excess price per kg</Label>
+                <Input
+                  type='number'
+                  min='0'
+                  value={form.excess_price}
+                  onChange={(e) => set({ excess_price: e.target.value })}
+                />
+              </div>
+              <div className='grid gap-1.5'>
+                <Label>Excess limit, kg</Label>
+                <Input
+                  type='number'
+                  min='0'
+                  value={form.excess_max}
+                  onChange={(e) => set({ excess_max: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
           {filledFrom && (
             <p className='text-muted-foreground flex items-center gap-1.5 text-xs'>
               <Sparkles className='size-3.5' />
