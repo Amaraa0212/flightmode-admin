@@ -48,6 +48,7 @@ import {
   formatDateTime,
   formatMoney,
 } from '@/features/agency/transactions/transactions-table'
+import { EticketOptionsBar, useEticketOptions } from '@/features/agency/eticket-options'
 import { fareSeatsLabel } from '../shared/fare-seats'
 import { FlowSteps, StatusPill, StepCard } from '../shared/flow'
 
@@ -1146,25 +1147,26 @@ function TicketStep({ booking: b, onBack, onIssued }: { booking: AgencyBooking; 
   )
 }
 
-/** E-ticket actions of one passenger (also used on the manage page) */
+/** E-ticket actions of one passenger (also used on the manage page), in the language and with the prices chosen on `optionsBar` */
 export function useEticket() {
+  const [options, setOptions] = useEticketOptions()
   const email = useMutation({
-    mutationFn: (passengerId: number) => agencyBookingService.emailEticket(passengerId),
+    mutationFn: (passengerId: number) => agencyBookingService.emailEticket(passengerId, undefined, options),
     onSuccess: (res) => toast.success(res.message),
     onError: (error: Error) => toast.error(error.message),
   })
   const download = async (passengerId: number, name: string) => {
     try {
-      await agencyBookingService.downloadEticket(passengerId, `eticket-${name.replace('/', '-')}.pdf`)
+      await agencyBookingService.downloadEticket(passengerId, `eticket-${name.replace('/', '-')}.pdf`, options)
     } catch (e) {
       toast.error((e as Error).message)
     }
   }
-  return { email, download }
+  return { email, download, optionsBar: <EticketOptionsBar value={options} onChange={setOptions} /> }
 }
 
 function ConfirmStep({ booking: b, onNew }: { booking: AgencyBooking; onNew: () => void }) {
-  const { email, download } = useEticket()
+  const { email, download, optionsBar } = useEticket()
   const seg = b.passengers[0]?.segments[0]
   const issued = b.status === 'confirmed'
 
@@ -1204,6 +1206,7 @@ function ConfirmStep({ booking: b, onNew }: { booking: AgencyBooking; onNew: () 
           </div>
         )}
 
+        {optionsBar}
         <div className='divide-y rounded-xl border'>
           {b.passengers.map((p) => (
             <div key={p.id} className='flex flex-wrap items-center gap-3 px-4 py-2.5 text-sm'>

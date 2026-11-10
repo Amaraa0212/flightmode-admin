@@ -267,6 +267,15 @@ export interface AgencyPassengerDetail {
 export type AgencyPassengerEdit = Omit<AgencyBookingPassenger, 'cabin_class'>
 
 const upper = (v: string) => v.trim().toUpperCase()
+
+/** E-ticket language and whether the price breakdown is printed (the API defaults: English, with fare) */
+export interface EticketOptions {
+  lang: 'mn' | 'en'
+  fare: boolean
+}
+
+const eticketQuery = (options?: EticketOptions) =>
+  options ? { lang: options.lang, fare: options.fare ? 1 : 0 } : {}
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
 
 /** infant of an adult: same nationality as the adult */
@@ -472,14 +481,29 @@ export const agencyPortalService = {
   },
 
   /** E-ticket / itinerary receipt PDF of a ticketed passenger */
-  eticketPdf: (id: number) => client.blob(`/agency/passengers/${id}/eticket`),
-  downloadEticket: async (id: number, filename: string) =>
-    saveBlob(await client.blob(`/agency/passengers/${id}/eticket`), filename),
+  eticketPdf: (id: number, options?: EticketOptions) =>
+    client.blob(`/agency/passengers/${id}/eticket`, eticketQuery(options)),
+  downloadEticket: async (
+    id: number,
+    filename: string,
+    options?: EticketOptions
+  ) =>
+    saveBlob(
+      await client.blob(
+        `/agency/passengers/${id}/eticket`,
+        eticketQuery(options)
+      ),
+      filename
+    ),
   /** to the passenger's e-mail, or to `email` */
-  emailEticket: async (id: number, email?: string) => {
+  emailEticket: async (
+    id: number,
+    email?: string,
+    options?: EticketOptions
+  ) => {
     const res = await client.post<{ message: string }>(
       `/agency/passengers/${id}/eticket/email`,
-      { email: email || undefined }
+      { email: email || undefined, ...eticketQuery(options) }
     )
     return ok(null, res.message)
   },
@@ -522,7 +546,9 @@ export const agencyPortalService = {
         booking_id: p.booking_id,
         booking_status: p.booking_status ?? '',
         ticketing_deadline_at: p.ticketing_deadline_at ?? null,
-        infant: p.infant ? `${p.infant.last_name}/${p.infant.first_name}` : null,
+        infant: p.infant
+          ? `${p.infant.last_name}/${p.infant.first_name}`
+          : null,
       }))
     )
   },
@@ -873,17 +899,29 @@ export const agencyBookingService = {
     ),
 
   /** Download the passenger's e-ticket PDF */
-  downloadEticket: async (passengerId: number, filename: string) =>
+  downloadEticket: async (
+    passengerId: number,
+    filename: string,
+    options?: EticketOptions
+  ) =>
     saveBlob(
-      await client.blob(`/agency/passengers/${passengerId}/eticket`),
+      await client.blob(
+        `/agency/passengers/${passengerId}/eticket`,
+        eticketQuery(options)
+      ),
       filename
     ),
 
-  emailEticket: async (passengerId: number, email?: string) => {
+  emailEticket: async (
+    passengerId: number,
+    email?: string,
+    options?: EticketOptions
+  ) => {
     const res = await client.post<{ message: string }>(
       `/agency/passengers/${passengerId}/eticket/email`,
       {
         email: email || undefined,
+        ...eticketQuery(options),
       }
     )
     return ok(null, res.message)
