@@ -1,4 +1,5 @@
 import { ShieldCheck } from 'lucide-react'
+import { isAgencyHost } from '@/config/app'
 
 type AuthLayoutProps = Readonly<{
   children: React.ReactNode
@@ -6,6 +7,8 @@ type AuthLayoutProps = Readonly<{
 }>
 
 export function AuthLayout({ children, footer }: AuthLayoutProps) {
+  // res.skythium.com: the agency portal; admin.skythium.com: the airline back office
+  const agency = isAgencyHost()
   return (
     <div className='fm-backdrop relative flex min-h-svh flex-col overflow-hidden'>
       <div
@@ -20,11 +23,11 @@ export function AuthLayout({ children, footer }: AuthLayoutProps) {
       <header className='relative z-10 flex items-center justify-between gap-3 p-4 sm:p-6'>
         <div className='bg-card/60 inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs font-semibold tracking-wider uppercase backdrop-blur sm:text-sm'>
           <span className='size-2 rounded-full bg-emerald-400 shadow-[0_0_8px] shadow-emerald-400' />
-          FlightMode • Airline back office
+          Skythium • {agency ? 'Agency Portal' : 'Airline back office'}
         </div>
         <div className='inline-flex items-center gap-2 rounded-full border border-indigo-400/40 bg-indigo-500/10 px-4 py-2 text-xs font-medium text-indigo-700 backdrop-blur sm:text-sm dark:text-indigo-200'>
           <ShieldCheck className='size-4' />
-          Admin console
+          {agency ? 'Ticketing and Reservation' : 'Airline Administrator'}
         </div>
       </header>
 

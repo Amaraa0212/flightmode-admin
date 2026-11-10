@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useSearch } from '@tanstack/react-router'
 import { applyDocumentTitle, isAgencyHost } from '@/config/app'
-import { LogoImage, Wordmark } from '@/components/layout/logo-image'
+import { Wordmark } from '@/components/layout/logo-image'
 import { AuthLayout } from '../auth-layout'
 import { UserAuthForm } from './components/user-auth-form'
 
@@ -23,11 +23,6 @@ export function SignIn() {
   return (
     <AuthLayout footer={<Footer agency={agency} />}>
       <div className='mb-10 flex flex-col items-center text-center'>
-        <div className='relative mb-6 flex size-40 items-center justify-center rounded-full border border-cyan-400/15 bg-cyan-400/[0.03]'>
-          <div className='fm-glow size-24 rounded-[28%]'>
-            <LogoImage />
-          </div>
-        </div>
         <Wordmark className='text-5xl' />
         <p className='text-muted-foreground mt-3 text-xs font-medium tracking-[0.2em] uppercase sm:text-sm'>
           {agency ? 'Travel agency • Agency Portal' : 'Airline back office • Admin'}
