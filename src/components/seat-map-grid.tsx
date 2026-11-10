@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 const LEGEND = [
   { label: 'Free', className: 'border-cyan-400/50 bg-cyan-400/5' },
   { label: 'Business', className: 'border-amber-400/50 bg-amber-400/5' },
+  { label: 'Premium (W)', className: 'border-violet-400/60 bg-violet-400/10' },
   { label: 'Occupied', className: 'border-cyan-300 bg-cyan-400' },
   { label: 'Blocked', className: 'border-rose-400/50 bg-rose-500/30' },
   { label: 'Selected', className: 'border-amber-300 bg-amber-400' },
@@ -18,6 +19,9 @@ function seatClass(seat: SeatCell, selected: boolean) {
     return 'border-cyan-300 bg-cyan-400 text-[#04121c]'
   if (seat.cabin_class === 'C' || seat.cabin_class === 'F')
     return 'border-amber-400/50 bg-amber-400/5 text-amber-600 hover:bg-amber-400/15 dark:text-amber-300'
+  // premium economy apart from economy
+  if (seat.cabin_class === 'W')
+    return 'border-violet-400/60 bg-violet-400/10 text-violet-700 hover:bg-violet-400/20 dark:text-violet-300'
   return 'border-cyan-400/40 bg-cyan-400/5 text-cyan-700 hover:bg-cyan-400/15 dark:text-cyan-300'
 }
 
