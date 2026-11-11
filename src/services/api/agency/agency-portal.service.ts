@@ -276,6 +276,8 @@ export interface EticketOptions {
   lang: 'mn' | 'en'
   fare: boolean
   issued: boolean
+  /** whose details head the e-ticket: the agency's (default) or the airline's */
+  header: 'agency' | 'airline'
 }
 
 const eticketQuery = (options?: EticketOptions) =>
@@ -284,6 +286,7 @@ const eticketQuery = (options?: EticketOptions) =>
         lang: options.lang,
         fare: options.fare ? 1 : 0,
         issued: options.issued ? 1 : 0,
+        header: options.header,
       }
     : {}
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
