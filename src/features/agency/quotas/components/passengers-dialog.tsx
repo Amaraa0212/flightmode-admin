@@ -101,7 +101,9 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
     const q = query.trim().toLowerCase()
     if (!q) return data
     return data.filter((p) =>
-      [p.name, p.infant, p.pnr, p.document_number, p.ticket_number, p.phone].some((v) => (v ?? '').toLowerCase().includes(q))
+      [p.name, p.infant, p.pnr, p.document_number, p.ticket_number, p.phone, p.issued_by].some((v) =>
+        (v ?? '').toLowerCase().includes(q)
+      )
     )
   }, [data, query])
   const isTicketed = (p: AgencyPassenger) => statusCode(p) === 'OK' && !!p.ticket_number
@@ -180,6 +182,7 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
                   <th className='pe-3'>Document</th>
                   <th className='pe-3'>Ticket</th>
                   <th className='pe-3'>Phone</th>
+                  <th className='pe-3'>Бичсэн</th>
                   <th className='pe-3'>Status</th>
                   <th className='text-end'>Үйлдэл</th>
                 </tr>
@@ -211,6 +214,7 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
                       <td className='pe-3 font-mono'>{p.document_number ?? '-'}</td>
                       <td className='pe-3 font-mono'>{p.ticket_number ?? '-'}</td>
                       <td className='pe-3 font-mono'>{p.phone ?? '-'}</td>
+                      <td className='pe-3 text-xs whitespace-nowrap'>{p.issued_by ?? '-'}</td>
                       <td className='pe-3 text-xs'>
                         <div className='flex items-center gap-2'>
                           <span className={cn('rounded border px-1.5 font-mono font-bold', CODE_CLASS[code])}>{code}</span>

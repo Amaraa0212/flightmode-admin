@@ -119,6 +119,8 @@ export interface AgencyPassenger {
   ticketing_deadline_at: string | null
   /** infant on the lap: LAST/FIRST */
   infant: string | null
+  /** the staff member who issued the ticket (or booked it) */
+  issued_by: string | null
 }
 
 const route = (f: ApiFlight | null) =>
@@ -540,6 +542,7 @@ export const agencyPortalService = {
           pnr?: string
           booking_status?: string
           ticketing_deadline_at?: string | null
+          issued_by?: string | null
           type: string
           first_name: string
           last_name: string
@@ -571,6 +574,7 @@ export const agencyPortalService = {
         infant: p.infant
           ? `${p.infant.last_name}/${p.infant.first_name}`
           : null,
+        issued_by: p.issued_by ?? null,
       }))
     )
   },
