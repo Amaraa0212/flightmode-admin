@@ -125,6 +125,8 @@ export interface BaseTableProps<TData> {
   onRefresh?: () => void
   onUpdate?: (record: TData) => void
   onDelete?: (record: TData) => void
+  /** whether this row may be edited / deleted (default: every row) */
+  rowEditable?: (record: TData) => boolean
   onDetail?: (record: TData) => void
   /** Мөр дээр дарахад (жишээ нь DCS-д зорчигч сонгох) */
   onRowClick?: (record: TData) => void
@@ -289,6 +291,7 @@ export function BaseTable<TData extends Record<string, unknown>>({
   onRefresh,
   onUpdate,
   onDelete,
+  rowEditable,
   onDetail,
   onRowClick,
   rowClassName,
@@ -336,7 +339,8 @@ export function BaseTable<TData extends Record<string, unknown>>({
               <RowActions
                 record={row.original}
                 onEdit={
-                  UpdateComponent || onUpdate
+                  (UpdateComponent || onUpdate) &&
+                  rowEditable?.(row.original) !== false
                     ? () => {
                         setUpdateRecord(row.original)
                         onUpdate?.(row.original)
@@ -344,7 +348,8 @@ export function BaseTable<TData extends Record<string, unknown>>({
                     : undefined
                 }
                 onDelete={
-                  DeleteComponent || onDelete
+                  (DeleteComponent || onDelete) &&
+                  rowEditable?.(row.original) !== false
                     ? () => {
                         setDeleteRecord(row.original)
                         onDelete?.(row.original)
