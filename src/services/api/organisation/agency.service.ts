@@ -45,12 +45,20 @@ export const agencyService = {
       }),
       toAgency
     ),
-  update: (id: number, payload: AgencyPayload) =>
+  /** `ownerChanged`: a system administrator changed whose agency it is (or links it with every airline) */
+  update: (id: number, payload: AgencyPayload, ownerChanged = false) =>
     action(
       client.put<ApiData<Agency>>(`/admin/agencies/${id}`, {
         ...payload,
-        owner_airline_id: undefined,
-        all_airlines: undefined,
+        ...(ownerChanged
+          ? {
+              owner_airline_id:
+                payload.owner_airline_id && payload.owner_airline_id !== 'all'
+                  ? Number(payload.owner_airline_id)
+                  : null,
+              all_airlines: payload.owner_airline_id === 'all',
+            }
+          : { owner_airline_id: undefined, all_airlines: undefined }),
         code: payload.code.toUpperCase(),
       }),
       toAgency
