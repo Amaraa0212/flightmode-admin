@@ -4,7 +4,12 @@ import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
 
 const STORAGE_KEY = 'agency-eticket-options'
-const DEFAULT: EticketOptions = { lang: 'mn', fare: true, issued: true }
+const DEFAULT: EticketOptions = {
+  lang: 'mn',
+  fare: true,
+  issued: true,
+  header: 'agency',
+}
 
 function read(): EticketOptions {
   try {
@@ -61,6 +66,26 @@ export function EticketOptionsBar({
             {lang === 'mn' ? 'Монгол' : 'English'}
           </button>
         ))}
+      </div>
+      <div className='flex items-center gap-1.5'>
+        <span className='text-muted-foreground'>Толгой:</span>
+        <div className='flex rounded-md border p-0.5'>
+          {(['agency', 'airline'] as const).map((header) => (
+            <button
+              key={header}
+              type='button'
+              onClick={() => onChange({ header })}
+              className={cn(
+                'rounded px-2 py-0.5 font-semibold',
+                value.header === header
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground'
+              )}
+            >
+              {header === 'agency' ? 'Агент' : 'Airline'}
+            </button>
+          ))}
+        </div>
       </div>
       <label className='flex items-center gap-1.5'>
         <Checkbox
