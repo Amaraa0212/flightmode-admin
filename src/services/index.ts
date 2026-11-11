@@ -23,6 +23,7 @@ export {
   agencyService,
   agencyContractService,
   agencyOptions,
+  quotaAgencyOptions,
   agencyAccountService,
   type AgencyAccountRow,
   type AgencyAccountTransactionRow,

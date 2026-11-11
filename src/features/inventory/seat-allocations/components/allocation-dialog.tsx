@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  agencyOptions,
+  quotaAgencyOptions,
   charterFlightOptions,
   inventoryAllocationService,
   type CabinCode,
@@ -61,7 +61,7 @@ export function AllocationDialog({
   const current = rows[0]
   const departure = (data.flight.scheduled_departure_local ?? '').slice(0, 10)
 
-  const agencies = useOptions('agencies', agencyOptions)
+  const agencies = useOptions('quota-agencies', quotaAgencyOptions)
   const flights = useOptions('flights-charter', charterFlightOptions)
 
   const [agencyId, setAgencyId] = useState(
@@ -182,11 +182,13 @@ export function AllocationDialog({
               <SelectValue placeholder='Choose an agency' />
             </SelectTrigger>
             <SelectContent>
-              {agencies.map((a) => (
-                <SelectItem key={a.value} value={a.value}>
-                  {a.label}
-                </SelectItem>
-              ))}
+              {agencies
+                .filter((a) => !a.suspended || a.value === agencyId)
+                .map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>

@@ -111,6 +111,26 @@ export const agencyOptions = async () => {
     .map((a) => ({ label: `${a.code} · ${a.name}`, value: String(a.id) }))
 }
 
+/**
+ * Agencies for giving quota: `suspended` when no active contract (Agents permission) — those are not offered,
+ * only shown on quota they already have. An airline user's agency lists only their own airline's contract.
+ */
+export const quotaAgencyOptions = async () => {
+  const res = await client.get<{ data: Agency[] }>('/admin/agencies', {
+    per_page: 200,
+  })
+  return res.data
+    .filter((a) => a.is_active)
+    .map((a) => {
+      const suspended = !(a.airlines ?? []).some((c) => c.contract_active)
+      return {
+        label: `${a.code} · ${a.name}${suspended ? ' (suspended)' : ''}`,
+        value: String(a.id),
+        suspended,
+      }
+    })
+}
+
 /** One agency contract with its prepaid balance (null until the first top-up: no balance check yet) */
 export interface AgencyAccountRow extends Record<string, unknown> {
   agency_id: number

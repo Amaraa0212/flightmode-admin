@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  agencyOptions,
+  quotaAgencyOptions,
   allocationBoardService,
   charterFlightOptions,
   type AllocationMode,
@@ -79,7 +79,7 @@ export function DistributeDialog({
   const queryClient = useQueryClient()
   const [flightId, setFlightId] = useState(initialFlightId)
   const flights = useOptions('flights-charter', charterFlightOptions)
-  const agencies = useOptions('agencies', agencyOptions)
+  const agencies = useOptions('quota-agencies', quotaAgencyOptions)
 
   const { data: quota, isLoading } = useQuery({
     queryKey: ['allocation-overview', flightId],
@@ -319,7 +319,8 @@ export function DistributeDialog({
                     onValueChange={(v) => update(r.key, { agency_id: v })}
                     items={agencies.filter(
                       (a) =>
-                        a.value === r.agency_id || !usedAgencies.has(a.value)
+                        a.value === r.agency_id ||
+                        (!a.suspended && !usedAgencies.has(a.value))
                     )}
                     placeholder='Agency'
                   />
