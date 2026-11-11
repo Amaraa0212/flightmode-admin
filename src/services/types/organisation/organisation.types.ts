@@ -75,6 +75,8 @@ export interface AgencyPayload {
   api_enabled: boolean
   chinggis_sync: boolean
   is_active: boolean
+  /** system administrators creating an agency: the airline it belongs to, '' shared without contracts, 'all' shared with a contract with every airline */
+  owner_airline_id?: string
 }
 
 export interface Role extends Record<string, unknown> {

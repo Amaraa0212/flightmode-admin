@@ -26,6 +26,7 @@ const schema = z.object({
   api_enabled: z.boolean(),
   chinggis_sync: z.boolean(),
   is_active: z.boolean(),
+  owner_airline_id: z.string(),
 })
 type Form = z.infer<typeof schema>
 
@@ -40,7 +41,7 @@ export const pageConfig: Omit<
 > = {
   title: 'Agencies',
   description:
-    'Travel agencies and your own sales channels (ticket office, web, call center). What an airline adds here is its own: no other airline sees it.',
+    'Travel agencies and your own sales channels (ticket office, web, call center). What an airline adds here is its own: no other airline sees it, and only it can edit or delete it.',
   queryKey: 'admin-agencies',
   list: agencyService.list,
   searchPlaceholder: 'Name, code, email, registration',
@@ -111,6 +112,7 @@ export const pageConfig: Omit<
       api_enabled: false,
       chinggis_sync: false,
       is_active: true,
+      owner_airline_id: '',
     },
     fromRow: (r) => ({
       name: r.name,
@@ -123,6 +125,7 @@ export const pageConfig: Omit<
       api_enabled: r.api_enabled,
       chinggis_sync: r.chinggis_sync ?? false,
       is_active: r.is_active,
+      owner_airline_id: r.owner_airline_id ? String(r.owner_airline_id) : '',
     }),
     fields: [
       {

@@ -57,6 +57,8 @@ export type ResourcePageProps<
     label: (row: TRow) => string
   }
   onRowClick?: (row: TRow) => void
+  /** rows the user may edit / delete (default: every row the role may change) */
+  rowEditable?: (row: TRow) => boolean
   rowKey?: keyof TRow | ((row: TRow) => string | number)
   customActions?: (row: TRow) => ReactNode
   toolbarExtra?: ReactNode
@@ -92,6 +94,7 @@ export function ResourcePage<
   form,
   remove,
   onRowClick,
+  rowEditable,
   rowKey,
   customActions,
   toolbarExtra,
@@ -186,6 +189,7 @@ export function ResourcePage<
       onRowClick={onRowClick}
       onUpdate={update ? (row) => setEditing({ row }) : undefined}
       onDelete={removable ? (row) => setDeleting(row) : undefined}
+      rowEditable={rowEditable}
       customActions={customActions}
       hideAction={!update && !removable && !customActions}
       tableConfig={{

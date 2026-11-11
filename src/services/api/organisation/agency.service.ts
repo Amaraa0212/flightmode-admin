@@ -36,6 +36,12 @@ export const agencyService = {
       client.post<ApiData<Agency>>('/admin/agencies', {
         ...payload,
         code: payload.code.toUpperCase(),
+        // 'all': shared, with a contract with every airline there is now
+        owner_airline_id:
+          payload.owner_airline_id && payload.owner_airline_id !== 'all'
+            ? Number(payload.owner_airline_id)
+            : null,
+        all_airlines: payload.owner_airline_id === 'all',
       }),
       toAgency
     ),
@@ -43,7 +49,17 @@ export const agencyService = {
     action(
       client.put<ApiData<Agency>>(`/admin/agencies/${id}`, {
         ...payload,
+        owner_airline_id: undefined,
+        all_airlines: undefined,
         code: payload.code.toUpperCase(),
+      }),
+      toAgency
+    ),
+  /** The Chinggis push of an agency the airline only has a contract with (the rest is its creator's) */
+  setChinggisSync: (id: number, on: boolean) =>
+    action(
+      client.put<ApiData<Agency>>(`/admin/agencies/${id}`, {
+        chinggis_sync: on,
       }),
       toAgency
     ),
