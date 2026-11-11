@@ -73,7 +73,7 @@ export interface RequiredNotification extends Record<string, unknown> {
 }
 
 export interface RequiredNotificationPayload {
-  /** system administrators: the airline it is sent for */
+  /** system administrators: the airline it is sent for, or 'all' for every airline */
   airline_id?: string
   title: string
   body: string

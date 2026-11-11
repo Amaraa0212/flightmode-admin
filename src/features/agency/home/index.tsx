@@ -21,6 +21,7 @@ import {
   Wallet,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/auth-store'
+import { canOpenPath } from '@/components/layout/data/sidebar-data'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -145,7 +146,7 @@ export function AgencyHome() {
       </section>
 
       <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5'>
-        {ACTIONS.map((a) => (
+        {ACTIONS.filter((a) => canOpenPath(user, a.to)).map((a) => (
           <Link
             key={a.to}
             to={a.to}

@@ -37,7 +37,7 @@ export function AgencyQuotas() {
               disabled={!row.is_open_for_names || (row.remaining < 1 && !row.is_waitlist)}
               title={
                 !row.is_open_for_names
-                  ? 'Төлбөр төлөх хугацаа дууссан'
+                  ? 'TKT deadline дууссан'
                   : row.remaining < 1
                     ? row.is_waitlist
                       ? 'Квот дүүрсэн — хүлээлгийн жагсаалтад (WL) нэмнэ'
@@ -56,7 +56,7 @@ export function AgencyQuotas() {
                 variant='outline'
                 className='h-7 gap-1 px-2 text-xs'
                 disabled={!row.is_open_for_names}
-                title={row.is_open_for_names ? 'Excel-ээр зорчигч оруулах' : 'Төлбөр төлөх хугацаа дууссан'}
+                title={row.is_open_for_names ? 'Excel-ээр зорчигч оруулах' : 'TKT deadline дууссан'}
                 onClick={() => setImporting(row)}
               >
                 <FileSpreadsheet className='size-3.5' />

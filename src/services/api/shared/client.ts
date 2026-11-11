@@ -145,6 +145,9 @@ export const client = {
     request<T>('POST', path, { body: form }),
   blob: (path: string, query?: Query) =>
     request<Blob>('GET', path, { query, blob: true }),
+  /** POST whose response is a file (e.g. a ZIP of several documents) */
+  postBlob: (path: string, body?: unknown) =>
+    request<Blob>('POST', path, { body: body ?? {}, blob: true }),
 }
 
 export type ApiData<T> = { data: T }

@@ -77,9 +77,9 @@ export function menuForPath(
   let match: AuthMenu | undefined
   for (const menu of userMenus(user)) {
     const url = menu.path!
-    if (
-      url === '/' ? path !== '/' : !(path === url || path.startsWith(`${url}/`))
-    )
+    // the agency home is a page of its own, not the parent of the other agency pages (each has its own permission)
+    const exact = url === '/' || url === '/agency'
+    if (exact ? path !== url : !(path === url || path.startsWith(`${url}/`)))
       continue
     if (!match || url.length > match.path!.length) match = menu
   }
