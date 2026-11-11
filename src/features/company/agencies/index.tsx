@@ -46,17 +46,26 @@ export function Agencies() {
               ...form.fields,
               {
                 name: 'owner_airline_id',
-                label: 'Belongs to airline (new agency)',
+                label: 'Belongs to airline',
                 type: 'select',
                 options: [
-                  { label: 'Бүх airline (гэрээтэй)', value: 'all' },
-                  { label: 'Shared — гэрээгүй', value: '' },
+                  { label: 'Бүх airline-тай гэрээ байгуулах', value: 'all' },
+                  { label: 'Shared — гэрээ нэмэхгүй', value: '' },
                 ],
                 loadOptions: airlineOptions,
                 gridCols: 2,
               },
             ]
           : form.fields,
+        // the owner choice is sent only when changed (a plain edit leaves the contracts alone)
+        update: (row, v) =>
+          agencyService.update(
+            row.id,
+            v,
+            isSystemAdmin &&
+              v.owner_airline_id !==
+                (row.owner_airline_id ? String(row.owner_airline_id) : '')
+          ),
       }}
       // an agency created by someone else: only its Chinggis push can be switched here
       customActions={(r) =>
