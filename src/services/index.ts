@@ -12,6 +12,9 @@ export {
   airportOptions,
   airlineOptions,
   countryOptions,
+  referenceLookupService,
+  type IataAirport,
+  type CityOption,
 } from './api/reference/airport.service'
 
 // ─── Organisation ───
