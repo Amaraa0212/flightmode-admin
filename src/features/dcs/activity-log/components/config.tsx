@@ -1,5 +1,6 @@
 import { activityLogService, type ActivityLog } from '@/services'
 import { ACTIVITY_CHANNEL, ACTIVITY_CHANNEL_OPTIONS } from '@/constants/status'
+import { AirportTime } from '@/components/airport-time'
 import { chip, col, dateTime, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
@@ -40,7 +41,11 @@ export const pageConfig: Omit<
             {mono(r.flight.flight_number)}
             {r.flight.scheduled_departure_at && (
               <div className='text-muted-foreground text-xs'>
-                {dateTime(r.flight.scheduled_departure_at, 'MM-DD')}
+                <AirportTime
+                  at={r.flight.scheduled_departure_at}
+                  airport={r.flight.origin}
+                  format='MM-DD'
+                />
               </div>
             )}
           </div>

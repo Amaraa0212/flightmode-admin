@@ -1,3 +1,4 @@
+import { airportTime } from '@/lib/airport-zones'
 import type {
   Allocation,
   AllocationMode,
@@ -472,7 +473,8 @@ export const flightOptions = async (
     )
     .filter((f) => !charterOnly || f.service_type === 'charter')
     .map((f) => ({
-      label: `${f.flight_number} ${route(f)} · ${f.scheduled_departure_at.slice(0, 16).replace('T', ' ')}`,
+      // the departure airport's clock (the API's local time), not UTC
+      label: `${f.flight_number} ${route(f)} · ${f.scheduled_departure_local ?? airportTime(f.scheduled_departure_at, f.origin?.iata_code)}`,
       value: String(f.id),
     }))
 }

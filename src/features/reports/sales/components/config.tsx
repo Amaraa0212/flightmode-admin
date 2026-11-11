@@ -1,4 +1,6 @@
 import { reportService, type SalesRow } from '@/services'
+import { originOf } from '@/lib/airport-zones'
+import { AirportTime } from '@/components/airport-time'
 import {
   brand,
   col,
@@ -26,9 +28,13 @@ export const pageConfig: Omit<
       <span className='font-medium'>{r.name}</span>
     )),
     col<SalesRow>('route', 'Route', (r) => r.route),
-    col<SalesRow>('departure_at', 'Departure', (r) =>
-      dateTime(r.departure_at, 'YYYY-MM-DD')
-    ),
+    col<SalesRow>('departure_at', 'Departure', (r) => (
+      <AirportTime
+        at={r.departure_at}
+        airport={originOf(r.route)}
+        format='YYYY-MM-DD'
+      />
+    )),
     col<SalesRow>('rbd', 'RBD', (r) => mono(r.rbd)),
     col<SalesRow>('issued_at', 'Issued', (r) =>
       dateTime(r.issued_at, 'YYYY-MM-DD')

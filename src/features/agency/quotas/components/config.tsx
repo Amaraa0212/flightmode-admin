@@ -2,6 +2,8 @@ import { agencyPortalService, type AgencyQuota } from '@/services'
 import { brand, col, dateTime, mono } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 import { ScheduleChangeBadge } from '@/features/agency/schedule-change-badge'
+import { AirportTime } from '@/components/airport-time'
+import { originOf } from '@/lib/airport-zones'
 
 export const pageConfig: Omit<ResourcePageProps<AgencyQuota, Record<string, never>>, 'search' | 'navigate'> = {
   title: 'Миний квот',
@@ -33,9 +35,9 @@ export const pageConfig: Omit<ResourcePageProps<AgencyQuota, Record<string, neve
     )),
     col<AgencyQuota>('departure_at', 'Departure', (r) => (
       <div className='flex flex-col gap-1'>
-        {dateTime(r.departure_at)}
+        <AirportTime at={r.departure_at} airport={originOf(r.route)} />
         {r.return_departure_at && (
-          <span className='text-muted-foreground text-xs'>↩ {dateTime(r.return_departure_at)}</span>
+          <span className='text-muted-foreground text-xs'>↩ <AirportTime at={r.return_departure_at} airport={originOf(r.return_flight)} /></span>
         )}
       </div>
     )),

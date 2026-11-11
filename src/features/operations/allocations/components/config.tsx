@@ -8,15 +8,11 @@ import {
 } from '@/services'
 import { Send } from 'lucide-react'
 import { toast } from 'sonner'
+import { originOf } from '@/lib/airport-zones'
 import { Button } from '@/components/ui/button'
+import { AirportTime } from '@/components/airport-time'
 import { Progress } from '@/components/progress-bar'
-import {
-  brand,
-  col,
-  dateTime,
-  mono,
-  muted,
-} from '@/components/resource/columns'
+import { brand, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
 export const MODE_OPTIONS = [
@@ -116,7 +112,12 @@ const flightCell = (f: Allocation['outbound_flight'] | null) =>
   f ? (
     <div>
       {brand(f.flight_number)} <span className='text-xs'>{f.route}</span>
-      <div>{dateTime(f.scheduled_departure_at)}</div>
+      <div>
+        <AirportTime
+          at={f.scheduled_departure_at}
+          airport={originOf(f.route)}
+        />
+      </div>
     </div>
   ) : (
     muted('One way')

@@ -38,6 +38,8 @@ export const pageConfig: Omit<
       mono(r.flight_number)
     ),
     col<BaggageOverride>('departure_at', 'Departure', (r) =>
+      // mock rows (no API yet) carry no airport to read the clock of
+      // eslint-disable-next-line no-restricted-syntax
       dateTime(r.departure_at)
     ),
     col<BaggageOverride>('agency', 'Agent', (r) => muted(r.agency ?? 'Direct')),

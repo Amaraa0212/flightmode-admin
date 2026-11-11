@@ -30,6 +30,16 @@ export default defineConfig(
         { allowConstantExport: true },
       ],
       'no-console': 'error',
+      // flight times are UTC: show them at the airport's clock (<AirportTime>, airportTime(), *_local), not raw
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            'CallExpression[callee.name=/^(dateTime|formatDate)$/] > MemberExpression.arguments:first-child[property.name=/(departure|arrival)_at$/]',
+          message:
+            'Flight times are UTC: use <AirportTime> / airportTime() with the airport (or the API *_local field).',
+        },
+      ],
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
         'error',
