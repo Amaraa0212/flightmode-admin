@@ -36,9 +36,12 @@ export const agencyService = {
       client.post<ApiData<Agency>>('/admin/agencies', {
         ...payload,
         code: payload.code.toUpperCase(),
-        owner_airline_id: payload.owner_airline_id
-          ? Number(payload.owner_airline_id)
-          : null,
+        // 'all': shared, with a contract with every airline there is now
+        owner_airline_id:
+          payload.owner_airline_id && payload.owner_airline_id !== 'all'
+            ? Number(payload.owner_airline_id)
+            : null,
+        all_airlines: payload.owner_airline_id === 'all',
       }),
       toAgency
     ),
@@ -47,6 +50,7 @@ export const agencyService = {
       client.put<ApiData<Agency>>(`/admin/agencies/${id}`, {
         ...payload,
         owner_airline_id: undefined,
+        all_airlines: undefined,
         code: payload.code.toUpperCase(),
       }),
       toAgency

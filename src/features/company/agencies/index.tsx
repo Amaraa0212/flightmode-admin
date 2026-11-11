@@ -48,7 +48,10 @@ export function Agencies() {
                 name: 'owner_airline_id',
                 label: 'Belongs to airline (new agency)',
                 type: 'select',
-                options: [{ label: 'Shared — every airline', value: '' }],
+                options: [
+                  { label: 'Бүх airline (гэрээтэй)', value: 'all' },
+                  { label: 'Shared — гэрээгүй', value: '' },
+                ],
                 loadOptions: airlineOptions,
                 gridCols: 2,
               },
