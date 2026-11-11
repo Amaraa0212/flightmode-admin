@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { airportService, type Airport } from '@/services'
+import { airportService, countryOptions, type Airport } from '@/services'
 import { ACTIVE_OPTIONS } from '@/constants/status'
 import { brand, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
@@ -16,14 +16,6 @@ const schema = z.object({
   is_active: z.boolean(),
 })
 type Form = z.infer<typeof schema>
-
-const COUNTRIES = [
-  { label: 'Mongolia', value: '1' },
-  { label: 'China', value: '2' },
-  { label: 'South Korea', value: '3' },
-  { label: 'Japan', value: '4' },
-  { label: 'Thailand', value: '5' },
-]
 
 export const pageConfig: Omit<
   ResourcePageProps<Airport, Form>,
@@ -66,7 +58,7 @@ export const pageConfig: Omit<
       name: '',
       city: '',
       city_code: '',
-      country_id: '1',
+      country_id: '',
       timezone: 'Asia/Ulaanbaatar',
       is_active: true,
     },
@@ -120,7 +112,7 @@ export const pageConfig: Omit<
         name: 'country_id',
         label: 'Country',
         type: 'select',
-        options: COUNTRIES,
+        loadOptions: countryOptions,
         required: true,
         gridCols: 1,
       },
