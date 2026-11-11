@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { FileDown, Loader2, Mail, Pencil, Printer, Search, Ticket } from 'lucide-react'
+import { FileArchive, FileDown, Loader2, Mail, Pencil, Printer, Search, Ticket } from 'lucide-react'
 import { toast } from 'sonner'
 import { agencyPortalService, type AgencyPassenger, type AgencyQuota, type EticketOptions } from '@/services'
 import { cn } from '@/lib/utils'
@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { EticketOptionsBar, useEticketOptions } from '@/features/agency/eticket-options'
 import { EditPassengerDialog } from './edit-passenger-dialog'
@@ -89,6 +90,12 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
   })
   const [editing, setEditing] = useState<number | null>(null)
   const [query, setQuery] = useState('')
+  // passengers checked for one ZIP of e-tickets (ticketed only)
+  const [checked, setChecked] = useState<Set<number>>(new Set())
+  const zip = useMutation({
+    mutationFn: () => agencyPortalService.downloadEticketsZip(selected, eticket),
+    onError: (error: Error) => toast.error(error.message),
+  })
   // name, PNR, passport, ticket or phone
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -97,6 +104,17 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
       [p.name, p.infant, p.pnr, p.document_number, p.ticket_number, p.phone].some((v) => (v ?? '').toLowerCase().includes(q))
     )
   }, [data, query])
+  const isTicketed = (p: AgencyPassenger) => statusCode(p) === 'OK' && !!p.ticket_number
+  const ticketedRows = rows.filter(isTicketed)
+  // only this quota's ticketed passengers (the dialog is reused for the next quota)
+  const selected = data.filter((p) => isTicketed(p) && checked.has(p.id)).map((p) => p.id)
+  const allChecked = ticketedRows.length > 0 && ticketedRows.every((p) => checked.has(p.id))
+  const toggle = (ids: number[], on: boolean) =>
+    setChecked((current) => {
+      const next = new Set(current)
+      ids.forEach((id) => (on ? next.add(id) : next.delete(id)))
+      return next
+    })
 
   return (
     <Dialog open={!!quota} onOpenChange={(open) => !open && onClose()}>
@@ -112,7 +130,19 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
             {query && ` · ${rows.length} found`}
           </DialogDescription>
         </DialogHeader>
-        <EticketOptionsBar value={eticket} onChange={setEticket} />
+        <div className='flex flex-wrap items-center justify-between gap-2'>
+          <EticketOptionsBar value={eticket} onChange={setEticket} />
+          <Button
+            size='sm'
+            variant='outline'
+            className='h-8 gap-1.5'
+            disabled={selected.length === 0 || zip.isPending}
+            onClick={() => zip.mutate()}
+          >
+            {zip.isPending ? <Loader2 className='size-3.5 animate-spin' /> : <FileArchive className='size-3.5' />}
+            Сонгосон {selected.length} e-ticket ZIP татах
+          </Button>
+        </div>
         <div className='relative'>
           <Search className='text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2' />
           <Input
@@ -136,6 +166,14 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
             <table className='w-full text-sm'>
               <thead className='text-muted-foreground text-left text-xs'>
                 <tr className='border-b'>
+                  <th className='w-8 py-2 pe-2'>
+                    <Checkbox
+                      checked={allChecked}
+                      disabled={ticketedRows.length === 0}
+                      onCheckedChange={(v) => toggle(ticketedRows.map((p) => p.id), v === true)}
+                      aria-label='Тийз бичигдсэн бүх зорчигчийг сонгох'
+                    />
+                  </th>
                   <th className='py-2 pe-3'>PNR</th>
                   <th className='pe-3'>Passenger</th>
                   <th className='pe-3'>Type</th>
@@ -149,9 +187,17 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
               <tbody>
                 {rows.map((p) => {
                   const code = statusCode(p)
-                  const ticketed = code === 'OK' && !!p.ticket_number
+                  const ticketed = isTicketed(p)
                   return (
                     <tr key={p.id} className='border-b last:border-0'>
+                      <td className='py-1.5 pe-2'>
+                        <Checkbox
+                          checked={checked.has(p.id)}
+                          disabled={!ticketed}
+                          onCheckedChange={(v) => toggle([p.id], v === true)}
+                          aria-label={`${p.name} сонгох`}
+                        />
+                      </td>
                       <td className='text-brand py-1.5 pe-3 font-mono font-semibold'>
                         {code === 'HK' ? <span className='text-muted-foreground font-normal'>—</span> : p.pnr}
                       </td>

@@ -163,7 +163,8 @@ type ApiNotice = {
   id: number
   airline?: { id: number; name: string } | null
   agency?: { id: number; name: string } | null
-  airline_id: number
+  /** null: sent to every airline */
+  airline_id: number | null
   agency_id: number | null
   title: string
   body: string
@@ -176,7 +177,7 @@ const toNotification = (a: ApiNotice): RequiredNotification => ({
   id: a.id,
   title: a.title,
   body: a.body,
-  airline: a.airline?.name ?? '',
+  airline: a.airline?.name ?? (a.airline_id === null ? 'All airlines' : ''),
   agency: a.agency?.name ?? null,
   agency_id: a.agency_id,
   is_required: a.requires_acknowledgement,
@@ -184,12 +185,21 @@ const toNotification = (a: ApiNotice): RequiredNotification => ({
   created_at: a.created_at,
 })
 
+/** airline_id of a notification to every airline (system administrators) */
+export const ALL_AIRLINES = 'all'
+
 const notificationBody = (p: RequiredNotificationPayload) => ({
   title: p.title,
   body: p.body,
-  agency_id: p.agency_id ? Number(p.agency_id) : null,
+  // every airline: for everyone, not one agency
+  agency_id:
+    p.agency_id && p.airline_id !== ALL_AIRLINES ? Number(p.agency_id) : null,
   requires_acknowledgement: p.is_required,
-  ...(p.airline_id ? { airline_id: Number(p.airline_id) } : {}),
+  ...(p.airline_id === ALL_AIRLINES
+    ? { all_airlines: true }
+    : p.airline_id
+      ? { airline_id: Number(p.airline_id) }
+      : {}),
 })
 
 /** Notifications page: what the airline sends to its staff and agencies */

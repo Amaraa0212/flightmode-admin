@@ -122,7 +122,7 @@ export function AgencyHolds() {
               <TableHead>Cabin / тариф</TableHead>
               <TableHead className='text-end'>Нэгж үнэ</TableHead>
               <TableHead className='text-end'>Нэртэй / hold</TableHead>
-              <TableHead>Төлбөр төлөх хугацаа</TableHead>
+              <TableHead>TKT deadline</TableHead>
               <TableHead className='text-end'>Үйлдэл</TableHead>
             </TableRow>
           </TableHeader>

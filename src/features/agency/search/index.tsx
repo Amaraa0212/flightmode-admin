@@ -234,7 +234,7 @@ function FlightCard({
               : 'text-muted-foreground text-xs'
           }
         >
-          Төлбөр төлөх хугацаа: {formatDateTime(f.names_deadline_at)}
+          TKT deadline: {formatDateTime(f.names_deadline_at)}
           {closed && ' (хаагдсан)'}
         </span>
         <div className='flex gap-2'>

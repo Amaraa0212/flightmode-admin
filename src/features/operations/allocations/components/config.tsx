@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
-  agencyOptions,
+  quotaAgencyOptions,
   allocationService,
   charterFlightOptions,
   type Allocation,
@@ -204,7 +204,8 @@ export const pageConfig: Omit<
         name: 'agency_id',
         label: 'Agency',
         type: 'select',
-        loadOptions: agencyOptions,
+        loadOptions: async () =>
+          (await quotaAgencyOptions()).filter((a) => !a.suspended),
         required: true,
         gridCols: 2,
       },

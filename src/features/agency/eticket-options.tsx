@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { Checkbox } from '@/components/ui/checkbox'
 
 const STORAGE_KEY = 'agency-eticket-options'
-const DEFAULT: EticketOptions = { lang: 'mn', fare: true }
+const DEFAULT: EticketOptions = { lang: 'mn', fare: true, issued: true }
 
 function read(): EticketOptions {
   try {
@@ -17,7 +17,7 @@ function read(): EticketOptions {
   }
 }
 
-/** Language and price breakdown of the e-ticket, remembered for the next one */
+/** Language, price breakdown and issue date of the e-ticket, remembered for the next one */
 export function useEticketOptions() {
   const [options, setOptions] = useState<EticketOptions>(read)
   const change = (patch: Partial<EticketOptions>) =>
@@ -68,6 +68,13 @@ export function EticketOptionsBar({
           onCheckedChange={(v) => onChange({ fare: v === true })}
         />
         Үнийн задаргаатай
+      </label>
+      <label className='flex items-center gap-1.5'>
+        <Checkbox
+          checked={value.issued}
+          onCheckedChange={(v) => onChange({ issued: v === true })}
+        />
+        Тийз бичигдсэн огноотой
       </label>
     </div>
   )

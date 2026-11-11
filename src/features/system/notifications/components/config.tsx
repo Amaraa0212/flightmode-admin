@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import {
+  ALL_AIRLINES,
   agencyOptions,
   airlineOptions,
   requiredNotificationService,
@@ -8,6 +9,15 @@ import {
 import { col, dateTime, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 import { StatusChip } from '@/components/status-chip'
+import { useAuthStore } from '@/stores/auth-store'
+
+// a system administrator may send one notification to every airline
+const airlineTargets = async () => [
+  ...(useAuthStore.getState().auth.user?.is_system_admin
+    ? [{ label: 'All airlines (everyone)', value: ALL_AIRLINES }]
+    : []),
+  ...(await airlineOptions()),
+]
 
 const schema = z.object({
   title: z.string().trim().min(3),
@@ -105,7 +115,7 @@ export const pageConfig: Omit<
         label: 'Airline (system administrator)',
         type: 'select',
         options: [{ label: 'My airline', value: '' }],
-        loadOptions: airlineOptions,
+        loadOptions: airlineTargets,
         gridCols: 1,
       },
       {
@@ -114,6 +124,7 @@ export const pageConfig: Omit<
         type: 'select',
         options: [{ label: 'Everyone of the airline', value: '' }],
         loadOptions: agencyOptions,
+        showWhen: { field: 'airline_id', notValue: ALL_AIRLINES },
         gridCols: 1,
       },
       {

@@ -52,6 +52,8 @@ export interface AgencyQuota extends Record<string, unknown> {
   route: string
   departure_at: string
   return_flight: string | null
+  /** RT quota: departure of the return flight */
+  return_departure_at?: string | null
   seats: number
   used: number
   /** seats held without names (by the agency's users) */
@@ -131,6 +133,7 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
   return_flight: a.return_flight
     ? `${a.return_flight.flight_number} ${route(a.return_flight)}`
     : null,
+  return_departure_at: a.return_flight?.scheduled_departure_at ?? null,
   seats: a.seats,
   used: a.usage?.used ?? 0,
   held: a.usage?.held ?? 0,
@@ -268,14 +271,21 @@ export type AgencyPassengerEdit = Omit<AgencyBookingPassenger, 'cabin_class'>
 
 const upper = (v: string) => v.trim().toUpperCase()
 
-/** E-ticket language and whether the price breakdown is printed (the API defaults: English, with fare) */
+/** E-ticket language, and whether the price breakdown and the issue date are printed (the API defaults: English, both shown) */
 export interface EticketOptions {
   lang: 'mn' | 'en'
   fare: boolean
+  issued: boolean
 }
 
 const eticketQuery = (options?: EticketOptions) =>
-  options ? { lang: options.lang, fare: options.fare ? 1 : 0 } : {}
+  options
+    ? {
+        lang: options.lang,
+        fare: options.fare ? 1 : 0,
+        issued: options.issued ? 1 : 0,
+      }
+    : {}
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
 
 /** infant of an adult: same nationality as the adult */
@@ -483,6 +493,15 @@ export const agencyPortalService = {
   /** E-ticket / itinerary receipt PDF of a ticketed passenger */
   eticketPdf: (id: number, options?: EticketOptions) =>
     client.blob(`/agency/passengers/${id}/eticket`, eticketQuery(options)),
+  /** The e-tickets of several passengers in one ZIP */
+  downloadEticketsZip: async (ids: number[], options?: EticketOptions) =>
+    saveBlob(
+      await client.postBlob('/agency/etickets/zip', {
+        passenger_ids: ids,
+        ...eticketQuery(options),
+      }),
+      `etickets-${new Date().toISOString().slice(0, 10)}.zip`
+    ),
   downloadEticket: async (
     id: number,
     filename: string,
