@@ -6,14 +6,8 @@ import {
   SERVICE_TYPE,
   SERVICE_TYPE_OPTIONS,
 } from '@/constants/status'
-import {
-  brand,
-  chip,
-  col,
-  dateTime,
-  mono,
-  muted,
-} from '@/components/resource/columns'
+import { AirportTime } from '@/components/airport-time'
+import { brand, chip, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
 export const pageConfig: Omit<
@@ -69,7 +63,13 @@ export const pageConfig: Omit<
     col<Flight>(
       'scheduled_departure_at',
       'Departure (local)',
-      (r) => r.scheduled_departure_local ?? dateTime(r.scheduled_departure_at),
+      (r) =>
+        r.scheduled_departure_local ?? (
+          <AirportTime
+            at={r.scheduled_departure_at}
+            airport={r.origin.iata_code}
+          />
+        ),
       { accessor: (r) => r.scheduled_departure_local }
     ),
     col<Flight>(
@@ -85,8 +85,13 @@ export const pageConfig: Omit<
             : 0
         return (
           <>
-            {r.scheduled_arrival_local?.slice(11, 16) ??
-              dateTime(r.scheduled_arrival_at, 'HH:mm')}
+            {r.scheduled_arrival_local?.slice(11, 16) ?? (
+              <AirportTime
+                at={r.scheduled_arrival_at}
+                airport={r.destination.iata_code}
+                format='HH:mm'
+              />
+            )}
             {days !== 0 && (
               <span className='ms-1 rounded bg-amber-500/15 px-1 font-mono text-xs font-bold text-amber-600 dark:text-amber-300'>
                 {dayMark(days)}
@@ -109,6 +114,7 @@ export const pageConfig: Omit<
   // new and edit: NewFlightsDialog
   remove: {
     run: (r) => flightService.remove(r.id),
-    label: (r) => `${r.flight_number} ${r.scheduled_departure_at.slice(0, 10)}`,
+    label: (r) =>
+      `${r.flight_number} ${(r.scheduled_departure_local ?? r.scheduled_departure_at).slice(0, 10)}`,
   },
 }

@@ -8,6 +8,7 @@ import type { ListParams } from '../../types/shared/common.types'
 import { api } from '@/config/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { client, ok, period, saveBlob, type ApiData } from '../shared/client'
+import { airportTime } from '@/lib/airport-zones'
 
 /*
 | Flight manager / flight load: /admin/flight-board (one day), status / gate / ETD / gate agents / online check-in,
@@ -356,7 +357,8 @@ export const flightPassengerService = {
 
   /** Passenger register for the border control, named like the legacy file: OMFL-UBNICN-25DEC26.xlsx */
   downloadApis: async (flight: Pick<FlightBoardRow, 'id' | 'flight_number' | 'origin' | 'destination' | 'scheduled_departure_at'>) => {
-    const d = new Date(flight.scheduled_departure_at)
+    // the day at the departure airport
+    const d = new Date(`${airportTime(flight.scheduled_departure_at, flight.origin.iata_code, 'YYYY-MM-DD')}T12:00:00`)
     const date = `${String(d.getDate()).padStart(2, '0')}${d.toLocaleString('en-GB', { month: 'short' })}${String(d.getFullYear()).slice(2)}`.toUpperCase()
     saveBlob(
       await client.blob(`/admin/flights/${flight.id}/documents/apis`),

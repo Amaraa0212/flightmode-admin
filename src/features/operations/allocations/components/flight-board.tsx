@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { allocationBoardService, type FlightQuota } from '@/services'
 import { ArrowLeftRight, Loader2, PlaneTakeoff, Users } from 'lucide-react'
+import { airportTime, originOf, useAirportZones } from '@/lib/airport-zones'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -18,14 +19,22 @@ import { MoveSeatsDialog } from './move-seats-dialog'
 
 export const BOARD_QUERY_KEY = 'admin-allocations-board'
 
-const formatDeparture = (iso: string) =>
-  new Date(iso).toLocaleString('en-GB', {
+/** "Sat, 21 Nov, 14:40" at the departure airport's clock */
+const formatDeparture = (
+  iso: string,
+  route: string,
+  zones: Record<string, string>
+) => {
+  const local = airportTime(iso, originOf(route), 'YYYY-MM-DDTHH:mm', zones)
+  return new Date(`${local}:00Z`).toLocaleString('en-GB', {
+    timeZone: 'UTC',
     weekday: 'short',
     day: '2-digit',
     month: 'short',
     hour: '2-digit',
     minute: '2-digit',
   })
+}
 
 /** Share of the flight given away: fixed sold / fixed unsold / sold or held outside fixed / free */
 function FillBar({ quota }: { quota: FlightQuota }) {
@@ -85,13 +94,15 @@ function FlightCard({
   onMove: () => void
 }) {
   const { flight } = quota
+  const zones = useAirportZones()
   const fixedCount = quota.allocations.filter((a) => a.mode === 'fixed').length
   return (
     <Panel
       title={`${flight.flight_number} ${flight.route}`}
       subtitle={
         <>
-          {formatDeparture(flight.scheduled_departure_at)} ·{' '}
+          {formatDeparture(flight.scheduled_departure_at, flight.route, zones)}{' '}
+          ·{' '}
           <span
             className={cn(
               'font-semibold',

@@ -10,6 +10,7 @@ import {
 } from '@/services'
 import { Loader2, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { airportTime, originOf } from '@/lib/airport-zones'
 import { cn } from '@/lib/utils'
 import { useOptions } from '@/hooks/use-options'
 import { BaseDialog } from '@/components/ui/base-dialog'
@@ -116,7 +117,13 @@ export function DistributeDialog({
   const seriesId = quota?.flight.flight_series_id ?? null
   const seriesFrom =
     series.from ||
-    (quota ? quota.flight.scheduled_departure_at.slice(0, 10) : '')
+    (quota
+      ? airportTime(
+          quota.flight.scheduled_departure_at,
+          originOf(quota.flight.route),
+          'YYYY-MM-DD'
+        )
+      : '')
   const seriesTo =
     series.to || (quota ? addDays(quota.flight.scheduled_departure_at, 30) : '')
   const toSeries = series.on && !!seriesId

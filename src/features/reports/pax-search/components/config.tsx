@@ -1,13 +1,8 @@
 import { reportService, type FlightPassengerRow } from '@/services'
+import { originOf } from '@/lib/airport-zones'
 import { SEGMENT_STATUS } from '@/constants/status'
-import {
-  brand,
-  chip,
-  col,
-  dateTime,
-  mono,
-  muted,
-} from '@/components/resource/columns'
+import { AirportTime } from '@/components/airport-time'
+import { brand, chip, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
 export const pageConfig: Omit<
@@ -25,9 +20,9 @@ export const pageConfig: Omit<
       brand(r.flight_number)
     ),
     col<FlightPassengerRow>('route', 'Route', (r) => r.route),
-    col<FlightPassengerRow>('departure_at', 'Departure date', (r) =>
-      dateTime(r.departure_at)
-    ),
+    col<FlightPassengerRow>('departure_at', 'Departure date', (r) => (
+      <AirportTime at={r.departure_at} airport={originOf(r.route)} />
+    )),
     col<FlightPassengerRow>('pnr', 'PNR', (r) => mono(r.pnr)),
     col<FlightPassengerRow>('last_name', 'Last name', (r) => (
       <span className='font-medium'>{r.last_name}</span>

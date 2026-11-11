@@ -13,6 +13,8 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { InfoPill, StatusChip } from '@/components/status-chip'
 import { pageConfig } from './config'
+import { AirportTime } from '@/components/airport-time'
+import { originOf } from '@/lib/airport-zones'
 
 export function BookingDetail({
   id,
@@ -102,7 +104,7 @@ export function BookingDetail({
                 </span>
                 <span>{s.route}</span>
                 <span className='font-mono'>
-                  {formatDate(s.departure_at, 'YYYY-MM-DD HH:mm')}
+                  <AirportTime at={s.departure_at} airport={originOf(s.route)} />
                 </span>
                 <StatusChip
                   value={s.cabin_class}

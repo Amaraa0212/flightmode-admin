@@ -5,15 +5,9 @@ import {
   SERVICE_TYPE,
   SERVICE_TYPE_OPTIONS,
 } from '@/constants/status'
+import { AirportTime } from '@/components/airport-time'
 import { Progress } from '@/components/progress-bar'
-import {
-  brand,
-  chip,
-  col,
-  dateTime,
-  mono,
-  muted,
-} from '@/components/resource/columns'
+import { brand, chip, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
 export const pageConfig: Omit<
@@ -43,9 +37,9 @@ export const pageConfig: Omit<
       (r) => `${r.origin.iata_code} → ${r.destination.iata_code}`,
       { accessor: (r) => r.destination.iata_code }
     ),
-    col<FlightBoardRow>('scheduled_departure_at', 'Departure', (r) =>
-      dateTime(r.scheduled_departure_at)
-    ),
+    col<FlightBoardRow>('scheduled_departure_at', 'Departure', (r) => (
+      <AirportTime at={r.scheduled_departure_at} airport={r.origin.iata_code} />
+    )),
     col<FlightBoardRow>(
       'tail',
       'Tail',

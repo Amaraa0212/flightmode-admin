@@ -1,11 +1,7 @@
 import { flightProductService, type FlightProducts } from '@/services'
-import {
-  brand,
-  col,
-  dateTime,
-  mono,
-  muted,
-} from '@/components/resource/columns'
+import { originOf } from '@/lib/airport-zones'
+import { AirportTime } from '@/components/airport-time'
+import { brand, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
 const minutes = (m: number) => (m >= 60 ? `${m / 60}h` : `${m}m`)
@@ -25,9 +21,9 @@ export const pageConfig: Omit<
     col<FlightProducts>('flight_number', 'Flight no', (r) =>
       brand(r.flight_number)
     ),
-    col<FlightProducts>('departure_at', 'Dep datetime', (r) =>
-      dateTime(r.departure_at)
-    ),
+    col<FlightProducts>('departure_at', 'Dep datetime', (r) => (
+      <AirportTime at={r.departure_at} airport={originOf(r.route)} />
+    )),
     col<FlightProducts>('route', 'Route', (r) => r.route),
     col<FlightProducts>(
       'baggage_rules',

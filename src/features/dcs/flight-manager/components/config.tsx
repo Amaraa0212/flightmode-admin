@@ -1,13 +1,7 @@
 import { flightOpsService, type FlightBoardRow } from '@/services'
 import { FLIGHT_STATUS, FLIGHT_STATUS_OPTIONS } from '@/constants/status'
-import {
-  brand,
-  chip,
-  col,
-  dateTime,
-  mono,
-  muted,
-} from '@/components/resource/columns'
+import { AirportTime } from '@/components/airport-time'
+import { brand, chip, col, mono, muted } from '@/components/resource/columns'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 
 export const pageConfig: Omit<
@@ -33,16 +27,20 @@ export const pageConfig: Omit<
       (r) => `${r.origin.iata_code} → ${r.destination.iata_code}`,
       { accessor: (r) => r.destination.iata_code }
     ),
-    col<FlightBoardRow>('scheduled_departure_at', 'Date / STD', (r) =>
-      dateTime(r.scheduled_departure_at)
-    ),
+    col<FlightBoardRow>('scheduled_departure_at', 'Date / STD', (r) => (
+      <AirportTime at={r.scheduled_departure_at} airport={r.origin.iata_code} />
+    )),
     col<FlightBoardRow>(
       'etd',
       'ETD',
       (r) =>
         r.estimated_departure_at ? (
           <span className='text-amber-500'>
-            {dateTime(r.estimated_departure_at, 'HH:mm')}
+            <AirportTime
+              at={r.estimated_departure_at}
+              airport={r.origin.iata_code}
+              format='HH:mm'
+            />
           </span>
         ) : (
           muted('-')

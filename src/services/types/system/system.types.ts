@@ -12,7 +12,13 @@ export interface ActivityLog extends Record<string, unknown> {
   subject_type: string
   subject_id: number
   flight_id: number | null
-  flight?: { id: number; flight_number: string; scheduled_departure_at: string | null } | null
+  flight?: {
+    id: number
+    flight_number: string
+    scheduled_departure_at: string | null
+    /** IATA code of the departure airport (its clock) */
+    origin?: string | null
+  } | null
   passenger_id: number | null
   passenger?: { id: number; name: string; pnr: string | null } | null
   ip_address: string

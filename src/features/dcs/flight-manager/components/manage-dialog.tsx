@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
+import { AirportTime } from '@/components/airport-time'
 import { CheckList } from '@/components/check-list'
 import { SimpleSelect } from '@/components/simple-select'
 import { StatusChip } from '@/components/status-chip'
@@ -182,9 +183,14 @@ function ManageForm({
             <StatusChip value={flight.status} map={FLIGHT_STATUS} size='md' />
           </DialogTitle>
           <DialogDescription>
-            SCH: {flight.scheduled_departure_at.slice(0, 16).replace('T', ' ')}{' '}
-            UTC · {flight.aircraft?.registration} · CKI {flight.pax.checked_in}/
-            {flight.pax.booked}
+            SCH:{' '}
+            <AirportTime
+              at={flight.scheduled_departure_at}
+              airport={flight.origin.iata_code}
+              className='text-sm'
+            />{' '}
+            {flight.origin.iata_code} · {flight.aircraft?.registration} · CKI{' '}
+            {flight.pax.checked_in}/{flight.pax.booked}
           </DialogDescription>
         </DialogHeader>
 

@@ -3,7 +3,6 @@ import { getRouteApi } from '@tanstack/react-router'
 import { flightPassengerService } from '@/services'
 import { FileSpreadsheet, MousePointerClick, Printer } from 'lucide-react'
 import * as XLSX from 'xlsx'
-import { formatDate } from '@/lib/utils'
 import { FLIGHT_STATUS } from '@/constants/status'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { AirportTime } from '@/components/airport-time'
 import { FlightPassengersTable } from '@/components/flight-passengers-table'
 import { FlightPicker } from '@/components/flight-picker'
 import { Main } from '@/components/layout/main'
@@ -122,11 +122,12 @@ export function Manifest() {
               {data.flight.destination.iata_code}
             </p>
             <p className='font-mono text-sm'>
-              {formatDate(
-                data.flight.scheduled_departure_at,
-                'YYYY-MM-DD HH:mm'
-              )}{' '}
-              UTC
+              <AirportTime
+                at={data.flight.scheduled_departure_at}
+                airport={data.flight.origin.iata_code}
+                className='text-sm'
+              />{' '}
+              {data.flight.origin.iata_code}
             </p>
             <p className='font-mono text-sm'>
               {data.flight.aircraft?.registration} ·{' '}
