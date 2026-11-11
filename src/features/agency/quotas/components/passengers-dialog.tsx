@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { FileDown, Loader2, Mail, Pencil, Printer, Search, Ticket } from 'lucide-react'
 import { toast } from 'sonner'
-import { agencyPortalService, type AgencyPassenger, type AgencyQuota } from '@/services'
+import { agencyPortalService, type AgencyPassenger, type AgencyQuota, type EticketOptions } from '@/services'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { EticketOptionsBar, useEticketOptions } from '@/features/agency/eticket-options'
 import { EditPassengerDialog } from './edit-passenger-dialog'
 
 /**
@@ -39,8 +40,8 @@ const AT_AIRPORT = ['checked_in', 'boarded', 'flown']
 const ticketFile = (p: AgencyPassenger) => `eticket-${p.ticket_number ?? p.id}.pdf`
 
 /** Open the e-ticket PDF in a hidden frame and print it */
-async function printEticket(p: AgencyPassenger) {
-  const url = URL.createObjectURL(await agencyPortalService.eticketPdf(p.id))
+async function printEticket(p: AgencyPassenger, options: EticketOptions) {
+  const url = URL.createObjectURL(await agencyPortalService.eticketPdf(p.id, options))
   const frame = document.createElement('iframe')
   frame.style.display = 'none'
   frame.src = url
@@ -60,6 +61,7 @@ async function printEticket(p: AgencyPassenger) {
 
 /** Passengers the agency booked on one quota */
 export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null; onClose: () => void }) {
+  const [eticket, setEticket] = useEticketOptions()
   const { data = [], isLoading } = useQuery({
     queryKey: ['agency-quota-passengers', quota?.id],
     queryFn: async () => (await agencyPortalService.passengers(quota!.id)).body,
@@ -77,11 +79,11 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
   })
   const ticketAction = useMutation({
     mutationFn: async ({ p, kind }: { p: AgencyPassenger; kind: 'pdf' | 'print' | 'email' }) => {
-      if (kind === 'pdf') return agencyPortalService.downloadEticket(p.id, ticketFile(p))
-      if (kind === 'print') return printEticket(p)
+      if (kind === 'pdf') return agencyPortalService.downloadEticket(p.id, ticketFile(p), eticket)
+      if (kind === 'print') return printEticket(p, eticket)
       const email = window.prompt('И-мэйл хаяг (хоосон бол зорчигчийн / захиалгын и-мэйл рүү илгээнэ)', '')
       if (email === null) return
-      toast.success((await agencyPortalService.emailEticket(p.id, email.trim())).message)
+      toast.success((await agencyPortalService.emailEticket(p.id, email.trim(), eticket)).message)
     },
     onError: (error: Error) => toast.error(error.message),
   })
@@ -110,6 +112,7 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
             {query && ` · ${rows.length} found`}
           </DialogDescription>
         </DialogHeader>
+        <EticketOptionsBar value={eticket} onChange={setEticket} />
         <div className='relative'>
           <Search className='text-muted-foreground absolute start-3 top-1/2 size-4 -translate-y-1/2' />
           <Input
