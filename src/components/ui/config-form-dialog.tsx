@@ -83,12 +83,18 @@ export type FormFieldConfig<TFormData = Record<string, unknown>> = {
   showArrayItemLabel?: boolean
   showArrayItemMax?: number
   comboboxOptions?: {
+    /** `dependency` is the value of `dependsOn` (options are fetched again when it changes) */
     fetchOptions: (
-      search?: string
+      search?: string,
+      dependency?: unknown
     ) => Promise<
       Array<{ value: string; label: string; image?: string; key?: string }>
     >
     placeholder?: string
+    /** another field the options depend on (e.g. cities of the chosen country) */
+    dependsOn?: string
+    /** also offer the typed text as the value when it is not in the list */
+    allowCustom?: boolean
     onSelect?: (
       value: string,
       image: string | undefined,

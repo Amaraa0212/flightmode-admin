@@ -61,6 +61,34 @@ export const countryOptions = async () => {
   return res.data.map((c) => ({ label: `${c.name} (${c.alpha2})`, value: String(c.id) }))
 }
 
+/** An airport of the worldwide IATA list (not one of the airline's stations) */
+export interface IataAirport {
+  code: string
+  icao: string | null
+  name: string
+  city: string | null
+  city_code: string | null
+  timezone: string
+  country: string
+  country_id: number | null
+}
+
+export interface CityOption {
+  city: string
+  city_code: string | null
+  timezone: string
+}
+
+export const referenceLookupService = {
+  /** One airport of the IATA list by its code, or null */
+  iataAirport: async (code: string) =>
+    (await client.get<ApiData<IataAirport[]>>('/reference/iata-airports', { code })).data[0] ?? null,
+  cities: async (countryId: string, search?: string) =>
+    (await client.get<ApiData<CityOption[]>>('/reference/cities', { country_id: countryId, search })).data,
+  timezones: async (countryId?: string) =>
+    (await client.get<ApiData<string[]>>('/reference/timezones', countryId ? { country_id: countryId } : {})).data,
+}
+
 /** Airlines for select fields (a non-system administrator gets only their own) */
 export const airlineOptions = async () => {
   const res = await client.get<{

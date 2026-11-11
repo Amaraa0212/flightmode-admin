@@ -41,6 +41,9 @@ export function ComboboxField<TFormData extends Record<string, unknown>>({
   const [loading, setLoading] = useState(false)
 
   const currentValue = form.watch(field.name as any) as string | undefined
+  const dependsOn = field.comboboxOptions?.dependsOn
+  const dependency = form.watch((dependsOn ?? field.name) as any) as unknown
+  const dependencyValue = dependsOn ? dependency : undefined
 
   // Debounce search input
   useEffect(() => {
@@ -59,7 +62,8 @@ export function ComboboxField<TFormData extends Record<string, unknown>>({
       setLoading(true)
       try {
         const fetchedOptions = await field.comboboxOptions!.fetchOptions(
-          debouncedSearch || undefined
+          debouncedSearch || undefined,
+          dependencyValue
         )
         setOptions(fetchedOptions)
       } catch (error) {
@@ -71,9 +75,19 @@ export function ComboboxField<TFormData extends Record<string, unknown>>({
     }
 
     fetchOptions()
-  }, [debouncedSearch, field.comboboxOptions?.fetchOptions])
+  }, [debouncedSearch, dependencyValue, field.comboboxOptions?.fetchOptions])
 
-  const selectedOption = options.find((opt) => opt.value === currentValue)
+  // a value not in the loaded options (custom text, or past the first page) is shown as it is
+  const selectedOption =
+    options.find((opt) => opt.value === currentValue) ??
+    (currentValue && field.comboboxOptions?.allowCustom
+      ? { value: currentValue, label: currentValue, image: undefined }
+      : undefined)
+  const customValue = search.trim()
+  const offerCustom =
+    !!field.comboboxOptions?.allowCustom &&
+    customValue !== '' &&
+    !options.some((o) => o.label.toLowerCase() === customValue.toLowerCase())
   const isDisabled = field.disabled
 
   return (
@@ -153,8 +167,27 @@ export function ComboboxField<TFormData extends Record<string, unknown>>({
                       </div>
                     ) : (
                       <>
-                        <CommandEmpty>No results found.</CommandEmpty>
+                        {!offerCustom && (
+                          <CommandEmpty>No results found.</CommandEmpty>
+                        )}
                         <CommandGroup>
+                          {offerCustom && (
+                            <CommandItem
+                              value={customValue}
+                              onSelect={() => {
+                                formField.onChange(customValue as any)
+                                field.comboboxOptions?.onSelect?.(
+                                  customValue,
+                                  undefined,
+                                  form
+                                )
+                                setOpen(false)
+                              }}
+                            >
+                              <Check className='mr-2 h-4 w-4 opacity-0' />
+                              Use “{customValue}”
+                            </CommandItem>
+                          )}
                           {options.map((option) => (
                             <CommandItem
                               key={option.key || option.value}
