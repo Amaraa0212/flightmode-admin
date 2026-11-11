@@ -168,6 +168,7 @@ export {
   type AgencyBookingInfant,
   type AgencyPassengerDetail,
   type AgencyPassengerEdit,
+  type EticketOptions,
   type AgencyScheduleChanges,
   type AgencyRights,
   type AgencySeatMap,

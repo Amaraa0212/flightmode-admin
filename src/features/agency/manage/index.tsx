@@ -128,7 +128,7 @@ export function AgencyManageBookings() {
 
 function BookingDetail({ booking: b }: { booking: AgencyBooking }) {
   const queryClient = useQueryClient()
-  const { email, download } = useEticket()
+  const { email, download, optionsBar } = useEticket()
   const [cancelling, setCancelling] = useState<AgencyBookingPax | null>(null)
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['agency-bookings'] })
@@ -195,6 +195,7 @@ function BookingDetail({ booking: b }: { booking: AgencyBooking }) {
         </div>
       )}
 
+      {optionsBar}
       <div className='divide-y rounded-xl border'>
         {b.passengers.map((p) => {
           const active = p.segments.some((s) => s.status !== 'cancelled')
