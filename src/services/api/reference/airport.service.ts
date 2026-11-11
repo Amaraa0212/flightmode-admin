@@ -55,6 +55,12 @@ export const airportOptions = async () => {
   }))
 }
 
+/** Countries for select fields — value is the countries.id the API stores */
+export const countryOptions = async () => {
+  const res = await client.get<ApiData<Country[]>>('/reference/countries')
+  return res.data.map((c) => ({ label: `${c.name} (${c.alpha2})`, value: String(c.id) }))
+}
+
 /** Airlines for select fields (a non-system administrator gets only their own) */
 export const airlineOptions = async () => {
   const res = await client.get<{

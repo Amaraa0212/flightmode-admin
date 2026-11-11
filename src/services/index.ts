@@ -11,6 +11,7 @@ export {
   airportService,
   airportOptions,
   airlineOptions,
+  countryOptions,
 } from './api/reference/airport.service'
 
 // ─── Organisation ───
