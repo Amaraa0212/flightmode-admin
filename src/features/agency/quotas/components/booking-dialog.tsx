@@ -32,6 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { SsrPicker } from './ssr-picker'
 
 /** Names as in the passport: Latin letters only (tickets, APIS and the DCS cannot take Cyrillic) */
 export const latinName = (required: string) =>
@@ -71,6 +72,7 @@ const passenger = z.object({
   phone: z.string(),
   email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
   cabin_class: z.string().min(1),
+  ssr_codes: z.array(z.string()),
   infant: infant.nullable(),
 })
 
@@ -93,6 +95,7 @@ export const blank = (cabin: string): PassengerForm => ({
   phone: '',
   email: '',
   cabin_class: cabin,
+  ssr_codes: [],
   infant: null,
 })
 
@@ -199,6 +202,7 @@ export function BookingDialog({
               cabins={cabins}
               canRemove={rows.fields.length > 1}
               onRemove={() => rows.remove(i)}
+              quotaId={quota?.id}
             />
           ))}
 
@@ -271,12 +275,15 @@ export function PassengerCard({
   cabins,
   canRemove,
   onRemove,
+  quotaId,
 }: {
   index: number
   form: UseFormReturn<Form>
   cabins: string[]
   canRemove: boolean
   onRemove: () => void
+  /** the quota whose airline's SSRs can be picked */
+  quotaId?: number | null
 }) {
   const [searching, setSearching] = useState(false)
   const name = <K extends keyof PassengerForm>(k: K) => `passengers.${index}.${k}` as const
@@ -397,6 +404,14 @@ export function PassengerCard({
             </SelectContent>
           </Select>
         </Field>
+      </div>
+
+      <div className='mt-4'>
+        <SsrPicker
+          quotaId={quotaId}
+          value={form.watch(name('ssr_codes')) ?? []}
+          onChange={(codes) => form.setValue(name('ssr_codes'), codes)}
+        />
       </div>
 
       <InfantSection form={form} base={`passengers.${index}.`} />

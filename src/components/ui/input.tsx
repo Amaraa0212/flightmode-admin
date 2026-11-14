@@ -5,6 +5,14 @@ function Input({ className, type, ...props }: React.ComponentProps<'input'>) {
   return (
     <input
       type={type}
+      // a date's year has 4 digits (no max lets the browser take 6), so typing moves on to the next part
+      max={
+        type === 'date'
+          ? '9999-12-31'
+          : type === 'datetime-local'
+            ? '9999-12-31T23:59'
+            : undefined
+      }
       data-slot='input'
       className={cn(
         'file:text-foreground placeholder:text-muted-foreground selection:bg-primary selection:text-primary-foreground dark:bg-input/30 border-input flex h-8 w-full min-w-0 rounded-md border bg-transparent px-2.5 py-1 text-base shadow-xs transition-[color,box-shadow] outline-none file:inline-flex file:h-6 file:border-0 file:bg-transparent file:text-xs file:font-medium disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 md:text-[13px]',

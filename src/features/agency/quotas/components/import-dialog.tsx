@@ -25,11 +25,16 @@ const COLUMNS = [
   'person_code',
   'cabin',
   'agent_contact',
+  'booking_group',
 ]
-const SAMPLE = ['BAT', 'DORJ', 'M', '1990-05-01', 'MN', 'E1234567', 'MN', '2030-01-01', '', '99112233', '123456', 'Y', '']
+// two passengers of one booking (same booking_group → one PNR)
+const SAMPLE = [
+  ['BAT', 'DORJ', 'M', '1990-05-01', 'MN', 'E1234567', 'MN', '2030-01-01', '', '99112233', '123456', 'Y', '', 'A'],
+  ['SARAA', 'DORJ', 'F', '1992-03-10', 'MN', 'E7654321', 'MN', '2030-01-01', '', '99112233', '', 'Y', '', 'A'],
+]
 
 function downloadTemplate() {
-  const csv = `${COLUMNS.join(',')}\n${SAMPLE.join(',')}\n`
+  const csv = `${[COLUMNS, ...SAMPLE].map((r) => r.join(',')).join('\n')}\n`
   const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
   const link = document.createElement('a')
   link.href = url
@@ -85,7 +90,8 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
       <div className='grid gap-4'>
         <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm'>
           <span className='text-muted-foreground'>
-            Мөр бүр нэг зорчигч (нэг PNR). <b className='font-mono'>person_code</b> — SAP дугаар (online check-in).
+            Мөр бүр нэг зорчигч. <b className='font-mono'>booking_group</b> ижил мөрүүд нэг захиалга (нэг PNR) болно, хоосон
+            бол тусдаа PNR. <b className='font-mono'>person_code</b> — SAP дугаар (online check-in).
           </span>
           <Button type='button' variant='outline' size='sm' className='h-8 gap-2' onClick={downloadTemplate}>
             <Download className='size-4' />
