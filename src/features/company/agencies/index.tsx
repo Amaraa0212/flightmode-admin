@@ -45,6 +45,12 @@ export function Agencies() {
           ? [
               ...form.fields,
               {
+                name: 'open_jaw',
+                label: 'Open jaw (charter RT өөр airline-аар буцах)',
+                type: 'checkbox',
+                gridCols: 2,
+              },
+              {
                 name: 'owner_airline_id',
                 label: 'Belongs to airline',
                 type: 'select',

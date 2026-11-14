@@ -33,6 +33,8 @@ type ApiQuota = {
     used: number
     held?: number
     remaining: number
+    /** infants the aircraft can still take on the quota's flights (null: no limit) */
+    infants_left?: number | null
     is_open_for_names: boolean
     names_deadline_at: string
     cabins?: {
@@ -47,7 +49,10 @@ type ApiQuota = {
 
 export interface AgencyQuota extends Record<string, unknown> {
   id: number
+  /** infants the aircraft can still take (null: no limit) */
+  infants_left?: number | null
   airline: string
+  airline_id?: number
   flight_number: string
   route: string
   departure_at: string
@@ -121,6 +126,8 @@ export interface AgencyPassenger {
   infant: string | null
   /** the staff member who issued the ticket (or booked it) */
   issued_by: string | null
+  /** open jaw: the PNR of the same trip on the other airline */
+  linked_pnr: string | null
 }
 
 const route = (f: ApiFlight | null) =>
@@ -129,6 +136,7 @@ const route = (f: ApiFlight | null) =>
 const toQuota = (a: ApiQuota): AgencyQuota => ({
   id: a.id,
   airline: a.airline?.name ?? '',
+  airline_id: a.airline_id,
   flight_number: a.outbound_flight.flight_number,
   route: route(a.outbound_flight),
   departure_at: a.outbound_flight.scheduled_departure_at,
@@ -140,6 +148,7 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
   used: a.usage?.used ?? 0,
   held: a.usage?.held ?? 0,
   remaining: a.usage?.remaining ?? a.seats,
+  infants_left: a.usage?.infants_left ?? null,
   cabins: Object.entries(a.cabins ?? {})
     .map(([cabin, seats]) => `${cabin} ${seats}`)
     .join(' · '),
@@ -240,6 +249,18 @@ export interface AgencyBookingPassenger {
   infant?: AgencyBookingInfant | null
 }
 
+/** A quota the return can be sold on */
+export interface AgencyReturnOption {
+  id: number
+  airline: string
+  /** another airline: open jaw, two linked PNRs */
+  interline: boolean
+  needs_fare: boolean
+  flight_number: string
+  route: string
+  departure_at: string
+}
+
 /** An SSR the airline of a quota offers */
 export interface AgencySsrOption {
   code: string
@@ -315,12 +336,38 @@ const infantPayload = (i: AgencyBookingInfant, nationality: string) => ({
   document_expires_at: orNull(i.document_expires_at),
 })
 
+/** One passenger of a booking as the API takes it (PassengerFields) */
+const passengerBody = (p: AgencyBookingPassenger) => ({
+  last_name: upper(p.last_name),
+  first_name: upper(p.first_name),
+  gender: p.gender,
+  date_of_birth: orNull(p.date_of_birth),
+  nationality: upper(p.nationality) || null,
+  document_type: p.document_number.trim() ? 'passport' : null,
+  document_number: p.document_number.trim()
+    ? upper(p.document_number)
+    : null,
+  document_expires_at: orNull(p.document_expires_at),
+  phone: orNull(p.phone),
+  email: orNull(p.email),
+  cabin_class: p.cabin_class,
+  ssr_codes: p.ssr_codes?.length ? p.ssr_codes : undefined,
+  infant: p.infant ? infantPayload(p.infant, p.nationality) : undefined,
+})
+
 export const agencyPortalService = {
   /** Excel / CSV passenger list of a quota (one PNR per row); replace = cancel the quota's passengers first */
-  importPassengers: (quotaId: number, file: File, replace: boolean) => {
+  importPassengers: (
+    quotaId: number,
+    file: File,
+    replace: boolean,
+    /** RT: the same names on this return quota too */
+    returnQuotaId?: number | null
+  ) => {
     const form = new FormData()
     form.append('file', file)
     form.append('replace_existing', replace ? '1' : '0')
+    if (returnQuotaId) form.append('return_allocation_id', String(returnQuotaId))
     return action(
       client.upload<ApiData<{ created: number; bookings: string[] }>>(
         `/agency/allocations/${quotaId}/import`,
@@ -404,39 +451,38 @@ export const agencyPortalService = {
     /** keep the seats without tickets until the fare's ticket time limit */
     onHold = false,
     /** false: refuse when the quota is full instead of waitlisting */
-    waitlist?: boolean
+    waitlist?: boolean,
+    /** RT: the same passengers back on this quota (another airline's: open jaw) */
+    returnQuotaId?: number | null
   ) => {
     const res = await client.post<{
       message: string
       data: { id: number; pnr: string; status: string }
     }>('/agency/bookings', {
       allocation_id: quotaId,
+      return_allocation_id: returnQuotaId ?? undefined,
       hold_id: hold?.id,
       on_hold: onHold,
       waitlist,
       contact_phone: orNull(contact.phone),
       contact_email: orNull(contact.email),
       passengers: passengers.map((p) => ({
-        last_name: upper(p.last_name),
-        first_name: upper(p.first_name),
-        gender: p.gender,
-        date_of_birth: orNull(p.date_of_birth),
-        nationality: upper(p.nationality) || null,
-        document_type: p.document_number.trim() ? 'passport' : null,
-        document_number: p.document_number.trim()
-          ? upper(p.document_number)
-          : null,
-        document_expires_at: orNull(p.document_expires_at),
-        phone: orNull(p.phone),
-        email: orNull(p.email),
-        cabin_class: p.cabin_class,
-        ssr_codes: p.ssr_codes?.length ? p.ssr_codes : undefined,
-        infant: p.infant ? infantPayload(p.infant, p.nationality) : undefined,
+        ...passengerBody(p),
         allocation_fare_id: hold?.allocation_fare_id ?? undefined,
         fare_id: hold?.fare_id ?? undefined,
       })),
     })
     return ok(res.data, `${res.message} PNR ${res.data.pnr}`)
+  },
+
+  /** More passengers in a booking (same PNR, flights and quota; open jaw: the linked booking too) */
+  addToBooking: async (bookingId: number, passengers: AgencyBookingPassenger[]) => {
+    const res = await client.post<{ message: string }>(
+      `/agency/bookings/${bookingId}/passengers`,
+      // the cabin and fares of the passengers already in the booking
+      { passengers: passengers.map((p) => ({ ...passengerBody(p), cabin_class: undefined })) }
+    )
+    return ok(null, res.message)
   },
 
   /** The agency has seen the schedule changes of the quota's flights */
@@ -500,6 +546,39 @@ export const agencyPortalService = {
     })
     return ok(null, res.message)
   },
+
+  /**
+   * Quotas to sell the return on: the reverse route on the same airline, and — for an open-jaw agency on a charter —
+   * any charter landing where this one departs, on another airline (two linked PNRs, nothing priced)
+   */
+  returnOptions: async (quotaId: number, airlineId?: number) =>
+    (
+      await client.get<
+        ApiData<
+          {
+            id: number
+            airline_id: number
+            airline?: { id: number; name: string } | null
+            uses_fare_quotas: boolean
+            uses_published_fares: boolean
+            outbound_flight: ApiFlight
+          }[]
+        >
+      >(`/agency/allocations/${quotaId}/return-options`)
+    ).data.map(
+      (a): AgencyReturnOption => ({
+        id: a.id,
+        airline: a.airline?.name ?? '',
+        interline: airlineId !== undefined && a.airline_id !== airlineId,
+        // a same-airline return priced by its own fares is sold on its own (not offered here)
+        needs_fare:
+          (airlineId === undefined || a.airline_id === airlineId) &&
+          (a.uses_fare_quotas || a.uses_published_fares),
+        flight_number: a.outbound_flight.flight_number,
+        route: route(a.outbound_flight),
+        departure_at: a.outbound_flight.scheduled_departure_at,
+      })
+    ),
 
   /** One passenger with every field, to edit */
   passenger: async (id: number) =>
@@ -581,6 +660,7 @@ export const agencyPortalService = {
           booking_status?: string
           ticketing_deadline_at?: string | null
           issued_by?: string | null
+          linked_pnr?: string | null
           type: string
           first_name: string
           last_name: string
@@ -613,6 +693,7 @@ export const agencyPortalService = {
           ? `${p.infant.last_name}/${p.infant.first_name}`
           : null,
         issued_by: p.issued_by ?? null,
+        linked_pnr: p.linked_pnr ?? null,
       }))
     )
   },
