@@ -1,14 +1,28 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { agencyPortalService, type AgencyQuota } from '@/services'
-import { originOf } from '@/lib/airport-zones'
+import {
+  agencyPortalService,
+  type AgencyQuota,
+  type AgencyReturnOption,
+} from '@/services'
+import { Check, ChevronsUpDown } from 'lucide-react'
+import { airportTime, originOf, useAirportZones } from '@/lib/airport-zones'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { AirportTime } from '@/components/airport-time'
 
 /**
@@ -31,6 +45,9 @@ export function ReturnPicker({
       agencyPortalService.returnOptions(quota.id, quota.airline_id),
   })
   const options = data.filter((o) => !o.needs_fare)
+  const zones = useAirportZones()
+  const [open, setOpen] = useState(false)
+  const chosen = options.find((o) => o.id === value)
   // a quota that already flies there and back has its return
   if (quota.return_flight) return null
   return (
@@ -49,30 +66,51 @@ export function ReturnPicker({
         )}
       </label>
       {value !== null && (
-        <Select
-          value={String(value)}
-          onValueChange={(v) => onChange(Number(v))}
-        >
-          <SelectTrigger className='h-10 w-full'>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((o) => (
-              <SelectItem key={o.id} value={String(o.id)}>
-                <span className='font-mono font-semibold'>
-                  {o.flight_number}
-                </span>{' '}
-                {o.route} ·{' '}
-                <AirportTime at={o.departure_at} airport={originOf(o.route)} />
-                {o.interline && (
-                  <span className='ms-2 rounded bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300'>
-                    {o.airline} · open jaw
-                  </span>
-                )}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type='button'
+              variant='outline'
+              role='combobox'
+              className='h-10 w-full justify-between font-normal'
+            >
+              {chosen ? <OptionLabel option={chosen} /> : 'Буцах нислэг сонгох'}
+              <ChevronsUpDown className='ms-2 size-4 shrink-0 opacity-50' />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className='w-[var(--radix-popover-trigger-width)] p-0'
+            align='start'
+          >
+            <Command>
+              <CommandInput placeholder='Нислэг, чиглэл, огноо, airline-аар хайх…' />
+              <CommandList>
+                <CommandEmpty>Олдсонгүй.</CommandEmpty>
+                <CommandGroup>
+                  {options.map((o) => (
+                    <CommandItem
+                      key={o.id}
+                      // what the search matches: number, route, the local date, airline
+                      value={`${o.flight_number} ${o.route} ${airportTime(o.departure_at, originOf(o.route), 'YYYY-MM-DD HH:mm', zones)} ${o.airline} ${o.id}`}
+                      onSelect={() => {
+                        onChange(o.id)
+                        setOpen(false)
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          'me-2 size-4',
+                          o.id === value ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      <OptionLabel option={o} />
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       )}
       {value !== null && options.find((o) => o.id === value)?.interline && (
         <p className='text-muted-foreground text-xs'>
@@ -81,5 +119,21 @@ export function ReturnPicker({
         </p>
       )}
     </div>
+  )
+}
+
+/** "OM971 PQC-UBN · 2026-11-25 17:00  MIAT · open jaw" */
+function OptionLabel({ option: o }: { option: AgencyReturnOption }) {
+  return (
+    <span className='flex min-w-0 flex-wrap items-center gap-x-1.5 text-sm'>
+      <span className='font-mono font-semibold'>{o.flight_number}</span>
+      {o.route} ·
+      <AirportTime at={o.departure_at} airport={originOf(o.route)} />
+      {o.interline && (
+        <span className='rounded bg-amber-500/15 px-1.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300'>
+          {o.airline} · open jaw
+        </span>
+      )}
+    </span>
   )
 }
