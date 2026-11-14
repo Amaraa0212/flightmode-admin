@@ -483,6 +483,24 @@ export const agencyPortalService = {
       )
     ).data,
 
+  /** The agency's own conditions of carriage (Markdown) and whether this user may change them */
+  conditions: async () =>
+    (
+      await client.get<
+        ApiData<{
+          conditions_of_carriage: string | null
+          updated_at: string | null
+          can_update: boolean
+        }>
+      >('/agency/conditions')
+    ).data,
+  saveConditions: async (markdown: string) => {
+    const res = await client.put<{ message: string }>('/agency/conditions', {
+      conditions_of_carriage: markdown,
+    })
+    return ok(null, res.message)
+  },
+
   /** One passenger with every field, to edit */
   passenger: async (id: number) =>
     (
