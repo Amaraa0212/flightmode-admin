@@ -281,6 +281,7 @@ export function AgencyBooking() {
                 cabins={[cabin]}
                 canRemove={rows.fields.length > 1}
                 onRemove={() => rows.remove(i)}
+                quotaId={flight.id}
               />
             ))}
             <Button

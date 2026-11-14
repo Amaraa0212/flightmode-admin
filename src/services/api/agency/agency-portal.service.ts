@@ -234,8 +234,17 @@ export interface AgencyBookingPassenger {
   phone: string
   email: string
   cabin_class: string
+  /** special services (WCHR, VGML …) the flight's airline offers */
+  ssr_codes?: string[]
   /** infant (under 2) travelling on this adult's lap: no seat, its own ticket */
   infant?: AgencyBookingInfant | null
+}
+
+/** An SSR the airline of a quota offers */
+export interface AgencySsrOption {
+  code: string
+  name: string
+  category: string | null
 }
 
 export interface AgencyBookingInfant {
@@ -258,6 +267,7 @@ export interface AgencyPassengerDetail {
   document_expires_at: string | null
   phone: string | null
   email: string | null
+  segments?: { ssr_codes?: string[] }[]
   infant?: {
     first_name: string
     last_name: string
@@ -420,6 +430,7 @@ export const agencyPortalService = {
         phone: orNull(p.phone),
         email: orNull(p.email),
         cabin_class: p.cabin_class,
+        ssr_codes: p.ssr_codes?.length ? p.ssr_codes : undefined,
         infant: p.infant ? infantPayload(p.infant, p.nationality) : undefined,
         allocation_fare_id: hold?.allocation_fare_id ?? undefined,
         fare_id: hold?.fare_id ?? undefined,
@@ -464,6 +475,14 @@ export const agencyPortalService = {
     return res.data
   },
 
+  /** SSRs the airline of this quota's flights offers (an SSR of another airline is refused) */
+  ssrOptions: async (quotaId: number) =>
+    (
+      await client.get<ApiData<AgencySsrOption[]>>(
+        `/agency/allocations/${quotaId}/ssr-codes`
+      )
+    ).data,
+
   /** The agency's own conditions of carriage (Markdown) and whether this user may change them */
   conditions: async () =>
     (
@@ -507,6 +526,7 @@ export const agencyPortalService = {
         document_expires_at: orNull(p.document_expires_at),
         phone: orNull(p.phone),
         email: orNull(p.email),
+        ...(p.ssr_codes ? { ssr_codes: p.ssr_codes } : {}),
         infant: p.infant ? infantPayload(p.infant, p.nationality) : null,
       }
     )

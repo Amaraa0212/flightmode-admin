@@ -174,6 +174,7 @@ export {
   type AgencyBookingInfant,
   type AgencyPassengerDetail,
   type AgencyPassengerEdit,
+  type AgencySsrOption,
   type EticketOptions,
   type AgencyScheduleChanges,
   type AgencyRights,
