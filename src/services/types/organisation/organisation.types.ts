@@ -37,6 +37,7 @@ export interface Agency extends Record<string, unknown> {
   name: string
   channel: AgencyChannel
   /** set: a sales channel of this airline only (other airlines never see it) */
+  open_jaw?: boolean
   owner_airline_id: number | null
   code: string
   email: string
@@ -75,6 +76,8 @@ export interface AgencyPayload {
   api_enabled: boolean
   chinggis_sync: boolean
   is_active: boolean
+  /** system administrators: charter round trips may return on another airline */
+  open_jaw?: boolean
   /** system administrators creating an agency: the airline it belongs to, '' shared without contracts, 'all' shared with a contract with every airline */
   owner_airline_id?: string
 }

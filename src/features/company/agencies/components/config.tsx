@@ -25,6 +25,7 @@ const schema = z.object({
   registration_no: z.string().trim(),
   api_enabled: z.boolean(),
   chinggis_sync: z.boolean(),
+  open_jaw: z.boolean(),
   is_active: z.boolean(),
   owner_airline_id: z.string(),
 })
@@ -111,6 +112,7 @@ export const pageConfig: Omit<
       registration_no: '',
       api_enabled: false,
       chinggis_sync: false,
+      open_jaw: false,
       is_active: true,
       owner_airline_id: '',
     },
@@ -124,6 +126,7 @@ export const pageConfig: Omit<
       registration_no: r.registration_no,
       api_enabled: r.api_enabled,
       chinggis_sync: r.chinggis_sync ?? false,
+      open_jaw: r.open_jaw ?? false,
       is_active: r.is_active,
       owner_airline_id: r.owner_airline_id ? String(r.owner_airline_id) : '',
     }),

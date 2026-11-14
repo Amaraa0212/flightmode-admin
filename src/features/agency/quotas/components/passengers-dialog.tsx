@@ -203,6 +203,11 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
                       </td>
                       <td className='text-brand py-1.5 pe-3 font-mono font-semibold'>
                         {code === 'HK' ? <span className='text-muted-foreground font-normal'>—</span> : p.pnr}
+                        {p.linked_pnr && (
+                          <span className='text-muted-foreground block text-[11px] font-normal' title='Open jaw: нөгөө airline-ий PNR'>
+                            ↔ {p.linked_pnr}
+                          </span>
+                        )}
                       </td>
                       <td className='pe-3 font-medium'>
                         {p.name}

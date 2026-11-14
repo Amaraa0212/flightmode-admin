@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { SsrPicker } from './ssr-picker'
+import { ReturnPicker } from './return-picker'
 
 /** Names as in the passport: Latin letters only (tickets, APIS and the DCS cannot take Cyrillic) */
 export const latinName = (required: string) =>
@@ -145,6 +146,8 @@ export function BookingDialog({
   const rows = useFieldArray({ control: form.control, name: 'passengers' })
   // pay later: seats kept without tickets until the fare's time limit (TL)
   const [onHold, setOnHold] = useState(false)
+  // RT: the same passengers on a return quota (another airline's charter: open jaw)
+  const [returnQuota, setReturnQuota] = useState<number | null>(null)
 
   const book = useMutation({
     mutationFn: (v: Form) =>
@@ -153,8 +156,9 @@ export function BookingDialog({
         v.passengers,
         { phone: v.contact_phone, email: v.contact_email },
         hold ? { id: hold.id, allocation_fare_id: hold.allocation_fare_id } : undefined,
-        onHold && !waitlist,
-        waitlist
+        onHold && !waitlist && !returnQuota,
+        waitlist,
+        hold ? null : returnQuota
       ),
     onSuccess: (res) => {
       toast.success(res.message)
@@ -163,6 +167,7 @@ export function BookingDialog({
       queryClient.invalidateQueries({ queryKey: ['agency-flights'] })
       queryClient.invalidateQueries({ queryKey: ['agency-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['agency-quota-passengers', quota?.id] })
+      setReturnQuota(null)
       onClose()
     },
     onError: (error: Error) => toast.error(error.message),
@@ -177,7 +182,14 @@ export function BookingDialog({
   const errors = form.formState.errors
 
   return (
-    <Dialog open={!!quota} onOpenChange={(open) => !open && onClose()}>
+    <Dialog
+      open={!!quota}
+      onOpenChange={(open) => {
+        if (open) return
+        setReturnQuota(null)
+        onClose()
+      }}
+    >
       <DialogContent className='flex max-h-[92vh] flex-col gap-5 sm:max-w-3xl'>
         <DialogHeader>
           <DialogTitle>
@@ -217,6 +229,8 @@ export function BookingDialog({
             Дахин зорчигч нэмэх
           </Button>
 
+          {quota && !hold && <ReturnPicker quota={quota} value={returnQuota} onChange={setReturnQuota} />}
+
           <fieldset className='rounded-xl border p-4'>
             <legend className='px-1 text-sm font-semibold'>Холбоо барих</legend>
             <div className='grid gap-4 sm:grid-cols-2'>
@@ -237,7 +251,11 @@ export function BookingDialog({
               className={`flex items-center gap-2 ${waitlist ? 'opacity-50' : ''}`}
               title='Тийзийг тарифын TL хугацаанд бичнэ, түүнээс өмнө данснаас хасахгүй (HK)'
             >
-              <Checkbox checked={onHold && !waitlist} disabled={waitlist} onCheckedChange={(v) => setOnHold(v === true)} />
+              <Checkbox
+                checked={onHold && !waitlist && !returnQuota}
+                disabled={waitlist || !!returnQuota}
+                onCheckedChange={(v) => setOnHold(v === true)}
+              />
               TL-HOLD
             </label>
             {!hold && (

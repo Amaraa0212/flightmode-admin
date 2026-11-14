@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ReturnPicker } from './return-picker'
 
 /** Columns read by the API (PassengerImportService); person_code = SAP number for online check-in */
 const COLUMNS = [
@@ -49,16 +50,19 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
   const [file, setFile] = useState<File | null>(null)
   const [replace, setReplace] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
+  // RT: the return quota every name also goes on
+  const [returnQuota, setReturnQuota] = useState<number | null>(null)
 
   const close = () => {
     setFile(null)
     setReplace(false)
+    setReturnQuota(null)
     setErrors([])
     onClose()
   }
 
   const upload = useMutation({
-    mutationFn: () => agencyPortalService.importPassengers(quota!.id, file!, replace),
+    mutationFn: () => agencyPortalService.importPassengers(quota!.id, file!, replace, returnQuota),
     onSuccess: (res) => {
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: ['agency-quotas'] })
@@ -98,6 +102,8 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
             Загвар татах
           </Button>
         </div>
+
+        {quota && <ReturnPicker quota={quota} value={returnQuota} onChange={setReturnQuota} />}
 
         <div className='grid gap-1.5'>
           <Label htmlFor='import-file'>Файл (.xlsx, .xls, .csv)</Label>
