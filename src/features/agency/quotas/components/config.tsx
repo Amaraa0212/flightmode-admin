@@ -50,6 +50,10 @@ export const pageConfig: Omit<ResourcePageProps<AgencyQuota, Record<string, neve
         {' · '}
         <b>{r.remaining}</b> үлдсэн
         <span className='text-muted-foreground'> / {r.seats || '∞'}</span>
+        {/* infants the aircraft can still take (they need no seat) */}
+        {r.infants_left !== null && r.infants_left !== undefined && (
+          <span className={r.infants_left === 0 ? 'text-destructive' : 'text-muted-foreground'}> · INF {r.infants_left} үлдсэн</span>
+        )}
       </span>
     )),
     col<AgencyQuota>('names_deadline_at', 'TKT deadline', (r) => (

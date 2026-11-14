@@ -215,6 +215,7 @@ export function BookingDialog({
               canRemove={rows.fields.length > 1}
               onRemove={() => rows.remove(i)}
               quotaId={quota?.id}
+              infantsLeft={quota?.infants_left}
             />
           ))}
 
@@ -294,6 +295,8 @@ export function PassengerCard({
   canRemove,
   onRemove,
   quotaId,
+  infantsLeft,
+  hideCabin,
 }: {
   index: number
   form: UseFormReturn<Form>
@@ -302,6 +305,10 @@ export function PassengerCard({
   onRemove: () => void
   /** the quota whose airline's SSRs can be picked */
   quotaId?: number | null
+  /** infants the flights still take besides those already in the form (null: no limit) */
+  infantsLeft?: number | null
+  /** adding to an existing booking: its cabin is used */
+  hideCabin?: boolean
 }) {
   const [searching, setSearching] = useState(false)
   const name = <K extends keyof PassengerForm>(k: K) => `passengers.${index}.${k}` as const
@@ -408,7 +415,7 @@ export function PassengerCard({
         <Field label='И-мэйл' error={error('email')}>
           <Input className='h-10' type='email' {...form.register(name('email'))} />
         </Field>
-        <Field label='Cabin'>
+        <Field label='Cabin' className={hideCabin ? 'hidden' : undefined}>
           <Select value={form.watch(name('cabin_class'))} onValueChange={(v) => form.setValue(name('cabin_class'), v)}>
             <SelectTrigger className='h-10 w-full'>
               <SelectValue />
@@ -432,7 +439,15 @@ export function PassengerCard({
         />
       </div>
 
-      <InfantSection form={form} base={`passengers.${index}.`} />
+      <InfantSection
+        form={form}
+        base={`passengers.${index}.`}
+        canAdd={
+          infantsLeft === null ||
+          infantsLeft === undefined ||
+          (form.watch('passengers') ?? []).filter((p, i) => i !== index && p.infant).length < infantsLeft
+        }
+      />
     </section>
   )
 }
@@ -441,7 +456,16 @@ export function PassengerCard({
  * Infant on the adult's lap: its own ticket, no seat — the adult must be 12+, the infant under 2 on the flight date.
  * `base` is the adult's path in the form ('' or 'passengers.0.'); its `infant` is null when there is none.
  */
-export function InfantSection<T extends FieldValues>({ form, base }: { form: UseFormReturn<T>; base: string }) {
+export function InfantSection<T extends FieldValues>({
+  form,
+  base,
+  canAdd = true,
+}: {
+  form: UseFormReturn<T>
+  base: string
+  /** false: the aircraft takes no more infants on these flights */
+  canAdd?: boolean
+}) {
   const path = (k: string) => `${base}infant${k ? `.${k}` : ''}` as Path<T>
   const error = (k: keyof InfantForm) =>
     (get(form.formState.errors, path(k)) as { message?: string } | undefined)?.message
@@ -453,10 +477,12 @@ export function InfantSection<T extends FieldValues>({ form, base }: { form: Use
         variant='ghost'
         size='sm'
         className='mt-3 h-8 gap-1.5 text-xs'
+        disabled={!canAdd}
+        title={canAdd ? undefined : 'Онгоцны нярайн (INF) хязгаар дүүрсэн'}
         onClick={() => form.setValue(path(''), blankInfant() as PathValue<T, Path<T>>)}
       >
         <Baby className='size-4' />
-        Нярай нэмэх
+        {canAdd ? 'Нярай нэмэх' : 'Нярайн суудал дууссан (INF)'}
       </Button>
     )
   }

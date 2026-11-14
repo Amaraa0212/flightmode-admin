@@ -1,10 +1,13 @@
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2 } from 'lucide-react'
+import { Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
-import { agencyPortalService, type AgencyPassengerEdit } from '@/services'
+import { agencyPortalService, type AgencyPassengerEdit, type AgencyQuota } from '@/services'
+import { Button } from '@/components/ui/button'
+import { AddToBookingDialog } from './add-to-booking-dialog'
 import { BaseDialog } from '@/components/ui/base-dialog'
 import { Input } from '@/components/ui/input'
 import { infant, InfantSection, latinName } from './booking-dialog'
@@ -47,12 +50,18 @@ export function EditPassengerDialog({
   passengerId,
   quotaId,
   onClose,
+  booking,
+  quota,
 }: {
   passengerId: number
   quotaId: number
   onClose: () => void
+  /** the passenger's PNR: more passengers can be added to it (within the quota) */
+  booking?: { id: number; pnr: string } | null
+  quota?: AgencyQuota | null
 }) {
   const queryClient = useQueryClient()
+  const [adding, setAdding] = useState(false)
   const { data } = useQuery({
     queryKey: ['agency-passenger', passengerId],
     queryFn: () => agencyPortalService.passenger(passengerId),
@@ -162,7 +171,22 @@ export function EditPassengerDialog({
             value={form.watch('ssr_codes') ?? []}
             onChange={(codes) => form.setValue('ssr_codes', codes)}
           />
-          <InfantSection form={form} base='' />
+          <InfantSection
+            form={form}
+            base=''
+            canAdd={quota?.infants_left === null || quota?.infants_left === undefined || quota.infants_left > 0 || !!data?.infant}
+          />
+          {booking && quota && (
+            <div className='flex justify-end border-t pt-3'>
+              <Button type='button' variant='outline' size='sm' className='gap-1.5' onClick={() => setAdding(true)}>
+                <UserPlus className='size-4' />
+                PNR {booking.pnr}-д зорчигч нэмэх
+              </Button>
+            </div>
+          )}
+          {adding && booking && quota && (
+            <AddToBookingDialog booking={booking} quota={quota} onClose={() => setAdding(false)} />
+          )}
         </div>
       )}
     </BaseDialog>

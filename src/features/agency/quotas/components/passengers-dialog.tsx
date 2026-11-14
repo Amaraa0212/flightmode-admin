@@ -298,7 +298,16 @@ export function PassengersDialog({ quota, onClose }: { quota: AgencyQuota | null
         </div>
       </DialogContent>
       {editing !== null && quota && (
-        <EditPassengerDialog passengerId={editing} quotaId={quota.id} onClose={() => setEditing(null)} />
+        <EditPassengerDialog
+          passengerId={editing}
+          quotaId={quota.id}
+          quota={quota}
+          booking={(() => {
+            const row = data.find((r) => r.id === editing)
+            return row && row.pnr ? { id: row.booking_id, pnr: row.pnr } : null
+          })()}
+          onClose={() => setEditing(null)}
+        />
       )}
     </Dialog>
   )
