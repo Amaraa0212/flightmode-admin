@@ -8,6 +8,7 @@ import { agencyPortalService, type AgencyPassengerEdit } from '@/services'
 import { BaseDialog } from '@/components/ui/base-dialog'
 import { Input } from '@/components/ui/input'
 import { infant, InfantSection, latinName } from './booking-dialog'
+import { SsrPicker } from './ssr-picker'
 import {
   Select,
   SelectContent,
@@ -26,6 +27,7 @@ const schema = z.object({
   document_expires_at: z.string(),
   phone: z.string(),
   email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
+  ssr_codes: z.array(z.string()),
   infant: infant.nullable(),
 })
 type EditForm = z.infer<typeof schema>
@@ -67,6 +69,7 @@ export function EditPassengerDialog({
       document_expires_at: data.document_expires_at ?? '',
       phone: data.phone ?? '',
       email: data.email ?? '',
+      ssr_codes: data.segments?.[0]?.ssr_codes ?? [],
       infant: data.infant
         ? {
             last_name: data.infant.last_name,
@@ -154,6 +157,11 @@ export function EditPassengerDialog({
               <Input className='h-10' type='email' {...form.register('email')} />
             </Field>
           </div>
+          <SsrPicker
+            quotaId={quotaId}
+            value={form.watch('ssr_codes') ?? []}
+            onChange={(codes) => form.setValue('ssr_codes', codes)}
+          />
           <InfantSection form={form} base='' />
         </div>
       )}
