@@ -25,6 +25,7 @@ import { Route as AuthenticatedAccessUsersIndexRouteImport } from './routes/_aut
 import { Route as AuthenticatedAgencyAccountIndexRouteImport } from './routes/_authenticated/agency/account/index'
 import { Route as AuthenticatedAgencyBookingIndexRouteImport } from './routes/_authenticated/agency/booking/index'
 import { Route as AuthenticatedAgencyBookingsIndexRouteImport } from './routes/_authenticated/agency/bookings/index'
+import { Route as AuthenticatedAgencyConditionsIndexRouteImport } from './routes/_authenticated/agency/conditions/index'
 import { Route as AuthenticatedAgencyHoldsIndexRouteImport } from './routes/_authenticated/agency/holds/index'
 import { Route as AuthenticatedAgencyQuotasIndexRouteImport } from './routes/_authenticated/agency/quotas/index'
 import { Route as AuthenticatedAgencySearchIndexRouteImport } from './routes/_authenticated/agency/search/index'
@@ -159,6 +160,12 @@ const AuthenticatedAgencyBookingsIndexRoute =
   AuthenticatedAgencyBookingsIndexRouteImport.update({
     id: '/agency/bookings/',
     path: '/agency/bookings/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedAgencyConditionsIndexRoute =
+  AuthenticatedAgencyConditionsIndexRouteImport.update({
+    id: '/agency/conditions/',
+    path: '/agency/conditions/',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedAgencyHoldsIndexRoute =
@@ -466,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/agency/account/': typeof AuthenticatedAgencyAccountIndexRoute
   '/agency/booking/': typeof AuthenticatedAgencyBookingIndexRoute
   '/agency/bookings/': typeof AuthenticatedAgencyBookingsIndexRoute
+  '/agency/conditions/': typeof AuthenticatedAgencyConditionsIndexRoute
   '/agency/holds/': typeof AuthenticatedAgencyHoldsIndexRoute
   '/agency/quotas/': typeof AuthenticatedAgencyQuotasIndexRoute
   '/agency/search/': typeof AuthenticatedAgencySearchIndexRoute
@@ -531,6 +539,7 @@ export interface FileRoutesByTo {
   '/agency/account': typeof AuthenticatedAgencyAccountIndexRoute
   '/agency/booking': typeof AuthenticatedAgencyBookingIndexRoute
   '/agency/bookings': typeof AuthenticatedAgencyBookingsIndexRoute
+  '/agency/conditions': typeof AuthenticatedAgencyConditionsIndexRoute
   '/agency/holds': typeof AuthenticatedAgencyHoldsIndexRoute
   '/agency/quotas': typeof AuthenticatedAgencyQuotasIndexRoute
   '/agency/search': typeof AuthenticatedAgencySearchIndexRoute
@@ -598,6 +607,7 @@ export interface FileRoutesById {
   '/_authenticated/agency/account/': typeof AuthenticatedAgencyAccountIndexRoute
   '/_authenticated/agency/booking/': typeof AuthenticatedAgencyBookingIndexRoute
   '/_authenticated/agency/bookings/': typeof AuthenticatedAgencyBookingsIndexRoute
+  '/_authenticated/agency/conditions/': typeof AuthenticatedAgencyConditionsIndexRoute
   '/_authenticated/agency/holds/': typeof AuthenticatedAgencyHoldsIndexRoute
   '/_authenticated/agency/quotas/': typeof AuthenticatedAgencyQuotasIndexRoute
   '/_authenticated/agency/search/': typeof AuthenticatedAgencySearchIndexRoute
@@ -665,6 +675,7 @@ export interface FileRouteTypes {
     | '/agency/account/'
     | '/agency/booking/'
     | '/agency/bookings/'
+    | '/agency/conditions/'
     | '/agency/holds/'
     | '/agency/quotas/'
     | '/agency/search/'
@@ -730,6 +741,7 @@ export interface FileRouteTypes {
     | '/agency/account'
     | '/agency/booking'
     | '/agency/bookings'
+    | '/agency/conditions'
     | '/agency/holds'
     | '/agency/quotas'
     | '/agency/search'
@@ -796,6 +808,7 @@ export interface FileRouteTypes {
     | '/_authenticated/agency/account/'
     | '/_authenticated/agency/booking/'
     | '/_authenticated/agency/bookings/'
+    | '/_authenticated/agency/conditions/'
     | '/_authenticated/agency/holds/'
     | '/_authenticated/agency/quotas/'
     | '/_authenticated/agency/search/'
@@ -968,6 +981,13 @@ declare module '@tanstack/react-router' {
       path: '/agency/bookings'
       fullPath: '/agency/bookings/'
       preLoaderRoute: typeof AuthenticatedAgencyBookingsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/agency/conditions/': {
+      id: '/_authenticated/agency/conditions/'
+      path: '/agency/conditions'
+      fullPath: '/agency/conditions/'
+      preLoaderRoute: typeof AuthenticatedAgencyConditionsIndexRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/agency/holds/': {
@@ -1319,6 +1339,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedAgencyAccountIndexRoute: typeof AuthenticatedAgencyAccountIndexRoute
   AuthenticatedAgencyBookingIndexRoute: typeof AuthenticatedAgencyBookingIndexRoute
   AuthenticatedAgencyBookingsIndexRoute: typeof AuthenticatedAgencyBookingsIndexRoute
+  AuthenticatedAgencyConditionsIndexRoute: typeof AuthenticatedAgencyConditionsIndexRoute
   AuthenticatedAgencyHoldsIndexRoute: typeof AuthenticatedAgencyHoldsIndexRoute
   AuthenticatedAgencyQuotasIndexRoute: typeof AuthenticatedAgencyQuotasIndexRoute
   AuthenticatedAgencySearchIndexRoute: typeof AuthenticatedAgencySearchIndexRoute
@@ -1380,6 +1401,8 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAgencyAccountIndexRoute: AuthenticatedAgencyAccountIndexRoute,
   AuthenticatedAgencyBookingIndexRoute: AuthenticatedAgencyBookingIndexRoute,
   AuthenticatedAgencyBookingsIndexRoute: AuthenticatedAgencyBookingsIndexRoute,
+  AuthenticatedAgencyConditionsIndexRoute:
+    AuthenticatedAgencyConditionsIndexRoute,
   AuthenticatedAgencyHoldsIndexRoute: AuthenticatedAgencyHoldsIndexRoute,
   AuthenticatedAgencyQuotasIndexRoute: AuthenticatedAgencyQuotasIndexRoute,
   AuthenticatedAgencySearchIndexRoute: AuthenticatedAgencySearchIndexRoute,
