@@ -149,8 +149,10 @@ export function UserAuthForm({ className, redirectTo }: UserAuthFormProps) {
                 <label htmlFor='password' className='fm-label'>
                   Password
                 </label>
+                {/* out of the Tab order: e-mail → password → sign in */}
                 <button
                   type='button'
+                  tabIndex={-1}
                   onClick={() =>
                     toast.info(
                       'Contact your system administrator to reset the password.'
@@ -177,6 +179,7 @@ export function UserAuthForm({ className, redirectTo }: UserAuthFormProps) {
                   />
                   <button
                     type='button'
+                    tabIndex={-1}
                     onClick={() => setShowPassword((v) => !v)}
                     className='text-muted-foreground hover:text-foreground'
                     aria-label={

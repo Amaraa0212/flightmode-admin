@@ -9,6 +9,8 @@ type ColOptions<T> = {
   /** Value used by faceted filters / export */
   accessor?: (row: T) => unknown
   className?: string
+  /** the header sorts the rows by this column (its accessor) */
+  sortable?: boolean
 }
 
 /** Short column definition: col('pnr', 'PNR', (r) => r.pnr) */
@@ -28,7 +30,7 @@ export function col<T>(
     cell: ({ row }) => (
       <div className={cn('ps-2', options.className)}>{cell(row.original)}</div>
     ),
-    enableSorting: false,
+    enableSorting: options.sortable ?? false,
   }
 }
 

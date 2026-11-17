@@ -114,6 +114,13 @@ export function ResourcePage<
   const removable = canDelete ? remove : undefined
   const [editing, setEditing] = useState<{ row?: TRow } | null>(null)
   const [deleting, setDeleting] = useState<TRow | null>(null)
+  // the row's values once per opened dialog: a new object every render made the dialog write them back over what
+  // was being typed (an edited name jumped back to the old one)
+  const editValues = useMemo(
+    () => (editing?.row && form ? form.fromRow(editing.row) : undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [editing]
+  )
 
   const { params } = useFilterParams(search, {
     defaultMonths: 0,
@@ -251,8 +258,8 @@ export function ResourcePage<
           onClose={() => setEditing(null)}
           schema={form.schema}
           fields={form.fields}
-          data={editing.row ? form.fromRow(editing.row) : undefined}
-          defaultValues={editing.row ? form.fromRow(editing.row) : form.empty}
+          data={editValues}
+          defaultValues={editValues ?? form.empty}
           onSubmit={async (values) => {
             await save.mutateAsync(values)
           }}

@@ -44,6 +44,8 @@ export const pageConfig: Omit<
   description: 'Back office, station and agency accounts',
   queryKey: 'admin-users',
   list: userService.list,
+  // one page holds every user, so sorting by a column sorts all of them
+  defaultPageSize: 100,
   searchPlaceholder: 'Name, email or phone',
   filters: [
     { columnId: 'scope', title: 'Scope', options: ROLE_SCOPE_OPTIONS },
@@ -51,16 +53,21 @@ export const pageConfig: Omit<
   ],
   exportFileName: 'users.xlsx',
   columns: [
-    col<User>('name', 'Name', (r) => (
-      <span className='font-medium'>{r.name}</span>
-    )),
+    col<User>(
+      'name',
+      'Name',
+      (r) => <span className='font-medium'>{r.name}</span>,
+      { sortable: true }
+    ),
     col<User>('email', 'Email', (r) => muted(r.email)),
     col<User>('phone', 'Phone', (r) => mono(r.phone)),
     col<User>('role', 'Role', (r) => r.role.name, {
       accessor: (r) => r.role.name,
+      sortable: true,
     }),
     col<User>('scope', 'Scope', (r) => chip(r.role.scope, ROLE_SCOPE), {
       accessor: (r) => r.role.scope,
+      sortable: true,
     }),
     col<User>(
       'org',
