@@ -81,9 +81,9 @@ export const BAGGAGE_USAGE: Record<string, StatusMeta> = {
 
 /** How a baggage rule limits bags (API `type`) */
 export const BAGGAGE_RULE_TYPE: Record<string, StatusMeta> = {
-  piece: { label: 'By piece', tone: 'cyan' },
-  weight: { label: 'By kg (all excess)', tone: 'amber' },
-  combined: { label: 'Piece + kg', tone: 'green' },
+  piece: { label: 'PC (by piece)', tone: 'cyan' },
+  weight: { label: 'KG (total kg)', tone: 'amber' },
+  combined: { label: 'KG (kg × free pieces)', tone: 'green' },
 }
 
 export const ACTIVE: Record<string, StatusMeta> = {

@@ -43,7 +43,7 @@ export const pageConfig: Omit<
 > = {
   title: 'Baggage rules',
   description:
-    'Free allowance, prepaid (XBAG) and excess (EBAG) baggage — limited by piece, by kg, or piece + kg',
+    'PC: free pieces, each up to its kg — a piece more is charged at the piece EBAG price, kg over at the kg EBAG price. KG: one free kg total, however many pieces — kg over at the kg EBAG price. EBAG: "Limit by: piece" = price of an extra piece, "Limit by: kg" = price of a kg (none attached to the flight: excess is free)',
   queryKey: 'admin-baggage-rules',
   list: baggageRuleService.list,
   searchPlaceholder: 'Bag name or SSR',
@@ -136,17 +136,17 @@ export const pageConfig: Omit<
         gridCols: 1,
       },
       { name: 'pieces', label: 'Free pieces', type: 'number', gridCols: 1 },
-      // Piece + kg: free kg pool = kg × free pieces (1 pc · 23 kg → 2 bags of 22 kg fit, 1 kg stays free)
+      // PC: kg of each free piece; KG: the free kg in total (whatever the number of pieces)
       {
         name: 'weight_kg',
-        label: 'Kg per piece',
+        label: 'Kg (PC: per piece · KG: total)',
         type: 'number',
         gridCols: 1,
-        placeholder: 'Piece + kg: pool = kg × free pieces',
+        placeholder: 'PC 23 = each piece · KG 20 = 20 kg in total',
       },
       {
         name: 'max_quantity',
-        label: 'Max pieces (0 = unlimited)',
+        label: 'Max pieces (not used: extra pieces are excess)',
         type: 'number',
         gridCols: 1,
       },
@@ -157,7 +157,8 @@ export const pageConfig: Omit<
         placeholder: 'FBAG / XBAG / EBAG',
         gridCols: 1,
       },
-      { name: 'price', label: 'Price (MNT)', type: 'number', gridCols: 1 },
+      // EBAG: price of an extra piece (Limit by piece) or of a kg (Limit by kg)
+      { name: 'price', label: 'Price (MNT) — EBAG: per piece / per kg', type: 'number', gridCols: 1 },
       { name: 'is_active', label: 'Active', type: 'checkbox', gridCols: 2 },
     ],
     create: (v) => baggageRuleService.create(v),
