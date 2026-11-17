@@ -55,8 +55,6 @@ const flightBody = (p: FlightBody) => ({
   service_type: p.service_type,
   notify_change: !!p.notify_change,
   no_baggage_rule: p.service_type === 'charter' && !!p.no_baggage_rule,
-  excess_baggage_max_kg: p.excess_baggage_max_kg || null,
-  excess_baggage_price_per_kg: p.excess_baggage_price_per_kg || null,
   origin_airport_id: Number(p.origin_airport_id),
   destination_airport_id: Number(p.destination_airport_id),
   aircraft_id: Number(p.aircraft_id),
@@ -93,8 +91,6 @@ export interface FlightsBulkPayload {
   destination_airport_id: number
   service_type: 'scheduled' | 'charter'
   no_baggage_rule?: boolean
-  excess_baggage_max_kg?: number | null
-  excess_baggage_price_per_kg?: number | null
   /** HH:MM, local time of the origin */
   departure_time: string
   /** HH:MM, local time of the destination */
