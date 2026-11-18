@@ -148,6 +148,12 @@ export function BookingDialog({
   const [onHold, setOnHold] = useState(false)
   // RT: the same passengers on a return quota (another airline's charter: open jaw)
   const [returnQuota, setReturnQuota] = useState<number | null>(null)
+  // the dialog stays mounted: the next booking starts from an empty form
+  const clear = () => {
+    form.reset({ passengers: [blank(cabins[0])], contact_phone: '', contact_email: '' })
+    setOnHold(false)
+    setReturnQuota(null)
+  }
 
   const book = useMutation({
     mutationFn: (v: Form) =>
@@ -167,7 +173,7 @@ export function BookingDialog({
       queryClient.invalidateQueries({ queryKey: ['agency-flights'] })
       queryClient.invalidateQueries({ queryKey: ['agency-accounts'] })
       queryClient.invalidateQueries({ queryKey: ['agency-quota-passengers', quota?.id] })
-      setReturnQuota(null)
+      clear()
       onClose()
     },
     onError: (error: Error) => toast.error(error.message),
@@ -186,7 +192,7 @@ export function BookingDialog({
       open={!!quota}
       onOpenChange={(open) => {
         if (open) return
-        setReturnQuota(null)
+        clear()
         onClose()
       }}
     >
