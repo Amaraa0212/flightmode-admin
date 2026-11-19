@@ -123,7 +123,7 @@ export const pageConfig: Omit<
         label: 'Only this agency',
         type: 'select',
         options: [{ label: 'Everyone of the airline', value: '' }],
-        loadOptions: agencyOptions,
+        loadOptions: () => agencyOptions(),
         showWhen: { field: 'airline_id', notValue: ALL_AIRLINES },
         gridCols: 1,
       },

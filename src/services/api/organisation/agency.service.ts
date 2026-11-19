@@ -126,12 +126,13 @@ export const agencyContractService = {
 }
 
 /** Active agencies for select fields */
-export const agencyOptions = async () => {
+export const agencyOptions = async (ownerAirlineId?: number) => {
   const res = await client.get<{ data: Agency[] }>('/admin/agencies', {
     per_page: 200,
   })
   return res.data
     .filter((a) => a.is_active)
+    .filter((a) => !ownerAirlineId || a.owner_airline_id === ownerAirlineId)
     .map((a) => ({ label: `${a.code} · ${a.name}`, value: String(a.id) }))
 }
 
