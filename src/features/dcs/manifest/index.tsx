@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { getRouteApi } from '@tanstack/react-router'
 import { flightPassengerService } from '@/services'
@@ -20,12 +21,14 @@ import { FlightPicker } from '@/components/flight-picker'
 import { Main } from '@/components/layout/main'
 import { PageHeader } from '@/components/page-header'
 import { StatusChip } from '@/components/status-chip'
+import { ManifestPrintDialog } from './components/manifest-print-dialog'
 
 const route = getRouteApi('/_authenticated/dcs/manifest/')
 
 export function Manifest() {
   const { flight } = route.useSearch()
   const navigate = route.useNavigate()
+  const [printing, setPrinting] = useState(false)
 
   const { data } = useQuery({
     queryKey: ['admin-manifest', flight],
@@ -92,7 +95,7 @@ export function Manifest() {
               size='sm'
               className='gap-2'
               disabled={!data}
-              onClick={() => window.print()}
+              onClick={() => setPrinting(true)}
             >
               <Printer className='size-4' />
               Print
@@ -196,6 +199,14 @@ export function Manifest() {
             </div>
           </div>
         </>
+      )}
+      {flight && data && (
+        <ManifestPrintDialog
+          flightId={flight}
+          flightNumber={data.flight.flight_number}
+          open={printing}
+          onOpenChange={setPrinting}
+        />
       )}
     </Main>
   )
