@@ -1,4 +1,4 @@
-import { airlineSsrs, baggageOverrides, flights } from '../../mock/db'
+import { baggageOverrides, flights } from '../../mock/db'
 import { createMockResource, nextId, nowIso } from '../../mock/utils'
 import type {
   AirlineSsr,
@@ -22,8 +22,6 @@ import {
   type ApiAction,
   type ApiData,
 } from '../shared/client'
-
-// TODO(api): /admin/airline-ssrs
 
 const first = (v: unknown) => (Array.isArray(v) ? v : v ? [v] : []) as string[]
 
@@ -101,21 +99,73 @@ export const seatPriceService = {
     ),
 }
 
-export const airlineSsrService = createMockResource<
-  AirlineSsr,
-  AirlineSsrPayload
->(airlineSsrs, {
-  searchKeys: ['code', 'name', 'category'],
-  filters: { category: (row) => row.category },
-  build: (payload, existing) => ({
-    currency: 'MNT',
-    ...existing,
-    ...payload,
-    code: payload.code.toUpperCase(),
-    price: payload.price ? Number(payload.price) : null,
-    id: existing?.id ?? nextId(),
-  }),
+type ApiAirlineSsr = {
+  id: number
+  airline_id: number
+  airline?: { id: number; name: string; iata_code: string } | null
+  ssr: { id: number; code: string; name: string; category: string | null }
+  price: string | number | null
+  currency: string | null
+}
+
+const toAirlineSsr = (s: ApiAirlineSsr): AirlineSsr => ({
+  id: s.id,
+  airline_id: s.airline_id,
+  airline: s.airline?.name ?? null,
+  code: s.ssr.code,
+  name: s.ssr.name,
+  category: s.ssr.category ?? '',
+  price: s.price === null || Number(s.price) === 0 ? null : Number(s.price),
+  currency: s.currency ?? 'MNT',
 })
+
+/**
+ * The SSRs an airline offers (/admin/airline-ssrs) — what the DCS, the agency portal and online check-in list
+ * on its flights. A code already in the IATA catalogue is linked; a new code is added to the catalogue.
+ */
+export const airlineSsrService = {
+  list: async (params: ListParams = {}) => {
+    const q = String(params.query ?? '')
+      .trim()
+      .toLowerCase()
+    const categories = first(params.category)
+    const rows = (
+      await client.get<ApiData<ApiAirlineSsr[]>>('/admin/airline-ssrs')
+    ).data
+      .map(toAirlineSsr)
+      .filter(
+        (r) =>
+          (!q || `${r.code} ${r.name}`.toLowerCase().includes(q)) &&
+          (!categories.length || categories.includes(r.category))
+      )
+      .sort((a, b) => a.code.localeCompare(b.code))
+    return localPage(rows, params)
+  },
+  create: (payload: AirlineSsrPayload) =>
+    action(
+      client.post<ApiData<ApiAirlineSsr>>('/admin/airline-ssrs', {
+        code: payload.code.trim().toUpperCase(),
+        name: payload.name.trim(),
+        category: payload.category || null,
+        price: payload.price || 0,
+        airline_id: payload.airline_id ? Number(payload.airline_id) : undefined,
+      }),
+      toAirlineSsr
+    ),
+  // the code and its name belong to the shared catalogue: an airline changes only its price
+  update: (id: number, payload: AirlineSsrPayload) =>
+    action(
+      client.put<ApiData<ApiAirlineSsr>>(`/admin/airline-ssrs/${id}`, {
+        price: payload.price || 0,
+      }),
+      toAirlineSsr
+    ),
+  remove: (id: number) =>
+    action(
+      client.delete<ApiData<null>>(`/admin/airline-ssrs/${id}`),
+      () => null
+    ),
+}
 
 const templateBody = (p: ServiceTemplatePayload) => ({
   name: p.name.trim(),

@@ -9,6 +9,11 @@ import { api } from '@/config/api'
 import { useAuthStore } from '@/stores/auth-store'
 import { client, ok, period, saveBlob, type ApiData } from '../shared/client'
 import { airportTime } from '@/lib/airport-zones'
+import {
+  toSeatMap,
+  type ApiManifest as PrintManifest,
+  type ApiSeatMap,
+} from '@/lib/manifest/types'
 
 /*
 | Flight manager / flight load: /admin/flight-board (one day), status / gate / ETD / gate agents / online check-in,
@@ -288,6 +293,17 @@ export const flightPassengerService = {
     const size = params.pageSize ?? 1000
     const page = params.current ?? 1
     return ok({ total: rows.length, items: rows.slice((page - 1) * size, page * size) })
+  },
+
+  /** What the printed manifest needs (the DCS counter's print): the whole document and the seat map */
+  manifestPrint: async (flightId: number) => {
+    const [doc, seats] = await Promise.all([
+      client.get<ApiData<PrintManifest>>(`/admin/flights/${flightId}/documents/manifest`, {
+        parts: ['passengers', 'baggage', 'balance'],
+      }),
+      client.get<ApiData<ApiSeatMap>>(`/admin/flights/${flightId}/documents/seat-map`),
+    ])
+    return { manifest: doc.data, seatMap: toSeatMap(seats.data, doc.data.header.aircraft_type ?? '') }
   },
 
   /** Manifest: checked-in passengers + zone / baggage summary (ManifestService) */

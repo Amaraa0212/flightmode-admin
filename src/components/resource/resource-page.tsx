@@ -28,6 +28,8 @@ export type ResourceFormConfig<TRow, TForm extends Record<string, unknown>> = {
   entity: string
   schema: z.ZodSchema<TForm>
   fields: FormFieldConfig<TForm>[]
+  /** fields of the edit form when they differ from the create form (e.g. a key that cannot change) */
+  editFields?: FormFieldConfig<TForm>[]
   empty: TForm
   fromRow: (row: TRow) => TForm
   create?: (values: TForm) => Promise<BaseResponse<unknown>>
@@ -257,7 +259,7 @@ export function ResourcePage<
           open
           onClose={() => setEditing(null)}
           schema={form.schema}
-          fields={form.fields}
+          fields={editing.row && form.editFields ? form.editFields : form.fields}
           data={editValues}
           defaultValues={editValues ?? form.empty}
           onSubmit={async (values) => {

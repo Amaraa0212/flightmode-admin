@@ -109,6 +109,8 @@ export interface SeatPricePayload {
 
 export interface AirlineSsr extends Record<string, unknown> {
   id: number
+  airline_id?: number
+  airline?: string | null
   code: string
   name: string
   category: string
@@ -121,6 +123,8 @@ export interface AirlineSsrPayload {
   name: string
   category: string
   price: number
+  /** system administrator: which airline offers it */
+  airline_id?: string
 }
 
 /** Legacy template: products applied to flights (bags, seats, OCI window) */
