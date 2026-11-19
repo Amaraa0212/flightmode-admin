@@ -6,6 +6,7 @@ import {
   userService,
   type User,
 } from '@/services'
+import { useAuthStore } from '@/stores/auth-store'
 import {
   ACTIVE_OPTIONS,
   ROLE_SCOPE,
@@ -172,7 +173,13 @@ export const pageConfig: Omit<
         label: 'Agency (agency users)',
         type: 'select',
         options: [{ label: 'None', value: '' }],
-        loadOptions: agencyOptions,
+        // an airline admin adds users only to the agencies its airline created
+        loadOptions: () => {
+          const user = useAuthStore.getState().auth.user
+          return agencyOptions(
+            user?.is_system_admin ? undefined : (user?.airline?.id ?? undefined)
+          )
+        },
         gridCols: 1,
       },
       { name: 'is_active', label: 'Active', type: 'checkbox', gridCols: 1 },

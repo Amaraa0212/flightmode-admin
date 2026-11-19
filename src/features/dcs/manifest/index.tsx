@@ -114,7 +114,7 @@ export function Manifest() {
                 {data.flight.flight_number}
               </p>
               <p className='text-muted-foreground text-xs'>
-                {data.flight.airline.name}
+                {data.flight.airline?.name}
               </p>
             </div>
             <p className='text-lg font-semibold'>
