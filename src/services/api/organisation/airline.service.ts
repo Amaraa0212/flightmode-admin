@@ -41,4 +41,18 @@ export const airlineService = {
     ),
   remove: (id: number) =>
     action(client.delete<ApiData<null>>(`/admin/airlines/${id}`), () => null),
+  /** Logo for the e-ticket, boarding pass and bag tag (PNG / JPG / WEBP, up to 2 MB) */
+  uploadLogo: (id: number, file: File) => {
+    const form = new FormData()
+    form.append('logo', file)
+    return action(
+      client.upload<ApiData<Airline>>(`/admin/airlines/${id}/logo`, form),
+      toAirline
+    )
+  },
+  removeLogo: (id: number) =>
+    action(
+      client.delete<ApiData<Airline>>(`/admin/airlines/${id}/logo`),
+      toAirline
+    ),
 }

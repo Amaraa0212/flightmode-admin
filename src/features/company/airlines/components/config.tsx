@@ -3,6 +3,7 @@ import { airlineService, type Airline, type AirlinePayload } from '@/services'
 import { ACTIVE_OPTIONS } from '@/constants/status'
 import type { FormFieldConfig } from '@/components/ui/config-form-dialog'
 import { brand, col, mono, muted } from '@/components/resource/columns'
+import { AirlineLogo } from './airline-logo'
 import type { ResourcePageProps } from '@/components/resource/resource-page'
 import { ActiveBadge } from '@/components/status-badge'
 
@@ -54,6 +55,9 @@ export const airlinePageConfig = (
         />
         <span className='font-medium'>{r.name}</span>
       </div>
+    )),
+    col<Airline>('logo_url', 'Logo', (r) => (
+      <AirlineLogo airline={r} queryKey='admin-airlines' />
     )),
     col<Airline>('iata_code', 'IATA / ICAO', (r) =>
       brand(`${r.iata_code} / ${r.icao_code}`)
