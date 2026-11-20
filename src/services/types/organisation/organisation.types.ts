@@ -13,6 +13,8 @@ export interface Airline extends Record<string, unknown> {
   address: string
   registration_no: string
   brand_color: string
+  /** printed on the e-ticket, boarding pass and bag tag */
+  logo_url?: string | null
   currency: string
   is_active: boolean
   agencies_count: number
