@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 /**
  * The airline's logo — printed on the e-ticket, boarding pass and bag tag (grayscale on the tag). A wide logo
  * prints best: the bag tag gives it a 4.1 cm wide box. Without one the airline's name is printed instead.
+ * An SVG must be a plain drawing (the API refuses scripts and outside links); text converted to outlines prints best.
  */
 export function AirlineLogo({ airline, queryKey }: { airline: Airline; queryKey: string }) {
   const queryClient = useQueryClient()
@@ -42,7 +43,7 @@ export function AirlineLogo({ airline, queryKey }: { airline: Airline; queryKey:
       <input
         ref={input}
         type='file'
-        accept='image/png,image/jpeg,image/webp'
+        accept='image/png,image/jpeg,image/webp,image/svg+xml,.svg'
         className='hidden'
         onChange={(e) => {
           const file = e.target.files?.[0]
@@ -54,7 +55,7 @@ export function AirlineLogo({ airline, queryKey }: { airline: Airline; queryKey:
         size='icon'
         variant='ghost'
         className='size-7'
-        title='Upload logo (PNG / JPG / WEBP, up to 2 MB)'
+        title='Upload logo (SVG / PNG / JPG / WEBP, up to 2 MB)'
         disabled={busy}
         onClick={() => input.current?.click()}
       >
