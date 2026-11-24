@@ -201,6 +201,10 @@ type ApiManifest = {
       nationality: string | null
       date_of_birth: string | null
       pnr: string
+      document_number: string | null
+      phone: string | null
+      agency: string | null
+      zone: string | null
       cabin_class: string
       seat_number: string | null
       ssr: string
@@ -323,20 +327,20 @@ export const flightPassengerService = {
       gender: p.gender ?? '',
       date_of_birth: p.date_of_birth ?? '',
       nationality: p.nationality ?? '',
-      document_number: '',
+      document_number: p.document_number ?? '',
       seat_number: p.seat_number,
       cabin_class: p.cabin_class,
       status: 'checked_in',
       ssr_codes: p.ssr ? p.ssr.split(' ') : [],
-      agency: null,
-      phone: null,
+      agency: p.agency,
+      phone: p.phone,
       flight_id: flightId,
       flight_number: doc.data.header.flight_number,
       route: '',
       departure_at: '',
       bags: p.bag_pieces,
       bag_weight_kg: p.bag_weight_kg,
-      zone: null,
+      zone: p.zone,
     }))
     return ok({
       flight: flight.body,
