@@ -20,10 +20,10 @@ export const pageConfig: Omit<
       <span className='font-medium'>{r.name}</span>
     )),
     col<ServiceTemplate>(
-      'baggage_rule_ids',
-      'Bag ids',
-      (r) => brand(r.baggage_rule_ids.join(', ') || '-'),
-      { accessor: (r) => r.baggage_rule_ids.join(',') }
+      'baggage_rule_groups',
+      'Baggage rules',
+      (r) => brand(r.baggage_rule_groups?.join(', ') || '-'),
+      { accessor: (r) => (r.baggage_rule_groups ?? []).join(',') }
     ),
     col<ServiceTemplate>(
       'seat_price_ids',

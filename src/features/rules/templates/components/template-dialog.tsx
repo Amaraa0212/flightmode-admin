@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   aircraftOptions,
-  baggageRuleOptions,
+  baggageRuleGroupOptions,
   seatPriceOptions,
   seatProfileService,
   serviceTemplateService,
@@ -38,7 +38,7 @@ export function TemplateDialog({
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
-  const baggageOptions = useOptions('baggage-rules', baggageRuleOptions)
+  const bagGroups = useOptions('baggage-rule-groups', baggageRuleGroupOptions)
   const seatOptions = useOptions('seat-prices', seatPriceOptions)
   const aircraft = useOptions('aircraft', aircraftOptions)
   const [name, setName] = useState(template?.name ?? '')
@@ -64,6 +64,11 @@ export function TemplateDialog({
   const [bags, setBags] = useState(
     (template?.baggage_rule_ids ?? []).map(String)
   )
+  // a bag (baggage rule group) is picked whole: all of its SSR rules go on the template
+  const pickedGroups = bagGroups.filter((g) => g.ruleIds.some((id) => bags.includes(id))).map((g) => g.value)
+  const baggageOptions = bagGroups.filter((g) => g.is_active || pickedGroups.includes(g.value))
+  const pickGroups = (groupIds: string[]) =>
+    setBags(bagGroups.filter((g) => groupIds.includes(g.value)).flatMap((g) => g.ruleIds))
   const [seats, setSeats] = useState(
     (template?.seat_price_ids ?? []).map(String)
   )
@@ -149,8 +154,8 @@ export function TemplateDialog({
               <Label>Baggage rules</Label>
               <CheckList
                 options={baggageOptions}
-                value={bags}
-                onChange={setBags}
+                value={pickedGroups}
+                onChange={pickGroups}
               />
             </div>
             <div className='grid gap-1.5'>

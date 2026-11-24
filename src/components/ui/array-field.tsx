@@ -57,14 +57,19 @@ export function ArrayField<TFormData extends Record<string, unknown>>({
     name: parentPath as any ?? field.name as any,
   })
 
-  const shouldShowField = (itemField: FormFieldConfig<any>): boolean => {
+  const shouldShowField = (itemField: FormFieldConfig<any>, index: number): boolean => {
     if (!itemField.showWhen) return true
     const fieldName = itemField.showWhen.field
     const fieldPath = String(fieldName)
+    // a sibling field of the same row (e.g. ssr_code) is read from this row
+    const sibling = field.arrayItemFields?.some((f) => String(f.name) === fieldPath)
+    const rowPath = `${parentPath ?? String(field.name)}.${index}.${fieldPath}`
 
-    const dependentValue = fieldPath.includes('.')
-      ? form.watch(fieldPath as any)
-      : form.watch(fieldName as any)
+    const dependentValue = sibling
+      ? form.watch(rowPath as any)
+      : fieldPath.includes('.')
+        ? form.watch(fieldPath as any)
+        : form.watch(fieldName as any)
 
     if (itemField.showWhen.hasValue !== undefined) {
       return itemField.showWhen.hasValue ? !!dependentValue : !dependentValue
@@ -146,7 +151,7 @@ export function ArrayField<TFormData extends Record<string, unknown>>({
                       collapsed[index] ? "max-h-0 opacity-0" : "opacity-100"
                     }`}>
                   {field.arrayItemFields?.map((itemField) => {
-                    if (!shouldShowField(itemField)) return null
+                    if (!shouldShowField(itemField, index)) return null
 
                     const fieldPath = parentPath ? `${parentPath}.${index}.${String(itemField.name)}` as any :
                       `${String(field.name)}.${index}.${String(itemField.name)}` as any

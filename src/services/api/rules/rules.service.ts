@@ -260,7 +260,8 @@ const toFlightProducts = (f: ApiFlightProducts): FlightProducts => ({
   flight_number: f.flight_number,
   departure_at: f.scheduled_departure_at,
   route: `${f.origin.iata_code}-${f.destination.iata_code}`,
-  baggage_rules: f.online_checkin.baggage_rules ?? [],
+  // a bag's SSR rules share its name: listed once
+  baggage_rules: [...new Set(f.online_checkin.baggage_rules ?? [])],
   seat_prices: f.online_checkin.seat_prices_count ?? 0,
   seat_profile: f.online_checkin.seat_assignment_profile ?? null,
   online_checkin: {
@@ -289,6 +290,20 @@ export const flightProductService = {
       toFlightProducts
     )
   },
+
+  /** Shop items search: open flights of a route in a date range (origin / destination optional), all on one page */
+  search: async (q: { origin?: string; destination?: string; from: string; to: string }) =>
+    (
+      await client.get<ApiData<ApiFlightProducts[]>>('/admin/flights', {
+        from: q.from,
+        to: q.to,
+        origin_airport_id: q.origin || undefined,
+        destination_airport_id: q.destination || undefined,
+        open: 1,
+        with_products: 1,
+        per_page: 500,
+      })
+    ).data.map(toFlightProducts),
 
   /** What one flight uses now (ids for the edit dialog) — GET /admin/flights/{id} loads rules and seat prices */
   get: async (flightId: number) => {
@@ -377,14 +392,20 @@ export const baggageOverrideService = createMockResource<
   }),
 })
 
-/** Active baggage rules for select fields (/admin/baggage-rules) */
-export const baggageRuleOptions = async () => {
+/**
+ * Baggage rule groups for pickers (/admin/baggage-rule-groups): the bag's name, with the ids of its SSR rules —
+ * picking a bag attaches all of them
+ */
+export const baggageRuleGroupOptions = async () => {
   const res = await client.get<
-    ApiData<{ id: number; name: string; is_active: boolean }[]>
-  >('/admin/baggage-rules', { per_page: 500 })
-  return res.data
-    .filter((r) => r.is_active)
-    .map((r) => ({ label: r.name, value: String(r.id) }))
+    ApiData<{ id: number; name: string; is_active: boolean; rules?: { id: number; ssr_code: string | null }[] }[]>
+  >('/admin/baggage-rule-groups', { per_page: 500 })
+  return res.data.map((g) => ({
+    label: `${g.name} (${(g.rules ?? []).map((r) => r.ssr_code).join(', ')})`,
+    value: String(g.id),
+    is_active: g.is_active,
+    ruleIds: (g.rules ?? []).map((r) => String(r.id)),
+  }))
 }
 /** Active seat rules for select fields (/admin/seat-prices) */
 export const seatPriceOptions = async () =>

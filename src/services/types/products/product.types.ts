@@ -54,16 +54,39 @@ export type BaggageRuleType = 'piece' | 'weight' | 'combined'
 /** What the bag is for at the counter, from the SSR code: XBAG prepaid, EBAG excess, otherwise free */
 export type BaggageUsage = 'free' | 'prepaid' | 'excess'
 
-export interface BaggageRulePayload {
+/** SSR of a baggage rule row: free allowance, prepaid extra bag, excess */
+export type BaggageSsr = 'FBAG' | 'XBAG' | 'EBAG'
+
+/** One SSR row of a baggage rule group (saved as one baggage rule) */
+export interface BaggageSsrRow {
+  /** the baggage rule of this row; absent on a new row */
+  rule_id?: number
+  ssr_code: BaggageSsr | ''
+  pieces?: number
+  weight_kg?: number
+  price?: number
+}
+
+/** Baggage rules page: a bag's common details and its SSR rows (each SSR once) */
+export interface BaggageRuleGroup extends Record<string, unknown> {
+  id: number
   name: string
   type: BaggageRuleType
-  ssr_code: string
-  cabin_class: string
-  pieces: number
-  weight_kg: number
-  max_quantity: number
-  price: number
+  cabin_class: CabinClass | null
+  /** max pieces per passenger, null = unlimited */
+  max_quantity: number | null
+  currency: string
   is_active: boolean
+  rules: BaggageSsrRow[]
+}
+
+export interface BaggageRuleGroupPayload extends Record<string, unknown> {
+  name: string
+  type: BaggageRuleType
+  cabin_class: string
+  max_quantity: number
+  is_active: boolean
+  rules: BaggageSsrRow[]
 }
 
 export interface BaggageRule extends Record<string, unknown> {
@@ -137,6 +160,8 @@ export interface ServiceTemplate extends Record<string, unknown> {
   seat_assignment_profile_id: number | null
   seat_assignment_profile: string | null
   baggage_rule_ids: number[]
+  /** names of the bags (baggage rule groups) those rules belong to */
+  baggage_rule_groups?: string[]
   seat_price_ids: number[]
   checkin_opens_minutes: number
   checkin_closes_minutes: number
