@@ -51,6 +51,13 @@ export function Agencies() {
                 gridCols: 2,
               },
               {
+                name: 'import_ot',
+                label:
+                  'Import type: ОТ (Оюу Толгойн transport report-оор зорчигч import хийнэ)',
+                type: 'checkbox',
+                gridCols: 2,
+              },
+              {
                 name: 'owner_airline_id',
                 label: 'Belongs to airline',
                 type: 'select',

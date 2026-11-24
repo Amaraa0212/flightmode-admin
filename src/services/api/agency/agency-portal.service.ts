@@ -29,6 +29,8 @@ type ApiQuota = {
   cabins?: Record<string, number>
   schedule_changes?: AgencyScheduleChanges
   rights?: AgencyRights
+  /** the agency's passenger Excel layout */
+  import_format?: 'standard' | 'ot'
   usage?: {
     used: number
     held?: number
@@ -76,6 +78,8 @@ export interface AgencyQuota extends Record<string, unknown> {
   schedule_changes: AgencyScheduleChanges
   /** what the airline lets the agency do on this quota (Agents permission) */
   rights?: AgencyRights
+  /** Excel import reads Oyu Tolgoi's transport report (set on the agency by a system administrator) */
+  import_ot?: boolean
   /** charter: seats can be reserved (with the right) while the flight is not open for check-in */
   is_charter?: boolean
   seats_open?: boolean
@@ -166,6 +170,7 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
   is_waitlist: a.is_waitlist,
   schedule_changes: a.schedule_changes ?? NO_CHANGES,
   rights: a.rights ?? NO_RIGHTS,
+  import_ot: a.import_format === 'ot',
   is_charter: a.outbound_flight.service_type === 'charter',
   seats_open: a.outbound_flight.status === 'scheduled',
   flights: [
@@ -328,7 +333,11 @@ const eticketQuery = (options?: EticketOptions) =>
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
 
 /** infant of an adult: same nationality and passport issuer as the adult */
-const infantPayload = (i: AgencyBookingInfant, nationality: string, issuingCountry: string) => ({
+const infantPayload = (
+  i: AgencyBookingInfant,
+  nationality: string,
+  issuingCountry: string
+) => ({
   last_name: upper(i.last_name),
   first_name: upper(i.first_name),
   gender: i.gender,
@@ -336,7 +345,9 @@ const infantPayload = (i: AgencyBookingInfant, nationality: string, issuingCount
   nationality: upper(nationality) || null,
   document_type: i.document_number.trim() ? 'passport' : null,
   document_number: i.document_number.trim() ? upper(i.document_number) : null,
-  document_issuing_country: i.document_number.trim() ? upper(issuingCountry) || null : null,
+  document_issuing_country: i.document_number.trim()
+    ? upper(issuingCountry) || null
+    : null,
   document_expires_at: orNull(i.document_expires_at),
 })
 
@@ -348,16 +359,16 @@ const passengerBody = (p: AgencyBookingPassenger) => ({
   date_of_birth: orNull(p.date_of_birth),
   nationality: upper(p.nationality) || null,
   document_type: p.document_number.trim() ? 'passport' : null,
-  document_number: p.document_number.trim()
-    ? upper(p.document_number)
-    : null,
+  document_number: p.document_number.trim() ? upper(p.document_number) : null,
   document_issuing_country: upper(p.document_issuing_country) || null,
   document_expires_at: orNull(p.document_expires_at),
   phone: orNull(p.phone),
   email: orNull(p.email),
   cabin_class: p.cabin_class,
   ssr_codes: p.ssr_codes?.length ? p.ssr_codes : undefined,
-  infant: p.infant ? infantPayload(p.infant, p.nationality, p.document_issuing_country) : undefined,
+  infant: p.infant
+    ? infantPayload(p.infant, p.nationality, p.document_issuing_country)
+    : undefined,
 })
 
 export const agencyPortalService = {
@@ -372,12 +383,19 @@ export const agencyPortalService = {
     const form = new FormData()
     form.append('file', file)
     form.append('replace_existing', replace ? '1' : '0')
-    if (returnQuotaId) form.append('return_allocation_id', String(returnQuotaId))
+    if (returnQuotaId)
+      form.append('return_allocation_id', String(returnQuotaId))
     return action(
-      client.upload<ApiData<{ created: number; bookings: string[] }>>(
-        `/agency/allocations/${quotaId}/import`,
-        form
-      ),
+      client.upload<
+        ApiData<{
+          created: number
+          bookings: string[]
+          /** OT report: workers already on the quota, cancelled (sync), waitlisted */
+          kept?: number
+          cancelled?: number
+          waitlisted?: number
+        }>
+      >(`/agency/allocations/${quotaId}/import`, form),
       (r) => r
     )
   },
@@ -481,11 +499,19 @@ export const agencyPortalService = {
   },
 
   /** More passengers in a booking (same PNR, flights and quota; open jaw: the linked booking too) */
-  addToBooking: async (bookingId: number, passengers: AgencyBookingPassenger[]) => {
+  addToBooking: async (
+    bookingId: number,
+    passengers: AgencyBookingPassenger[]
+  ) => {
     const res = await client.post<{ message: string }>(
       `/agency/bookings/${bookingId}/passengers`,
       // the cabin and fares of the passengers already in the booking
-      { passengers: passengers.map((p) => ({ ...passengerBody(p), cabin_class: undefined })) }
+      {
+        passengers: passengers.map((p) => ({
+          ...passengerBody(p),
+          cabin_class: undefined,
+        })),
+      }
     )
     return ok(null, res.message)
   },
@@ -571,20 +597,18 @@ export const agencyPortalService = {
           }[]
         >
       >(`/agency/allocations/${quotaId}/return-options`)
-    ).data.map(
-      (a): AgencyReturnOption => ({
-        id: a.id,
-        airline: a.airline?.name ?? '',
-        interline: airlineId !== undefined && a.airline_id !== airlineId,
-        // a same-airline return priced by its own fares is sold on its own (not offered here)
-        needs_fare:
-          (airlineId === undefined || a.airline_id === airlineId) &&
-          (a.uses_fare_quotas || a.uses_published_fares),
-        flight_number: a.outbound_flight.flight_number,
-        route: route(a.outbound_flight),
-        departure_at: a.outbound_flight.scheduled_departure_at,
-      })
-    ),
+    ).data.map((a): AgencyReturnOption => ({
+      id: a.id,
+      airline: a.airline?.name ?? '',
+      interline: airlineId !== undefined && a.airline_id !== airlineId,
+      // a same-airline return priced by its own fares is sold on its own (not offered here)
+      needs_fare:
+        (airlineId === undefined || a.airline_id === airlineId) &&
+        (a.uses_fare_quotas || a.uses_published_fares),
+      flight_number: a.outbound_flight.flight_number,
+      route: route(a.outbound_flight),
+      departure_at: a.outbound_flight.scheduled_departure_at,
+    })),
 
   /** One passenger with every field, to edit */
   passenger: async (id: number) =>
@@ -613,7 +637,9 @@ export const agencyPortalService = {
         phone: orNull(p.phone),
         email: orNull(p.email),
         ...(p.ssr_codes ? { ssr_codes: p.ssr_codes } : {}),
-        infant: p.infant ? infantPayload(p.infant, p.nationality, p.document_issuing_country) : null,
+        infant: p.infant
+          ? infantPayload(p.infant, p.nationality, p.document_issuing_country)
+          : null,
       }
     )
     return ok(null, res.message)
