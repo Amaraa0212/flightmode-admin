@@ -42,6 +42,14 @@ export const latinName = (required: string) =>
     .trim()
     .min(1, required)
     .regex(/^[A-Za-z][A-Za-z '-]*$/, 'Латин үсгээр бичнэ үү (кирилл үсэг, тэмдэгт болохгүй)')
+/** Country code of the passport issuer / nationality (MN, MNG) */
+export const countryCode = (required: string) =>
+  z
+    .string()
+    .trim()
+    .min(2, required)
+    .max(3)
+    .regex(/^[A-Za-z]+$/, 'Латин үсгээр (MN)')
 export const passportNumber = z
   .string()
   .trim()
@@ -62,13 +70,9 @@ const passenger = z.object({
   first_name: latinName('Нэр оруулна уу'),
   gender: z.enum(['M', 'F']),
   date_of_birth: z.string().min(1, 'Төрсөн огноо оруулна уу'),
-  nationality: z
-    .string()
-    .trim()
-    .min(2, 'Иргэншил (MN)')
-    .max(3)
-    .regex(/^[A-Za-z]+$/, 'Латин үсгээр (MN)'),
+  nationality: countryCode('Иргэншил (MN)'),
   document_number: passportNumber,
+  document_issuing_country: countryCode('Олгосон улс (MN)'),
   document_expires_at: z.string().min(1, 'Дуусах огноо оруулна уу'),
   phone: z.string(),
   email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
@@ -92,6 +96,7 @@ export const blank = (cabin: string): PassengerForm => ({
   date_of_birth: '',
   nationality: 'MN',
   document_number: '',
+  document_issuing_country: 'MN',
   document_expires_at: '',
   phone: '',
   email: '',
@@ -335,6 +340,7 @@ export function PassengerCard({
       set('gender', found.gender)
       set('date_of_birth', found.date_of_birth)
       set('nationality', found.nationality)
+      set('document_issuing_country', found.document_issuing_country)
       set('document_expires_at', found.document_expires_at)
       set('phone', found.phone)
       set('email', found.email)
@@ -359,25 +365,35 @@ export function PassengerCard({
       </div>
 
       {/* passport first: a returning passenger is filled in from it */}
-      <Field label='Паспортын дугаар *' error={error('document_number')} className='mb-4'>
-        <div className='flex gap-2'>
+      <div className='mb-4 grid gap-4 sm:grid-cols-[1fr_140px]'>
+        <Field label='Паспортын дугаар *' error={error('document_number')}>
+          <div className='flex gap-2'>
+            <Input
+              className='h-10 font-mono uppercase'
+              placeholder='E1234567'
+              {...form.register(name('document_number'))}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  void lookup()
+                }
+              }}
+            />
+            <Button type='button' variant='secondary' className='h-10 gap-1.5' disabled={searching} onClick={lookup}>
+              {searching ? <Loader2 className='size-4 animate-spin' /> : <Search className='size-4' />}
+              Хайх
+            </Button>
+          </div>
+        </Field>
+        <Field label='Олгосон улс *' error={error('document_issuing_country')}>
           <Input
-            className='h-10 font-mono uppercase'
-            placeholder='E1234567'
-            {...form.register(name('document_number'))}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                void lookup()
-              }
-            }}
+            className='h-10 uppercase'
+            maxLength={3}
+            placeholder='MN'
+            {...form.register(name('document_issuing_country'))}
           />
-          <Button type='button' variant='secondary' className='h-10 gap-1.5' disabled={searching} onClick={lookup}>
-            {searching ? <Loader2 className='size-4 animate-spin' /> : <Search className='size-4' />}
-            Хайх
-          </Button>
-        </div>
-      </Field>
+        </Field>
+      </div>
 
       <div className='grid gap-4 sm:grid-cols-2'>
         <Field label='Овог *' error={error('last_name')}>

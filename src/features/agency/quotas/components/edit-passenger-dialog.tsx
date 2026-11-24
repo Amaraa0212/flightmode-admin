@@ -27,6 +27,7 @@ const schema = z.object({
   date_of_birth: z.string(),
   nationality: z.string().trim().max(3).regex(/^[A-Za-z]*$/, 'Латин үсгээр (MN)'),
   document_number: z.string().trim().regex(/^[A-Za-z0-9]*$/, 'Зөвхөн латин үсэг, тоо'),
+  document_issuing_country: z.string().trim().max(3).regex(/^[A-Za-z]*$/, 'Латин үсгээр (MN)'),
   document_expires_at: z.string(),
   phone: z.string(),
   email: z.union([z.literal(''), z.email('И-мэйл буруу')]),
@@ -75,6 +76,7 @@ export function EditPassengerDialog({
       date_of_birth: data.date_of_birth ?? '',
       nationality: data.nationality ?? '',
       document_number: data.document_number ?? '',
+      document_issuing_country: data.document_issuing_country ?? '',
       document_expires_at: data.document_expires_at ?? '',
       phone: data.phone ?? '',
       email: data.email ?? '',
@@ -150,9 +152,12 @@ export function EditPassengerDialog({
               <Input className='h-10 uppercase' maxLength={3} {...form.register('nationality')} />
             </Field>
           </div>
-          <div className='grid gap-4 sm:grid-cols-2'>
+          <div className='grid gap-4 sm:grid-cols-3'>
             <Field label='Паспортын дугаар' error={errors.document_number?.message}>
               <Input className='h-10 font-mono uppercase' {...form.register('document_number')} />
+            </Field>
+            <Field label='Олгосон улс' error={errors.document_issuing_country?.message}>
+              <Input className='h-10 uppercase' maxLength={3} placeholder='MN' {...form.register('document_issuing_country')} />
             </Field>
             <Field label='Паспорт дуусах'>
               <Input className='h-10' type='date' {...form.register('document_expires_at')} />
