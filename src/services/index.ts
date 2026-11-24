@@ -91,7 +91,7 @@ export {
   bagTagService,
   type BagTagAirline,
   baggageOverrideService,
-  baggageRuleOptions,
+  baggageRuleGroupOptions,
   seatPriceOptions,
 } from './api/rules/rules.service'
 
@@ -112,7 +112,7 @@ export {
 } from './api/sales/booking.service'
 
 // ─── Products ───
-export { fareService, baggageRuleService } from './api/products/product.service'
+export { fareService, baggageRuleGroupService } from './api/products/product.service'
 export {
   fareFamilyService,
   fareCombinationService,

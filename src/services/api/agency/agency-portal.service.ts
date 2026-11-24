@@ -239,6 +239,8 @@ export interface AgencyBookingPassenger {
   date_of_birth: string
   nationality: string
   document_number: string
+  /** country that issued the passport (APIS, PNL) */
+  document_issuing_country: string
   document_expires_at: string
   phone: string
   email: string
@@ -285,6 +287,7 @@ export interface AgencyPassengerDetail {
   date_of_birth: string | null
   nationality: string | null
   document_number: string | null
+  document_issuing_country: string | null
   document_expires_at: string | null
   phone: string | null
   email: string | null
@@ -324,8 +327,8 @@ const eticketQuery = (options?: EticketOptions) =>
     : {}
 const orNull = (v: string) => (v.trim() ? v.trim() : null)
 
-/** infant of an adult: same nationality as the adult */
-const infantPayload = (i: AgencyBookingInfant, nationality: string) => ({
+/** infant of an adult: same nationality and passport issuer as the adult */
+const infantPayload = (i: AgencyBookingInfant, nationality: string, issuingCountry: string) => ({
   last_name: upper(i.last_name),
   first_name: upper(i.first_name),
   gender: i.gender,
@@ -333,6 +336,7 @@ const infantPayload = (i: AgencyBookingInfant, nationality: string) => ({
   nationality: upper(nationality) || null,
   document_type: i.document_number.trim() ? 'passport' : null,
   document_number: i.document_number.trim() ? upper(i.document_number) : null,
+  document_issuing_country: i.document_number.trim() ? upper(issuingCountry) || null : null,
   document_expires_at: orNull(i.document_expires_at),
 })
 
@@ -347,12 +351,13 @@ const passengerBody = (p: AgencyBookingPassenger) => ({
   document_number: p.document_number.trim()
     ? upper(p.document_number)
     : null,
+  document_issuing_country: upper(p.document_issuing_country) || null,
   document_expires_at: orNull(p.document_expires_at),
   phone: orNull(p.phone),
   email: orNull(p.email),
   cabin_class: p.cabin_class,
   ssr_codes: p.ssr_codes?.length ? p.ssr_codes : undefined,
-  infant: p.infant ? infantPayload(p.infant, p.nationality) : undefined,
+  infant: p.infant ? infantPayload(p.infant, p.nationality, p.document_issuing_country) : undefined,
 })
 
 export const agencyPortalService = {
@@ -511,6 +516,7 @@ export const agencyPortalService = {
         date_of_birth: string | null
         nationality: string | null
         document_number: string | null
+        document_issuing_country: string | null
         document_expires_at: string | null
         phone: string | null
         email: string | null
@@ -602,11 +608,12 @@ export const agencyPortalService = {
         document_number: p.document_number.trim()
           ? upper(p.document_number)
           : null,
+        document_issuing_country: upper(p.document_issuing_country) || null,
         document_expires_at: orNull(p.document_expires_at),
         phone: orNull(p.phone),
         email: orNull(p.email),
         ...(p.ssr_codes ? { ssr_codes: p.ssr_codes } : {}),
-        infant: p.infant ? infantPayload(p.infant, p.nationality) : null,
+        infant: p.infant ? infantPayload(p.infant, p.nationality, p.document_issuing_country) : null,
       }
     )
     return ok(null, res.message)

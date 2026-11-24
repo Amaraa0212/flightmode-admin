@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  baggageRuleOptions,
+  baggageRuleGroupOptions,
   flightProductService,
   seatPriceOptions,
   seatProfileService,
@@ -83,9 +83,9 @@ export function ProductsDialog({
     queryFn: async () =>
       (await flightProductService.get(flight.flight_id)).body,
   })
-  const { data: rules = [] } = useQuery({
-    queryKey: ['baggage-rule-options'],
-    queryFn: baggageRuleOptions,
+  const { data: bagGroups = [] } = useQuery({
+    queryKey: ['options', 'baggage-rule-groups'],
+    queryFn: baggageRuleGroupOptions,
   })
   const { data: prices = [] } = useQuery({
     queryKey: ['seat-price-options'],
@@ -104,6 +104,15 @@ export function ProductsDialog({
   const [profile, setProfile] = useState<string | null>(null)
 
   const chosenRules = ruleIds ?? current?.baggage_rule_ids ?? []
+  // a bag (baggage rule group) is picked whole: all of its SSR rules go on the flight
+  const chosenGroups = bagGroups
+    .filter((g) => g.ruleIds.some((id) => chosenRules.includes(Number(id))))
+    .map((g) => Number(g.value))
+  const groupOptions = bagGroups.filter((g) => g.is_active || chosenGroups.includes(Number(g.value)))
+  const pickGroups = (groupIds: number[]) =>
+    setRuleIds(
+      bagGroups.filter((g) => groupIds.includes(Number(g.value))).flatMap((g) => g.ruleIds.map(Number))
+    )
   const chosenPrices = priceIds ?? current?.seat_price_ids ?? []
   const chosenProfile =
     profile ??
@@ -143,9 +152,9 @@ export function ProductsDialog({
           <div className='grid gap-4'>
             <CheckList
               title='Baggage'
-              options={rules}
-              chosen={chosenRules}
-              onChange={setRuleIds}
+              options={groupOptions}
+              chosen={chosenGroups}
+              onChange={pickGroups}
             />
             <CheckList
               title='Paid seats'

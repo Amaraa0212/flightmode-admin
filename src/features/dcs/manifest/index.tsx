@@ -62,11 +62,12 @@ export function Manifest() {
       male: t.male + z.male,
       female: t.female + z.female,
       children: t.children + z.children,
+      infants: t.infants + z.infants,
       total: t.total + z.total,
       bags: t.bags + z.bags,
       kg: t.kg + z.kg,
     }),
-    { male: 0, female: 0, children: 0, total: 0, bags: 0, kg: 0 }
+    { male: 0, female: 0, children: 0, infants: 0, total: 0, bags: 0, kg: 0 }
   )
 
   return (
@@ -153,6 +154,7 @@ export function Manifest() {
                     <TableHead>M</TableHead>
                     <TableHead>F</TableHead>
                     <TableHead>CHD</TableHead>
+                    <TableHead>INF</TableHead>
                     <TableHead>PAX</TableHead>
                     <TableHead>Bags</TableHead>
                     <TableHead>KG</TableHead>
@@ -167,6 +169,7 @@ export function Manifest() {
                       <TableCell className='font-mono'>{z.male}</TableCell>
                       <TableCell className='font-mono'>{z.female}</TableCell>
                       <TableCell className='font-mono'>{z.children}</TableCell>
+                      <TableCell className='font-mono'>{z.infants}</TableCell>
                       <TableCell className='font-mono'>{z.total}</TableCell>
                       <TableCell className='font-mono'>{z.bags}</TableCell>
                       <TableCell className='font-mono'>{z.kg}</TableCell>
@@ -183,6 +186,9 @@ export function Manifest() {
                       </TableCell>
                       <TableCell className='font-mono'>
                         {totals.children}
+                      </TableCell>
+                      <TableCell className='font-mono'>
+                        {totals.infants}
                       </TableCell>
                       <TableCell className='font-mono'>
                         {totals.total}
