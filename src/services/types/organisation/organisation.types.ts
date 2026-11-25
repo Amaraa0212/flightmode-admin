@@ -49,6 +49,8 @@ export interface Agency extends Record<string, unknown> {
   api_enabled: boolean
   /** its allocations are pushed to the Chinggis agent API */
   chinggis_sync: boolean
+  /** passenger Excel import layout: FlightMode template or Oyu Tolgoi's transport report */
+  import_format?: 'standard' | 'ot'
   is_active: boolean
   airlines: {
     id: number
@@ -80,6 +82,8 @@ export interface AgencyPayload {
   is_active: boolean
   /** system administrators: charter round trips may return on another airline */
   open_jaw?: boolean
+  /** system administrators: the passenger import reads Oyu Tolgoi's transport report (import_format = ot) */
+  import_ot?: boolean
   /** system administrators creating an agency: the airline it belongs to, '' shared without contracts, 'all' shared with a contract with every airline */
   owner_airline_id?: string
 }

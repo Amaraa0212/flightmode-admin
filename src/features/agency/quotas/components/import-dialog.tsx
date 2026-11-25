@@ -30,8 +30,38 @@ const COLUMNS = [
 ]
 // two passengers of one booking (same booking_group → one PNR)
 const SAMPLE = [
-  ['BAT', 'DORJ', 'M', '1990-05-01', 'MN', 'E1234567', 'MN', '2030-01-01', '', '99112233', '123456', 'Y', '', 'A'],
-  ['SARAA', 'DORJ', 'F', '1992-03-10', 'MN', 'E7654321', 'MN', '2030-01-01', '', '99112233', '', 'Y', '', 'A'],
+  [
+    'BAT',
+    'DORJ',
+    'M',
+    '1990-05-01',
+    'MN',
+    'E1234567',
+    'MN',
+    '2030-01-01',
+    '',
+    '99112233',
+    '123456',
+    'Y',
+    '',
+    'A',
+  ],
+  [
+    'SARAA',
+    'DORJ',
+    'F',
+    '1992-03-10',
+    'MN',
+    'E7654321',
+    'MN',
+    '2030-01-01',
+    '',
+    '99112233',
+    '',
+    'Y',
+    '',
+    'A',
+  ],
 ]
 
 function downloadTemplate() {
@@ -44,25 +74,44 @@ function downloadTemplate() {
   URL.revokeObjectURL(url)
 }
 
+type NoRoom = { free: number; new: number; in_file: number; flight: string }
+
 /** Agency portal: passenger list of a quota from Excel / CSV (Agents permission "Excel import") */
-export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; onClose: () => void }) {
+export function ImportDialog({
+  quota,
+  onClose,
+}: {
+  quota: AgencyQuota | null
+  onClose: () => void
+}) {
   const queryClient = useQueryClient()
   const [file, setFile] = useState<File | null>(null)
   const [replace, setReplace] = useState(false)
   const [errors, setErrors] = useState<string[]>([])
+  // the file needs more seats than the quota has left (OT report)
+  const [noRoom, setNoRoom] = useState<NoRoom | null>(null)
   // RT: the return quota every name also goes on
   const [returnQuota, setReturnQuota] = useState<number | null>(null)
+  // the agency uploads Oyu Tolgoi's transport report as it comes
+  const ot = !!quota?.import_ot
 
   const close = () => {
     setFile(null)
     setReplace(false)
     setReturnQuota(null)
     setErrors([])
+    setNoRoom(null)
     onClose()
   }
 
   const upload = useMutation({
-    mutationFn: () => agencyPortalService.importPassengers(quota!.id, file!, replace, returnQuota),
+    mutationFn: () =>
+      agencyPortalService.importPassengers(
+        quota!.id,
+        file!,
+        replace,
+        returnQuota
+      ),
     onSuccess: (res) => {
       toast.success(res.message)
       queryClient.invalidateQueries({ queryKey: ['agency-quotas'] })
@@ -71,8 +120,16 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
     },
     onError: (error: Error) => {
       // every wrong row is listed; nothing was saved
-      const rows = error instanceof ApiError ? (error.context?.errors as string[] | undefined) : undefined
+      const rows =
+        error instanceof ApiError
+          ? (error.context?.errors as string[] | undefined)
+          : undefined
       setErrors(rows ?? [])
+      setNoRoom(
+        error instanceof ApiError && error.code === 'import_no_room'
+          ? (error.context as unknown as NoRoom)
+          : null
+      )
       toast.error(error.message)
     },
   })
@@ -81,8 +138,12 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
     <BaseDialog
       open={!!quota}
       onOpenChange={(open) => !open && close()}
-      title='Excel import'
-      description={quota ? `${quota.flight_number} ${quota.route} · ${quota.remaining} суудал үлдсэн` : undefined}
+      title={ot ? 'Excel import — ОТ' : 'Excel import'}
+      description={
+        quota
+          ? `${quota.flight_number} ${quota.route} · ${quota.remaining} суудал үлдсэн`
+          : undefined
+      }
       maxWidth='lg'
       submitButton={{
         text: 'Импортлох',
@@ -92,18 +153,47 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
       }}
     >
       <div className='grid gap-4'>
-        <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm'>
-          <span className='text-muted-foreground'>
-            Мөр бүр нэг зорчигч. <b className='font-mono'>booking_group</b> ижил мөрүүд нэг захиалга (нэг PNR) болно, хоосон
-            бол тусдаа PNR. <b className='font-mono'>person_code</b> — SAP дугаар (online check-in).
-          </span>
-          <Button type='button' variant='outline' size='sm' className='h-8 gap-2' onClick={downloadTemplate}>
-            <Download className='size-4' />
-            Загвар татах
-          </Button>
-        </div>
+        {ot ? (
+          <div className='rounded-lg border p-3 text-sm'>
+            <p className='font-medium'>
+              Оюу Толгойн transport report (OTUB …xlsx)
+            </p>
+            <p className='text-muted-foreground mt-1'>
+              OT-ийн илгээсэн файлыг өөрчлөхгүйгээр оруулна.{' '}
+              <b>Passenger Name</b> (Mr./Mrs. Нэр Овог), <b>Profile SAP</b>{' '}
+              (online check-in-ий SAP дугаар), <b>Profile Personal Mobile</b>{' '}
+              баганыг уншина. Ажилтан бүр тусдаа PNR авна. Квотод аль хэдийн
+              байгаа ажилтныг (ижил SAP, SAP-гүй бол ижил нэр) дахин нэмэхгүй.
+            </p>
+          </div>
+        ) : (
+          <div className='flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3 text-sm'>
+            <span className='text-muted-foreground'>
+              Мөр бүр нэг зорчигч. <b className='font-mono'>booking_group</b>{' '}
+              ижил мөрүүд нэг захиалга (нэг PNR) болно, хоосон бол тусдаа PNR.{' '}
+              <b className='font-mono'>person_code</b> — SAP дугаар (online
+              check-in).
+            </span>
+            <Button
+              type='button'
+              variant='outline'
+              size='sm'
+              className='h-8 gap-2'
+              onClick={downloadTemplate}
+            >
+              <Download className='size-4' />
+              Загвар татах
+            </Button>
+          </div>
+        )}
 
-        {quota && <ReturnPicker quota={quota} value={returnQuota} onChange={setReturnQuota} />}
+        {quota && (
+          <ReturnPicker
+            quota={quota}
+            value={returnQuota}
+            onChange={setReturnQuota}
+          />
+        )}
 
         <div className='grid gap-1.5'>
           <Label htmlFor='import-file'>Файл (.xlsx, .xls, .csv)</Label>
@@ -114,6 +204,7 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
             onChange={(e) => {
               setFile(e.target.files?.[0] ?? null)
               setErrors([])
+              setNoRoom(null)
             }}
           />
           {file && (
@@ -125,18 +216,54 @@ export function ImportDialog({ quota, onClose }: { quota: AgencyQuota | null; on
         </div>
 
         <label className='flex items-start gap-2 text-sm'>
-          <Checkbox className='mt-0.5' checked={replace} onCheckedChange={(v) => setReplace(v === true)} />
-          <span>
-            Одоо байгаа зорчигчдыг солих
-            <span className='text-muted-foreground block text-xs'>
-              Энэ квотын бүх зорчигчийг цуцлаад файлынхаар орлуулна.
+          <Checkbox
+            className='mt-0.5'
+            checked={replace}
+            onCheckedChange={(v) => setReplace(v === true)}
+          />
+          {ot ? (
+            <span>
+              Файлтай тааруулах (sync)
+              <span className='text-muted-foreground block text-xs'>
+                Файлд байхгүй болсон ажилтныг цуцална. Файлд байгаа ажилтны
+                захиалга, суудал, check-in хэвээр үлдэнэ.
+              </span>
             </span>
-          </span>
+          ) : (
+            <span>
+              Одоо байгаа зорчигчдыг солих
+              <span className='text-muted-foreground block text-xs'>
+                Энэ квотын бүх зорчигчийг цуцлаад файлынхаар орлуулна.
+              </span>
+            </span>
+          )}
         </label>
+
+        {noRoom && (
+          <div className='rounded-lg border border-rose-400/40 bg-rose-500/5 p-3 text-sm text-rose-700 dark:text-rose-300'>
+            <p className='font-semibold'>
+              Суудал хүрэлцэхгүй — юу ч хадгалагдаагүй
+            </p>
+            <p className='mt-1'>
+              {noRoom.flight} нислэгт энэ квотоор <b>{noRoom.free}</b> суудал л
+              авах боломжтой, файлаас <b>{noRoom.new}</b> шинэ зорчигч нэмэгдэх
+              гэж байна
+              {noRoom.in_file > noRoom.new &&
+                ` (${noRoom.in_file - noRoom.new} нь квотод аль хэдийн бий)`}
+              . Дутуу: <b>{noRoom.new - noRoom.free}</b>.
+            </p>
+            <p className='mt-1 text-xs'>
+              Нислэгийн бусад суудал зарагдсан эсвэл өөр agency-ийн fixed квотод
+              байна. Airline-аас квотоо нэмүүлэх эсвэл waitlist зөвшөөрүүлнэ үү.
+            </p>
+          </div>
+        )}
 
         {errors.length > 0 && (
           <div className='max-h-48 overflow-y-auto rounded-lg border border-rose-400/40 bg-rose-500/5 p-3 text-xs text-rose-700 dark:text-rose-300'>
-            <p className='mb-1 font-semibold'>Алдаатай мөрүүд — юу ч хадгалагдаагүй:</p>
+            <p className='mb-1 font-semibold'>
+              Алдаатай мөрүүд — юу ч хадгалагдаагүй:
+            </p>
             <ul className='list-disc ps-4'>
               {errors.map((e) => (
                 <li key={e}>{e}</li>

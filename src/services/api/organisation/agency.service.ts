@@ -15,6 +15,13 @@ import {
 /** /admin/agencies — airline users see the agencies contracted with their airline */
 const toAgency = (a: Agency): Agency => ({ ...a, airlines: a.airlines ?? [] })
 
+/** The OT checkbox (system administrators only — absent otherwise) is sent as import_format */
+function withImportFormat({ import_ot, ...payload }: AgencyPayload) {
+  return import_ot === undefined
+    ? payload
+    : { ...payload, import_format: import_ot ? 'ot' : 'standard' }
+}
+
 export const agencyService = {
   list: (params: AgencyListParams = {}) =>
     getPage<Agency, Agency>('/admin/agencies', pageQuery(params), toAgency),
@@ -34,7 +41,7 @@ export const agencyService = {
   create: (payload: AgencyPayload) =>
     action(
       client.post<ApiData<Agency>>('/admin/agencies', {
-        ...payload,
+        ...withImportFormat(payload),
         code: payload.code.toUpperCase(),
         // 'all': shared, with a contract with every airline there is now
         owner_airline_id:
@@ -49,7 +56,7 @@ export const agencyService = {
   update: (id: number, payload: AgencyPayload, ownerChanged = false) =>
     action(
       client.put<ApiData<Agency>>(`/admin/agencies/${id}`, {
-        ...payload,
+        ...withImportFormat(payload),
         ...(ownerChanged
           ? {
               owner_airline_id:
