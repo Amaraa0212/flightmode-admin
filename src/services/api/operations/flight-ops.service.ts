@@ -1,3 +1,11 @@
+import { api } from '@/config/api'
+import { useAuthStore } from '@/stores/auth-store'
+import { airportTime } from '@/lib/airport-zones'
+import {
+  toSeatMap,
+  type ApiManifest as PrintManifest,
+  type ApiSeatMap,
+} from '@/lib/manifest/types'
 import type {
   Flight,
   FlightAction,
@@ -5,15 +13,7 @@ import type {
 } from '../../types/operations/flight.types'
 import type { FlightPassengerRow } from '../../types/sales/booking.types'
 import type { ListParams } from '../../types/shared/common.types'
-import { api } from '@/config/api'
-import { useAuthStore } from '@/stores/auth-store'
 import { client, ok, period, saveBlob, type ApiData } from '../shared/client'
-import { airportTime } from '@/lib/airport-zones'
-import {
-  toSeatMap,
-  type ApiManifest as PrintManifest,
-  type ApiSeatMap,
-} from '@/lib/manifest/types'
 
 /*
 | Flight manager / flight load: /admin/flight-board (one day), status / gate / ETD / gate agents / online check-in,
@@ -75,7 +75,10 @@ function toBoardRow(f: ApiBoardFlight): FlightBoardRow {
 const today = () => new Date().toISOString().slice(0, 10)
 
 async function board(date?: string) {
-  const res = await client.get<ApiData<ApiBoardFlight[]>>('/admin/flight-board', { date: date || today() })
+  const res = await client.get<ApiData<ApiBoardFlight[]>>(
+    '/admin/flight-board',
+    { date: date || today() }
+  )
   return res.data.map(toBoardRow)
 }
 
@@ -97,12 +100,23 @@ export type CalendarFlight = {
 export const flightOpsService = {
   /** Flight load month calendar, month = YYYY-MM */
   calendar: async (month: string) =>
-    ok((await client.get<ApiData<CalendarFlight[]>>('/admin/flight-board/calendar', { month })).data),
+    ok(
+      (
+        await client.get<ApiData<CalendarFlight[]>>(
+          '/admin/flight-board/calendar',
+          { month }
+        )
+      ).data
+    ),
 
   /** Flight manager / station board of one day (search / status / paging here) */
   list: async (params: ListParams & { date?: string } = {}) => {
-    const rows = await board(period(params).from ?? (params.date as string | undefined))
-    const q = String(params.query ?? '').trim().toLowerCase()
+    const rows = await board(
+      period(params).from ?? (params.date as string | undefined)
+    )
+    const q = String(params.query ?? '')
+      .trim()
+      .toLowerCase()
     const status = params.status as string | string[] | undefined
     const statuses = status ? (Array.isArray(status) ? status : [status]) : []
     const types = ([] as string[]).concat(
@@ -111,7 +125,12 @@ export const flightOpsService = {
     const found = rows.filter(
       (f) =>
         (!q ||
-          [f.flight_number, f.origin.iata_code, f.destination.iata_code, f.gate ?? '']
+          [
+            f.flight_number,
+            f.origin.iata_code,
+            f.destination.iata_code,
+            f.gate ?? '',
+          ]
             .join(' ')
             .toLowerCase()
             .includes(q)) &&
@@ -120,18 +139,38 @@ export const flightOpsService = {
     )
     const size = params.pageSize ?? 20
     const page = params.current ?? 1
-    return ok({ total: found.length, items: found.slice((page - 1) * size, page * size) })
+    return ok({
+      total: found.length,
+      items: found.slice((page - 1) * size, page * size),
+    })
   },
 
   getById: async (id: number) => {
-    const flight = (await client.get<ApiData<ApiBoardFlight>>(`/admin/flights/${id}`)).data
+    const flight = (
+      await client.get<ApiData<ApiBoardFlight>>(`/admin/flights/${id}`)
+    ).data
     // the board of that day carries gate agents and passenger counts
-    const row = (await board(flight.scheduled_departure_at.slice(0, 10))).find((f) => f.id === id)
+    const row = (await board(flight.scheduled_departure_at.slice(0, 10))).find(
+      (f) => f.id === id
+    )
     return ok(row ?? toBoardRow(flight))
   },
 
-  update: async (id: number, patch: Partial<FlightOperations>) => {
-    if (patch.gate !== undefined) await client.put(`/admin/flights/${id}/gate`, { gate: patch.gate || null })
+  update: async (
+    id: number,
+    patch: Partial<FlightOperations> & {
+      /** online check-in switch and window (minutes before departure; opens null = open until it closes) */
+      online_checkin?: {
+        enabled: boolean
+        opens_minutes: number | null
+        closes_minutes: number | null
+      }
+    }
+  ) => {
+    if (patch.gate !== undefined)
+      await client.put(`/admin/flights/${id}/gate`, {
+        gate: patch.gate || null,
+      })
     if (patch.estimated_departure_at !== undefined)
       await client.put(`/admin/flights/${id}/estimated-departure`, {
         estimated_departure_at: patch.estimated_departure_at || null,
@@ -140,8 +179,16 @@ export const flightOpsService = {
       await client.put(`/admin/flights/${id}/online-checkin`, {
         online_checkin_enabled: patch.online_checkin_enabled,
       })
+    if (patch.online_checkin)
+      await client.put(`/admin/flights/${id}/online-checkin`, {
+        online_checkin_enabled: patch.online_checkin.enabled,
+        online_checkin_opens_minutes: patch.online_checkin.opens_minutes,
+        online_checkin_closes_minutes: patch.online_checkin.closes_minutes,
+      })
     if (patch.gate_agents)
-      await client.put(`/admin/flights/${id}/gate-agents`, { user_ids: patch.gate_agents.map((a) => a.id) })
+      await client.put(`/admin/flights/${id}/gate-agents`, {
+        user_ids: patch.gate_agents.map((a) => a.id),
+      })
     const row = await flightOpsService.getById(id)
     return ok(row.body, 'Flight updated')
   },
@@ -149,9 +196,17 @@ export const flightOpsService = {
   action: async (
     id: number,
     action: FlightAction,
-    data: { reason?: string; off_block_at?: string; takeoff_at?: string; estimated_arrival_at?: string } = {}
+    data: {
+      reason?: string
+      off_block_at?: string
+      takeoff_at?: string
+      estimated_arrival_at?: string
+    } = {}
   ) => {
-    const res = await client.post<{ message: string }>(`/admin/flights/${id}/status`, { action, ...data })
+    const res = await client.post<{ message: string }>(
+      `/admin/flights/${id}/status`,
+      { action, ...data }
+    )
     const row = await flightOpsService.getById(id)
     return ok(row.body, res.message)
   },
@@ -228,21 +283,31 @@ type ApiManifest = {
 
 /** PNL reconciliation (PassengerReconciliation): who was on the name list and who flew */
 export type ReconciliationResult =
-  | 'flown'
-  | 'no_show'
-  | 'offloaded'
-  | 'not_boarded'
-  | 'cancelled'
-  | 'waitlisted'
+  'flown' | 'no_show' | 'offloaded' | 'not_boarded' | 'cancelled' | 'waitlisted'
 
 /** ADT / CHD / INF; total = seats (ADT + CHD) */
 export type PaxCounts = { ADT: number; CHD: number; INF: number; total: number }
 
 export type Reconciliation = {
-  flight: { id: number; flight_number: string; route: string; departure_at: string; status: string }
+  flight: {
+    id: number
+    flight_number: string
+    route: string
+    departure_at: string
+    status: string
+  }
   /** gate closed / departed: a passenger who did not board is a no-show */
   closed: boolean
-  summary: Record<'pnl' | 'go_show' | 'flown' | 'no_show' | 'offloaded' | 'not_boarded' | 'cancelled', PaxCounts>
+  summary: Record<
+    | 'pnl'
+    | 'go_show'
+    | 'flown'
+    | 'no_show'
+    | 'offloaded'
+    | 'not_boarded'
+    | 'cancelled',
+    PaxCounts
+  >
   rows: {
     segment_id: number
     result: ReconciliationResult
@@ -263,13 +328,20 @@ export type Reconciliation = {
 
 export const flightPassengerService = {
   list: async (flightId: number, params: ListParams = {}) => {
-    const res = await client.get<ApiData<ApiSegment[]>>(`/admin/flights/${flightId}/passengers`, {
-      search: params.query,
-      status: params.status as string | undefined,
-    })
-    const flight = (await client.get<ApiData<Flight>>(`/admin/flights/${flightId}`)).data
+    const res = await client.get<ApiData<ApiSegment[]>>(
+      `/admin/flights/${flightId}/passengers`,
+      {
+        search: params.query,
+        status: params.status as string | undefined,
+      }
+    )
+    const flight = (
+      await client.get<ApiData<Flight>>(`/admin/flights/${flightId}`)
+    ).data
     const rows = res.data
-      .filter((s) => !params.cabin_class || s.cabin_class === params.cabin_class)
+      .filter(
+        (s) => !params.cabin_class || s.cabin_class === params.cabin_class
+      )
       .map((s): FlightPassengerRow => ({
         id: s.id,
         pnr: s.passenger?.pnr ?? '',
@@ -291,57 +363,76 @@ export const flightPassengerService = {
         route: `${flight.origin.iata_code}-${flight.destination.iata_code}`,
         departure_at: flight.scheduled_departure_at,
         bags: (s.baggage ?? []).reduce((n, b) => n + b.pieces, 0),
-        bag_weight_kg: (s.baggage ?? []).reduce((n, b) => n + Number(b.weight_kg), 0),
+        bag_weight_kg: (s.baggage ?? []).reduce(
+          (n, b) => n + Number(b.weight_kg),
+          0
+        ),
         zone: null,
       }))
     const size = params.pageSize ?? 1000
     const page = params.current ?? 1
-    return ok({ total: rows.length, items: rows.slice((page - 1) * size, page * size) })
+    return ok({
+      total: rows.length,
+      items: rows.slice((page - 1) * size, page * size),
+    })
   },
 
   /** What the printed manifest needs (the DCS counter's print): the whole document and the seat map */
   manifestPrint: async (flightId: number) => {
     const [doc, seats] = await Promise.all([
-      client.get<ApiData<PrintManifest>>(`/admin/flights/${flightId}/documents/manifest`, {
-        parts: ['passengers', 'baggage', 'balance'],
-      }),
-      client.get<ApiData<ApiSeatMap>>(`/admin/flights/${flightId}/documents/seat-map`),
+      client.get<ApiData<PrintManifest>>(
+        `/admin/flights/${flightId}/documents/manifest`,
+        {
+          parts: ['passengers', 'baggage', 'balance'],
+        }
+      ),
+      client.get<ApiData<ApiSeatMap>>(
+        `/admin/flights/${flightId}/documents/seat-map`
+      ),
     ])
-    return { manifest: doc.data, seatMap: toSeatMap(seats.data, doc.data.header.aircraft_type ?? '') }
+    return {
+      manifest: doc.data,
+      seatMap: toSeatMap(seats.data, doc.data.header.aircraft_type ?? ''),
+    }
   },
 
   /** Manifest: checked-in passengers + zone / baggage summary (ManifestService) */
   manifest: async (flightId: number) => {
     const [doc, flight] = await Promise.all([
-      client.get<ApiData<ApiManifest>>(`/admin/flights/${flightId}/documents/manifest`, {
-        parts: ['passengers', 'balance'],
-      }),
+      client.get<ApiData<ApiManifest>>(
+        `/admin/flights/${flightId}/documents/manifest`,
+        {
+          parts: ['passengers', 'balance'],
+        }
+      ),
       flightOpsService.getById(flightId),
     ])
-    const passengers: FlightPassengerRow[] = doc.data.passengers.rows.map((p) => ({
-      id: p.segment_id,
-      pnr: p.pnr,
-      last_name: p.last_name,
-      first_name: p.first_name,
-      type: p.type,
-      gender: p.gender ?? '',
-      date_of_birth: p.date_of_birth ?? '',
-      nationality: p.nationality ?? '',
-      document_number: p.document_number ?? '',
-      seat_number: p.seat_number,
-      cabin_class: p.cabin_class,
-      status: 'checked_in',
-      ssr_codes: p.ssr ? p.ssr.split(' ') : [],
-      agency: p.agency,
-      phone: p.phone,
-      flight_id: flightId,
-      flight_number: doc.data.header.flight_number,
-      route: '',
-      departure_at: '',
-      bags: p.bag_pieces,
-      bag_weight_kg: p.bag_weight_kg,
-      zone: p.zone,
-    }))
+    const passengers: FlightPassengerRow[] = doc.data.passengers.rows.map(
+      (p) => ({
+        id: p.segment_id,
+        pnr: p.pnr,
+        last_name: p.last_name,
+        first_name: p.first_name,
+        type: p.type,
+        gender: p.gender ?? '',
+        date_of_birth: p.date_of_birth ?? '',
+        nationality: p.nationality ?? '',
+        document_number: p.document_number ?? '',
+        seat_number: p.seat_number,
+        cabin_class: p.cabin_class,
+        status: 'checked_in',
+        ssr_codes: p.ssr ? p.ssr.split(' ') : [],
+        agency: p.agency,
+        phone: p.phone,
+        flight_id: flightId,
+        flight_number: doc.data.header.flight_number,
+        route: '',
+        departure_at: '',
+        bags: p.bag_pieces,
+        bag_weight_kg: p.bag_weight_kg,
+        zone: p.zone,
+      })
+    )
     return ok({
       flight: flight.body,
       passengers,
@@ -361,25 +452,51 @@ export const flightPassengerService = {
   /** PNL telex text (PnlGenerator) */
   pnl: async (flightId: number) => {
     const token = useAuthStore.getState().auth.token
-    const res = await fetch(`${api.base}/admin/flights/${flightId}/documents/pnl`, {
-      headers: { Accept: 'text/plain', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-    })
-    if (!res.ok) throw new Error(res.status === 403 ? 'You do not have permission for this.' : 'PNL is not available')
+    const res = await fetch(
+      `${api.base}/admin/flights/${flightId}/documents/pnl`,
+      {
+        headers: {
+          Accept: 'text/plain',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }
+    )
+    if (!res.ok)
+      throw new Error(
+        res.status === 403
+          ? 'You do not have permission for this.'
+          : 'PNL is not available'
+      )
     return ok(await res.text())
   },
 
   /** PNL report: flown / no-show / go-show / offloaded against the name list */
   reconciliation: async (flightId: number) =>
     ok(
-      (await client.get<ApiData<Reconciliation>>(`/admin/flights/${flightId}/documents/reconciliation`))
-        .data
+      (
+        await client.get<ApiData<Reconciliation>>(
+          `/admin/flights/${flightId}/documents/reconciliation`
+        )
+      ).data
     ),
 
   /** Passenger register for the border control, named like the legacy file: OMFL-UBNICN-25DEC26.xlsx */
-  downloadApis: async (flight: Pick<FlightBoardRow, 'id' | 'flight_number' | 'origin' | 'destination' | 'scheduled_departure_at'>) => {
+  downloadApis: async (
+    flight: Pick<
+      FlightBoardRow,
+      | 'id'
+      | 'flight_number'
+      | 'origin'
+      | 'destination'
+      | 'scheduled_departure_at'
+    >
+  ) => {
     // the day at the departure airport
-    const d = new Date(`${airportTime(flight.scheduled_departure_at, flight.origin.iata_code, 'YYYY-MM-DD')}T12:00:00`)
-    const date = `${String(d.getDate()).padStart(2, '0')}${d.toLocaleString('en-GB', { month: 'short' })}${String(d.getFullYear()).slice(2)}`.toUpperCase()
+    const d = new Date(
+      `${airportTime(flight.scheduled_departure_at, flight.origin.iata_code, 'YYYY-MM-DD')}T12:00:00`
+    )
+    const date =
+      `${String(d.getDate()).padStart(2, '0')}${d.toLocaleString('en-GB', { month: 'short' })}${String(d.getFullYear()).slice(2)}`.toUpperCase()
     saveBlob(
       await client.blob(`/admin/flights/${flight.id}/documents/apis`),
       `${flight.flight_number.slice(0, 2)}FL-${flight.origin.iata_code}${flight.destination.iata_code}-${date}.xlsx`
@@ -388,7 +505,9 @@ export const flightPassengerService = {
 
   downloadReconciliation: async (flightId: number, filename: string) =>
     saveBlob(
-      await client.blob(`/admin/flights/${flightId}/documents/reconciliation`, { format: 'xlsx' }),
+      await client.blob(`/admin/flights/${flightId}/documents/reconciliation`, {
+        format: 'xlsx',
+      }),
       filename
     ),
 }

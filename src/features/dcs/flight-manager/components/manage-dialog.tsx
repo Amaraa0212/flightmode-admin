@@ -9,6 +9,7 @@ import {
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCan } from '@/stores/auth-store'
+import { airportTime, useAirportZones } from '@/lib/airport-zones'
 import { FLIGHT_STATUS } from '@/constants/status'
 import { Button } from '@/components/ui/button'
 import {
@@ -47,6 +48,49 @@ function toLocalInput(iso: string | null | undefined) {
 }
 const fromLocalInput = (value: string) =>
   value ? new Date(value).toISOString() : null
+
+/** When online check-in is open for this flight (the times of the minutes being typed, at the departure airport) */
+function OciWindow({
+  flight,
+  opens,
+  closes,
+}: {
+  flight: FlightBoardRow
+  opens: string
+  closes: string
+}) {
+  const zones = useAirportZones()
+  const departure = new Date(
+    flight.ops.estimated_departure_at ?? flight.scheduled_departure_at
+  ).getTime()
+  const at = (minutes: number) => new Date(departure - minutes * 60_000)
+  const opensAt = opens === '' ? null : at(Number(opens))
+  const closesAt = at(Number(closes || 0))
+  const show = (d: Date) =>
+    airportTime(d.toISOString(), flight.origin.iata_code, 'MM/DD HH:mm', zones)
+
+  // the moment the dialog opened: good enough for open / not yet / closed
+  const [now] = useState(() => Date.now())
+  const state = !flight.ops.online_checkin_enabled
+    ? { text: 'унтраалттай', cls: 'text-muted-foreground' }
+    : !['scheduled', 'checkin_open'].includes(flight.status)
+      ? { text: 'нислэгийн төлөвөөр хаалттай', cls: 'text-muted-foreground' }
+      : opensAt && now < opensAt.getTime()
+        ? { text: 'хараахан нээгдээгүй', cls: 'text-amber-600' }
+        : now >= closesAt.getTime()
+          ? { text: 'хаагдсан', cls: 'text-muted-foreground' }
+          : { text: 'одоо нээлттэй', cls: 'text-emerald-600' }
+
+  return (
+    <p className='text-xs'>
+      {opensAt
+        ? `${show(opensAt)} – ${show(closesAt)}`
+        : `${show(closesAt)} хүртэл`}{' '}
+      хооронд нээлттэй ({flight.origin.iata_code} цагаар) ·{' '}
+      <span className={state.cls}>{state.text}</span>
+    </p>
+  )
+}
 
 function Section({
   title,
@@ -170,6 +214,16 @@ function ManageForm({
     toLocalInput(flight.ops.estimated_arrival_at ?? flight.scheduled_arrival_at)
   )
   const [delay, setDelay] = useState(flight.ops.delay_reason ?? '')
+  // online check-in window, minutes before departure ('' opens: open until it closes)
+  const saved = {
+    opens: flight.online_checkin.opens_minutes
+      ? String(flight.online_checkin.opens_minutes)
+      : '',
+    closes: String(flight.online_checkin.closes_minutes ?? 0),
+  }
+  const [opens, setOpens] = useState(saved.opens)
+  const [closes, setCloses] = useState(saved.closes)
+  const windowChanged = opens !== saved.opens || closes !== saved.closes
   const [cancelReason, setCancelReason] = useState('')
   const busy = update.isPending || action.isPending
 
@@ -232,16 +286,6 @@ function ManageForm({
                 onChange={setAgents}
                 className='max-h-32 overflow-y-auto'
               />
-              <div className='flex items-center justify-between'>
-                <Label>Online check-in (OCI)</Label>
-                <Switch
-                  checked={flight.ops.online_checkin_enabled}
-                  onCheckedChange={(on) =>
-                    update.mutate({ online_checkin_enabled: on })
-                  }
-                  disabled={busy || closed}
-                />
-              </div>
               <Button
                 size='sm'
                 variant='outline'
@@ -255,6 +299,55 @@ function ManageForm({
                 }
               >
                 Save gate users
+              </Button>
+
+              <div className='mt-1 flex items-center justify-between border-t pt-3'>
+                <Label>Online check-in (OCI)</Label>
+                <Switch
+                  checked={flight.ops.online_checkin_enabled}
+                  onCheckedChange={(on) =>
+                    update.mutate({ online_checkin_enabled: on })
+                  }
+                  disabled={busy || closed}
+                />
+              </div>
+              <OciWindow flight={flight} opens={opens} closes={closes} />
+              <div className='grid grid-cols-2 gap-2'>
+                <div className='grid gap-1'>
+                  <Label className='text-xs'>Нээгдэх (STD-ээс өмнө, мин)</Label>
+                  <Input
+                    type='number'
+                    min={0}
+                    value={opens}
+                    placeholder='Хязгааргүй'
+                    onChange={(e) => setOpens(e.target.value)}
+                  />
+                </div>
+                <div className='grid gap-1'>
+                  <Label className='text-xs'>Хаагдах (STD-ээс өмнө, мин)</Label>
+                  <Input
+                    type='number'
+                    min={0}
+                    value={closes}
+                    onChange={(e) => setCloses(e.target.value)}
+                  />
+                </div>
+              </div>
+              <Button
+                size='sm'
+                variant='outline'
+                disabled={busy || !windowChanged}
+                onClick={() =>
+                  update.mutate({
+                    online_checkin: {
+                      enabled: flight.ops.online_checkin_enabled,
+                      opens_minutes: opens === '' ? null : Number(opens),
+                      closes_minutes: closes === '' ? null : Number(closes),
+                    },
+                  })
+                }
+              >
+                Save OCI time
               </Button>
             </fieldset>
           </Section>
