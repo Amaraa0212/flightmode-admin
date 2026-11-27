@@ -30,6 +30,7 @@ const schema = z
     seats: z.number().int().min(0),
     business_seats: z.number().int().min(0),
     deadline: z.string().min(1, 'Names deadline is required'),
+    deadline_hours: z.number().int().min(0).max(48),
     is_waitlist: z.boolean(),
   })
   .refine((v) => v.mode === 'pool' || v.seats >= 1, {
@@ -153,7 +154,13 @@ export const pageConfig: Omit<
     col<Allocation>('usage', 'Sold / Quota', (r) => <QuotaCell r={r} />, {
       accessor: (r) => r.usage.used,
     }),
-    col<Allocation>('deadline', 'Names deadline', (r) => mono(r.deadline)),
+    col<Allocation>('deadline', 'Names deadline', (r) =>
+      mono(
+        r.deadline === r.outbound_flight.scheduled_departure_at.slice(0, 10)
+          ? `${r.deadline} · ${r.deadline_hours ?? 0}h before check-in`
+          : r.deadline
+      )
+    ),
     col<Allocation>('chinggis', 'Chinggis', (r) => <ChinggisCell r={r} />, {
       accessor: (r) => r.chinggis.synced_at ?? '',
     }),
@@ -181,6 +188,7 @@ export const pageConfig: Omit<
       seats: 20,
       business_seats: 0,
       deadline: '',
+      deadline_hours: 0,
       is_waitlist: false,
     },
     fromRow: (r) => ({
@@ -191,6 +199,7 @@ export const pageConfig: Omit<
       seats: r.seats,
       business_seats: r.cabins.C ?? 0,
       deadline: r.deadline,
+      deadline_hours: r.deadline_hours ?? 0,
       is_waitlist: r.is_waitlist,
     }),
     fields: [
@@ -247,6 +256,14 @@ export const pageConfig: Omit<
         label: 'Names deadline',
         type: 'date',
         required: true,
+        gridCols: 1,
+      },
+      {
+        name: 'deadline_hours',
+        label: 'Departure day: hours before check-in',
+        type: 'number',
+        min: '0',
+        placeholder: 'Used when the deadline is the departure day',
         gridCols: 1,
       },
       {

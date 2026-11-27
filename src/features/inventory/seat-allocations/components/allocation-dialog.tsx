@@ -73,6 +73,10 @@ export function AllocationDialog({
   const [deadline, setDeadline] = useState(
     current?.deadline ?? dayBefore(departure)
   )
+  const [deadlineHours, setDeadlineHours] = useState<number | ''>(
+    current?.deadline_hours ?? 0
+  )
+  const sameDay = !!departure && deadline === departure
   const [waitlist, setWaitlist] = useState(current?.is_waitlist ?? false)
   const [published, setPublished] = useState(
     current?.uses_published_fares ?? false
@@ -133,6 +137,7 @@ export function AllocationDialog({
           outbound_flight_id: outboundId,
           return_flight_id: returnId === ONE_WAY ? null : Number(returnId),
           deadline,
+          deadline_hours: sameDay ? Number(deadlineHours || 0) : 0,
           is_waitlist: waitlist,
           uses_published_fares: published,
           cabins: (pool
@@ -374,6 +379,27 @@ export function AllocationDialog({
               onChange={(e) => setDeadline(e.target.value)}
             />
           </div>
+          {sameDay && (
+            <div className='grid gap-1.5'>
+              <Label htmlFor='alloc-deadline-hours'>
+                Hours before check-in
+              </Label>
+              <Input
+                id='alloc-deadline-hours'
+                type='number'
+                min={0}
+                max={48}
+                value={deadlineHours}
+                onChange={(e) =>
+                  setDeadlineHours(
+                    e.target.value === ''
+                      ? ''
+                      : Math.max(0, Number(e.target.value))
+                  )
+                }
+              />
+            </div>
+          )}
           <label className='flex h-8 items-center gap-2 text-sm'>
             <Checkbox
               checked={waitlist}

@@ -14,6 +14,10 @@ export type BoardAllocation = {
   /** what the agency can still sell */
   remaining: number
   deadline: string
+  /** deadline on the departure day: names close this many hours before check-in opens */
+  deadline_hours: number | null
+  /** when names close (deadline + hours, or check-in) */
+  names_deadline_at: string
   is_waitlist: boolean
   /** sells at the fare settings prices instead of fare buckets */
   uses_published_fares: boolean
@@ -50,6 +54,7 @@ export type DistributeRow = {
   seats: number
   cabins?: Record<string, number>
   deadline?: string
+  deadline_hours?: number | null
   uses_published_fares?: boolean
 }
 
@@ -89,7 +94,11 @@ export const allocationBoardService = {
     flightId: number,
     rows: DistributeRow[],
     remove: number[],
-    deadline?: string
+    deadline?: string,
+    /** same-day deadline: hours before check-in opens */
+    deadlineHours?: number,
+    /** the deadline replaces every agency's deadline (released seats come back when it moves later) */
+    applyDeadlineToAll = false
   ) =>
     action(
       client.post<ApiData<FlightQuota>>(
@@ -98,6 +107,8 @@ export const allocationBoardService = {
           rows,
           remove,
           deadline,
+          deadline_hours: deadlineHours ?? null,
+          apply_deadline_to_all: applyDeadlineToAll,
         }
       ),
       (r) => r
@@ -110,7 +121,11 @@ export const allocationBoardService = {
       date_from: string
       date_to: string
       deadline_days_before: number
-      rows: Omit<DistributeRow, 'allocation_id' | 'deadline'>[]
+      deadline_hours?: number
+      rows: Omit<
+        DistributeRow,
+        'allocation_id' | 'deadline' | 'deadline_hours'
+      >[]
     }
   ) =>
     action(

@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ConfirmDialog } from '@/components/confirm-dialog'
 import { SimpleSelect } from '@/components/simple-select'
 import { BOARD_QUERY_KEY } from './flight-board'
 
@@ -107,13 +108,16 @@ export function DistributeDialog({
     setRows(rows.map((r) => (r.key === key ? { ...r, ...patch } : r)))
 
   const [deadline, setDeadline] = useState('')
+  const [deadlineHours, setDeadlineHours] = useState<number | '' | null>(null)
+  const [confirmAll, setConfirmAll] = useState(false)
   // the same rows on every flight of the flight's series between two dates
   const [series, setSeries] = useState<{
     on: boolean
     from: string
     to: string
     daysBefore: number | ''
-  }>({ on: false, from: '', to: '', daysBefore: 1 })
+    hours: number | ''
+  }>({ on: false, from: '', to: '', daysBefore: 1, hours: 0 })
   const seriesId = quota?.flight.flight_series_id ?? null
   const seriesFrom =
     series.from ||
@@ -127,9 +131,34 @@ export function DistributeDialog({
   const seriesTo =
     series.to || (quota ? addDays(quota.flight.scheduled_departure_at, 30) : '')
   const toSeries = series.on && !!seriesId
+  // the deadline the agencies have now (the first one), else the day before departure
+  const currentDeadline = quota?.allocations[0]?.deadline
+  const currentHours = quota?.allocations[0]?.deadline_hours ?? 0
   const defaultDeadline = quota
-    ? dayBefore(quota.flight.scheduled_departure_at)
+    ? (currentDeadline ?? dayBefore(quota.flight.scheduled_departure_at))
     : ''
+  const deadlineValue = deadline || defaultDeadline
+  const hoursValue = deadlineHours ?? currentHours
+  const departureDay = quota
+    ? airportTime(
+        quota.flight.scheduled_departure_at,
+        originOf(quota.flight.route),
+        'YYYY-MM-DD'
+      )
+    : ''
+  const sameDay = !!departureDay && deadlineValue === departureDay
+  const hoursToSend = sameDay ? Number(hoursValue || 0) : 0
+  // existing agencies whose deadline would change
+  const deadlineChanges = (quota?.allocations ?? []).filter(
+    (a) =>
+      !remove.includes(a.allocation_id) &&
+      (a.deadline !== deadlineValue ||
+        (sameDay && (a.deadline_hours ?? 0) !== hoursToSend))
+  )
+  const releasedBack = deadlineChanges.reduce(
+    (s, a) => s + (a.released_seats ?? 0),
+    0
+  )
 
   // per cabin: free now + what the current fixed allocations give back − what the rows take
   const cabinsAfter = useMemo(() => {
@@ -159,7 +188,12 @@ export function DistributeDialog({
 
   const usedAgencies = new Set(rows.map((r) => r.agency_id))
   const incomplete = rows.some(
-    (r) => !r.agency_id || (r.mode === 'fixed' && fixedSeats(r) < 1)
+    (r) =>
+      !r.agency_id ||
+      // a released allocation may be at 0 seats: moving its deadline later gives them back
+      (r.mode === 'fixed' &&
+        fixedSeats(r) < 1 &&
+        !(r.allocation_id && r.released))
   )
 
   const payloadRows = () =>
@@ -180,13 +214,15 @@ export function DistributeDialog({
     }))
 
   const save = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (applyAll: boolean) => {
       if (!toSeries) {
         const res = await allocationBoardService.distribute(
           flightId!,
           payloadRows(),
           remove,
-          deadline || defaultDeadline
+          deadlineValue,
+          hoursToSend,
+          applyAll
         )
         return { message: res.message, failed: [] as string[] }
       }
@@ -194,6 +230,8 @@ export function DistributeDialog({
         date_from: seriesFrom,
         date_to: seriesTo,
         deadline_days_before: Number(series.daysBefore || 0),
+        deadline_hours:
+          Number(series.daysBefore || 0) === 0 ? Number(series.hours || 0) : 0,
         rows: payloadRows().map(({ allocation_id: _id, ...row }) => row),
       })
       return {
@@ -214,6 +252,7 @@ export function DistributeDialog({
       queryClient.invalidateQueries({ queryKey: ['admin-allocations'] })
       queryClient.invalidateQueries({ queryKey: ['allocation-overview'] })
       queryClient.invalidateQueries({ queryKey: ['inventory'] })
+      setConfirmAll(false)
       onClose()
     },
     onError: (error: Error) => toast.error(error.message),
@@ -232,7 +271,10 @@ export function DistributeDialog({
       maxWidth='3xl'
       submitButton={{
         text: 'Save quota',
-        onClick: () => save.mutate(),
+        onClick: () =>
+          !toSeries && deadlineChanges.length > 0
+            ? setConfirmAll(true)
+            : save.mutate(false),
         loading: save.isPending,
         disabled: !quota || incomplete || over.length > 0,
       }}
@@ -449,21 +491,45 @@ export function DistributeDialog({
             </div>
 
             {!toSeries && (
-              <div className='grid max-w-60 gap-1.5'>
-                <Label htmlFor='distribute-deadline'>
-                  Names deadline (new agencies)
-                </Label>
-                <Input
-                  id='distribute-deadline'
-                  type='date'
-                  value={deadline || defaultDeadline}
-                  onChange={(e) => setDeadline(e.target.value)}
-                />
+              <div className='flex flex-wrap items-end gap-3'>
+                <div className='grid w-48 gap-1.5'>
+                  <Label htmlFor='distribute-deadline'>Names deadline</Label>
+                  <Input
+                    id='distribute-deadline'
+                    type='date'
+                    max={departureDay || undefined}
+                    value={deadlineValue}
+                    onChange={(e) => setDeadline(e.target.value)}
+                  />
+                </div>
+                {sameDay && (
+                  <div className='grid w-48 gap-1.5'>
+                    <Label htmlFor='distribute-deadline-hours'>
+                      Hours before check-in
+                    </Label>
+                    <Input
+                      id='distribute-deadline-hours'
+                      type='number'
+                      min={0}
+                      max={48}
+                      value={hoursValue}
+                      onChange={(e) =>
+                        setDeadlineHours(
+                          e.target.value === ''
+                            ? ''
+                            : Math.max(0, Number(e.target.value))
+                        )
+                      }
+                    />
+                  </div>
+                )}
               </div>
             )}
             <p className='text-muted-foreground text-xs'>
               Unsold fixed seats go back to the pool and direct sale when the
-              names deadline passes.
+              names deadline passes. On the departure day names close the given
+              hours before check-in opens (3 h before departure); once check-in
+              is open no passenger can be added.
             </p>
 
             {seriesId && (
@@ -522,6 +588,29 @@ export function DistributeDialog({
                           }
                         />
                       </div>
+                      {Number(series.daysBefore || 0) === 0 && (
+                        <div className='grid gap-1.5'>
+                          <Label htmlFor='series-deadline-hours'>
+                            Hours before check-in
+                          </Label>
+                          <Input
+                            id='series-deadline-hours'
+                            type='number'
+                            min={0}
+                            max={48}
+                            value={series.hours}
+                            onChange={(e) =>
+                              setSeries({
+                                ...series,
+                                hours:
+                                  e.target.value === ''
+                                    ? ''
+                                    : Math.max(0, Number(e.target.value)),
+                              })
+                            }
+                          />
+                        </div>
+                      )}
                     </div>
                     <p className='text-muted-foreground text-xs'>
                       Each agency's allocation is updated or created on every
@@ -543,6 +632,37 @@ export function DistributeDialog({
           </>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmAll}
+        onOpenChange={setConfirmAll}
+        title='Change the names deadline for every agency?'
+        desc={
+          <div className='grid gap-2'>
+            <p>
+              The names deadline of{' '}
+              {deadlineChanges
+                .map((a) => a.agency.name ?? `#${a.agency.id}`)
+                .join(', ')}{' '}
+              becomes{' '}
+              <span className='font-mono font-medium'>
+                {deadlineValue}
+                {sameDay ? ` · ${hoursToSend} h before check-in` : ''}
+              </span>
+              .
+            </p>
+            {releasedBack > 0 && (
+              <p>
+                {releasedBack} unsold seat(s) taken back at the old deadline go
+                back to their agency when the new deadline is still ahead (as
+                far as the flight has room).
+              </p>
+            )}
+          </div>
+        }
+        confirmText='Change for all'
+        isLoading={save.isPending}
+        handleConfirm={() => save.mutate(true)}
+      />
     </BaseDialog>
   )
 }

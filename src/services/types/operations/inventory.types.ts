@@ -53,6 +53,8 @@ export interface InventoryAgency {
   outbound_flight_id: number
   return_flight_id: number | null
   deadline: string | null
+  /** deadline on the departure day: names close this many hours before check-in opens */
+  deadline_hours?: number | null
   uses_fare_quotas: boolean
   /** sells at the fare settings prices (published fares) */
   uses_published_fares: boolean
@@ -71,6 +73,8 @@ export interface AllocationCabinPayload {
   outbound_flight_id: number
   return_flight_id: number | null
   deadline: string
+  /** deadline on the departure day: names close this many hours before check-in opens */
+  deadline_hours?: number
   is_waitlist: boolean
   /** prices from the fare settings instead of fare buckets */
   uses_published_fares: boolean

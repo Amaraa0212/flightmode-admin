@@ -38,6 +38,8 @@ type ApiQuota = {
     /** infants the aircraft can still take on the quota's flights (null: no limit) */
     infants_left?: number | null
     is_open_for_names: boolean
+    /** check-in of the flight has opened: no more passengers */
+    checkin_started?: boolean
     names_deadline_at: string
     cabins?: {
       cabin_class: string
@@ -73,6 +75,8 @@ export interface AgencyQuota extends Record<string, unknown> {
   cabin_classes: string[]
   names_deadline_at: string | null
   is_open_for_names: boolean
+  /** check-in of the flight has opened: no more passengers */
+  checkin_started?: boolean
   /** a full quota waitlists new passengers */
   is_waitlist: boolean
   schedule_changes: AgencyScheduleChanges
@@ -167,6 +171,7 @@ const toQuota = (a: ApiQuota): AgencyQuota => ({
     .map(([cabin]) => cabin),
   names_deadline_at: a.usage?.names_deadline_at ?? null,
   is_open_for_names: a.usage?.is_open_for_names ?? false,
+  checkin_started: a.usage?.checkin_started ?? false,
   is_waitlist: a.is_waitlist,
   schedule_changes: a.schedule_changes ?? NO_CHANGES,
   rights: a.rights ?? NO_RIGHTS,

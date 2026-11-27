@@ -6,6 +6,7 @@ import { Loader2, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { agencyPortalService, type AgencyPassengerEdit, type AgencyQuota } from '@/services'
+import { CountrySelect } from '@/components/country-select'
 import { Button } from '@/components/ui/button'
 import { AddToBookingDialog } from './add-to-booking-dialog'
 import { BaseDialog } from '@/components/ui/base-dialog'
@@ -157,7 +158,11 @@ export function EditPassengerDialog({
               <Input className='h-10 font-mono uppercase' {...form.register('document_number')} />
             </Field>
             <Field label='Олгосон улс' error={errors.document_issuing_country?.message}>
-              <Input className='h-10 uppercase' maxLength={3} placeholder='MN' {...form.register('document_issuing_country')} />
+              <CountrySelect
+                value={form.watch('document_issuing_country')}
+                invalid={!!errors.document_issuing_country}
+                onChange={(code) => form.setValue('document_issuing_country', code, { shouldValidate: true, shouldDirty: true })}
+              />
             </Field>
             <Field label='Паспорт дуусах'>
               <Input className='h-10' type='date' {...form.register('document_expires_at')} />
