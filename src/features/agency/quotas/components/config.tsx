@@ -59,7 +59,9 @@ export const pageConfig: Omit<ResourcePageProps<AgencyQuota, Record<string, neve
     col<AgencyQuota>('names_deadline_at', 'TKT deadline', (r) => (
       <span className={r.is_open_for_names ? '' : 'text-rose-500'}>
         {r.names_deadline_at ? dateTime(r.names_deadline_at) : '-'}
-        {!r.is_open_for_names && <span className='ms-1 text-xs'>(closed)</span>}
+        {!r.is_open_for_names && (
+          <span className='ms-1 text-xs'>{r.checkin_started ? '(check-in нээгдсэн)' : '(closed)'}</span>
+        )}
       </span>
     )),
   ],

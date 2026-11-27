@@ -344,6 +344,8 @@ export interface AllocationPayload {
   /** business seats inside `seats`; the rest is economy (fixed only) */
   business_seats: number
   deadline: string
+  /** same-day deadline: hours before check-in opens */
+  deadline_hours: number
   is_waitlist: boolean
 }
 
@@ -355,6 +357,7 @@ type ApiAllocation = {
   return_flight: ApiFlight | null
   seats: number
   deadline: string
+  deadline_hours?: number | null
   uses_fare_quotas: boolean
   is_waitlist: boolean
   cabins?: Record<string, number> | []
@@ -378,6 +381,7 @@ export const toAllocation = (a: ApiAllocation): Allocation => ({
   return_flight: a.return_flight?.id ? flightRef(a.return_flight) : null,
   seats: a.seats,
   deadline: a.deadline,
+  deadline_hours: a.deadline_hours ?? null,
   uses_fare_quotas: a.uses_fare_quotas,
   is_waitlist: a.is_waitlist,
   cabins: Array.isArray(a.cabins) ? {} : (a.cabins ?? {}),
@@ -402,6 +406,7 @@ export const allocationService = {
         : null,
       seats: Number(payload.seats),
       deadline: payload.deadline,
+      deadline_hours: Number(payload.deadline_hours) || 0,
       is_waitlist: payload.is_waitlist,
       // fare buckets are not edited here — the API keeps them when "fares" is left out;
       // a pool without cabins sells every cabin of the aircraft

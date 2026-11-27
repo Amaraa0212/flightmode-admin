@@ -125,6 +125,8 @@ export interface Allocation extends Record<string, unknown> {
     | null
   seats: number
   deadline: string
+  /** deadline on the departure day: names close this many hours before check-in opens */
+  deadline_hours?: number | null
   uses_fare_quotas: boolean
   is_waitlist: boolean
   /** seats per cabin class, e.g. { Y: 18, C: 2 } */

@@ -14,6 +14,7 @@ import { Baby, Loader2, Plus, Search, Trash2, UserPlus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { agencyPortalService, type AgencyHold, type AgencyQuota } from '@/services'
+import { CountrySelect } from '@/components/country-select'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -386,11 +387,12 @@ export function PassengerCard({
           </div>
         </Field>
         <Field label='Олгосон улс *' error={error('document_issuing_country')}>
-          <Input
-            className='h-10 uppercase'
-            maxLength={3}
-            placeholder='MN'
-            {...form.register(name('document_issuing_country'))}
+          <CountrySelect
+            value={form.watch(name('document_issuing_country'))}
+            invalid={!!error('document_issuing_country')}
+            onChange={(code) =>
+              form.setValue(name('document_issuing_country'), code, { shouldValidate: true, shouldDirty: true })
+            }
           />
         </Field>
       </div>

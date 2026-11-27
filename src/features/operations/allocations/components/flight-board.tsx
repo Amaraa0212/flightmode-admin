@@ -203,8 +203,16 @@ function FlightCard({
               >
                 {a.remaining}
               </TableCell>
-              <TableCell className='text-muted-foreground font-mono text-xs'>
+              <TableCell
+                className='text-muted-foreground font-mono text-xs'
+                title={
+                  a.names_deadline_at
+                    ? `Names close ${a.names_deadline_at.slice(0, 16).replace('T', ' ')}`
+                    : undefined
+                }
+              >
                 {a.deadline}
+                {a.deadline_hours ? ` · ${a.deadline_hours}h` : ''}
               </TableCell>
             </TableRow>
           ))}
