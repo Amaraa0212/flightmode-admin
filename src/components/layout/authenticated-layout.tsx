@@ -7,9 +7,10 @@ import { DrawerProvider } from '@/context/drawer-provider'
 import { LayoutProvider } from '@/context/layout-provider'
 import { SearchProvider } from '@/context/search-provider'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
-import { ConfigDrawer } from '@/components/config-drawer'
-import { AppSidebar } from '@/components/layout/app-sidebar'
 import { AnnouncementBell } from '@/components/announcements'
+import { ConfigDrawer } from '@/components/config-drawer'
+import { IdleSignOut } from '@/components/idle-sign-out'
+import { AppSidebar } from '@/components/layout/app-sidebar'
 import { Header } from '@/components/layout/header'
 import { PageHelp } from '@/components/page-help/page-help'
 import { ProfileDropdown } from '@/components/profile-dropdown'
@@ -58,6 +59,7 @@ export function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
               {children ?? <Outlet />}
               <PageHelp />
               <TwoFactorSetupPrompt />
+              <IdleSignOut />
             </SidebarInset>
           </SidebarProvider>
         </DrawerProvider>
